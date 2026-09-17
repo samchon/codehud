@@ -267,6 +267,9 @@ importers:
       '@nestia/e2e':
         specifier: catalog:samchon
         version: 12.1.0
+      tgrid:
+        specifier: catalog:net
+        version: 1.2.1
     devDependencies:
       '@ttsc/lint':
         specifier: catalog:typescript

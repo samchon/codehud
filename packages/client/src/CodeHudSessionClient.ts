@@ -100,13 +100,13 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
   /**
    * Starts a session and begins holding a fold for it.
    *
-   * The bridge subscribes the opener, so there is no attach to follow: the
-   * counter starts at zero and the first observation arrives on its own.
+   * The bridge subscribes the opener, so there is no attach to follow and
+   * nothing to record: a session this device has never folded reads as counter
+   * zero already. An earlier version wrote that zero down, which a mutation
+   * proved changed nothing at all.
    */
   public async open(props: ICodeHudBridgeProvider.IOpen): Promise<string> {
-    const session: string = await this.props.bridge.open(props);
-    this.counters.set(session, 0);
-    return session;
+    return this.props.bridge.open(props);
   }
 
   /**
