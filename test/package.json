@@ -16,7 +16,8 @@
     "@codehud/client": "workspace:^",
     "@codehud/interface": "workspace:^",
     "@codehud/projection": "workspace:^",
-    "@nestia/e2e": "catalog:samchon"
+    "@nestia/e2e": "catalog:samchon",
+    "tgrid": "catalog:net"
   },
   "devDependencies": {
     "@ttsc/lint": "catalog:typescript",
