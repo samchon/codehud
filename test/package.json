@@ -11,8 +11,9 @@
   "author": "Samchon",
   "license": "MIT",
   "dependencies": {
-    "@codehud/projection": "workspace:^",
+    "@codehud/agent": "workspace:^",
     "@codehud/interface": "workspace:^",
+    "@codehud/projection": "workspace:^",
     "@nestia/e2e": "catalog:samchon"
   },
   "devDependencies": {

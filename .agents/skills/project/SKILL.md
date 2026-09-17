@@ -46,7 +46,7 @@ A capability that only works with a hosted relay, or that a wearer can only reac
 | `docs/specifications/` | System contracts that make those promises precise |
 | `packages/interface/` | Pure type contracts, no runtime dependency |
 | `packages/projection/` | The projection boundary: the reducer and the composer, pure functions over `interface` types |
-| `packages/agent/` | Harness adapters that spawn and normalize Claude Code and Codex |
+| `packages/agent/` | The harness axis: discovery, and the adapters that spawn and normalize Claude Code and Codex |
 | `packages/bridge/` | The process that runs on the repository machine |
 | `packages/client/` | Device-side session client, shared by the phone shell and the simulator |
 | `packages/simulator/` | A terminal device adapter, so the reducer is testable without hardware |
