@@ -37,6 +37,12 @@ export default {
       // requirement claim and the other way round.
       name: "public contracts realize the committed contract",
       type: "typescript",
+      // The generated Codex bindings need no exclusion here, which was checked
+      // rather than assumed: deleting one produced no new diagnostic. A host
+      // that cites nothing is not an error, only a citation pointing nowhere
+      // is, so generated files are simply hosts with nothing to say. What did
+      // have to be turned off is the lint rule that demands documentation on
+      // every export, and that lives in the package's own lint config.
       files: ["packages/*/src/**/*.ts", "!packages/*/src/**/index.ts"],
       symbol: ["type"],
       reference: [
