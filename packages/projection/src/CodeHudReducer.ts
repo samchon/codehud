@@ -190,12 +190,27 @@ export class CodeHudReducer {
     // A new entry is prepended, which shifts every existing index by one. A
     // wearer holding a cursor is reading a particular entry, not a particular
     // position, so the cursor moves with it.
+    //
+    // Except when the entry they were reading is the one the cap just dropped.
+    // Then following it would walk the cursor off the end, and a cursor past
+    // the end renders as the idle frame while review is still active: the
+    // wearer is thrown out of the history they were walking, the display says
+    // nothing about it, and their next word moves from a position that no
+    // longer exists. So the cursor stops at the oldest entry that survived.
+    const history: ICodeHudState.IEntry[] = [entry, ...state.history].slice(
+      0,
+      this.context.history,
+    );
     return {
       ...state,
-      history: [entry, ...state.history].slice(0, this.context.history),
-      review: state.review.active
-        ? { active: true, offset: state.review.offset + 1 }
-        : state.review,
+      history,
+      review:
+        state.review.active === true
+          ? {
+              active: true,
+              offset: Math.min(state.review.offset + 1, history.length - 1),
+            }
+          : state.review,
     };
   }
 }

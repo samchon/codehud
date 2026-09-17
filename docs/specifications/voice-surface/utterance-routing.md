@@ -46,4 +46,6 @@ The affirmative and negative consent tokens are selected for acoustic distance f
 
 A recognition result below a stated confidence threshold is treated as the absence of an answer: the request stays pending and the system re-requests. It is never resolved toward either answer, and silence is never an answer.
 
+A result that reports no confidence at all is treated the same way. The threshold is a claim the recognizer makes about itself, and a recognizer that makes none cannot be used for consent; admitting its answers would leave the threshold guarding only the devices that already measure themselves.
+
 An action classified as doubly-confirmed requires a second confirmation whose wording differs from the first, so that a single misrecognition cannot satisfy both. A repetition of the same token does not satisfy the second confirmation.

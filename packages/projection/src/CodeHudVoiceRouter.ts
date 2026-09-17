@@ -64,12 +64,25 @@ export class CodeHudVoiceRouter {
     // The floor guards consent and only consent. An approval answered by voice
     // is one recognition error away from authorizing something destructive, and
     // that error cannot be undone; a misheard "back" costs a glance.
+    //
+    // A result carrying no confidence at all is refused for the same reason
+    // rather than admitted for want of a number. The contract states it of the
+    // field itself: a recognizer that reports nothing here cannot be used for
+    // consent. Admitting it would put every approval on a device whose
+    // recognizer is silent about certainty one mishearing from authorizing a
+    // deletion, and the floor would guard exactly the devices that already
+    // measure themselves.
     if (
       (only === "allow" || only === "deny") &&
-      props.confidence !== undefined &&
-      props.confidence < this.context.consent.floor
+      (props.confidence === undefined ||
+        props.confidence < this.context.consent.floor)
     )
-      return { type: "unheard", confidence: props.confidence };
+      return {
+        type: "unheard",
+        ...(props.confidence === undefined
+          ? {}
+          : { confidence: props.confidence }),
+      };
 
     return {
       type: "command",

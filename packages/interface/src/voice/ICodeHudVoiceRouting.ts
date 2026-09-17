@@ -139,8 +139,14 @@ export namespace ICodeHudVoiceRouting {
     /** Discriminator. */
     type: "unheard";
 
-    /** What the recognizer reported, for a device that wants to say why. */
-    confidence: number;
+    /**
+     * What the recognizer reported, for a device that wants to say why.
+     *
+     * Absent when it reported nothing, which is itself a reason to refuse the
+     * answer rather than a missing detail: a recognizer that cannot say how
+     * sure it is cannot be used for consent, so there is no number to give.
+     */
+    confidence?: number;
   }
 
   /**
