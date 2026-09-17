@@ -13,6 +13,11 @@ This is one of the product's two adapter axes. It absorbs the difference between
 | `CodeHudHarnessProbe` | class | Reports every harness family, with either an identity or a reason |
 | `CodeHudNodeRunner` | class | Reaches the host machine through Node |
 | `ICodeHudHarnessRunner` | interface | The seam between the two |
+| `CodeHudClaudeAdapter` | class | Launches Claude Code so that it asks, and hands back a conversation |
+| `CodeHudClaudeSession` | class | One conversation, and the approvals it is waiting on |
+| `CodeHudClaudeNormalizer` | class | Harness output to observations, and what to drop |
+| `CodeHudNodeChannel` | class | One running process, reassembled into lines |
+| `ICodeHudClaudeChannel` | interface | The seam between a session and a process |
 
 `CodeHudHarnessProbe.version` and `CodeHudHarnessProbe.reason` are pure and public: one reads a version out of whatever a harness printed, the other turns whatever was thrown into a line short enough for a display. `CodeHudNodeRunner.directories` and `CodeHudNodeRunner.invocation` are the two platform rules, taking the separator and the platform as parameters so that both operating systems' behaviour is reachable from either.
 
@@ -47,6 +52,34 @@ One behaviour worth knowing rather than fixing: resolution checks for an executa
 ## Testing without the binaries
 
 The host machine is reached through `ICodeHudHarnessRunner`, so every branch of discovery is exercised in memory. A test that depended on what happens to be installed would be measuring the machine. For the same reason the Windows rewrite takes the platform as a parameter: a branch only one operating system can reach is a branch the other one's continuous integration silently stops checking.
+
+## Three flags are what make the harness ask
+
+The product exists to put an approval in front of a wearer. Getting that from the Claude Code command line takes three things together, and one is a value `--help` does not list:
+
+```text
+--input-format stream-json        so this process can answer at all
+--permission-prompt-tool stdio    the sentinel for "the host answers over stdio"
+an initialize control request     sent before the first instruction
+```
+
+Measured, not assumed. Drop any part and nothing errors, nothing hangs, and every gated tool is refused where no wearer can see it: the agent appears to sabotage its own work. The value came from the shipped binary, which passes exactly `--permission-prompt-tool stdio` when an SDK caller supplies a `canUseTool` callback.
+
+Two constraints follow. Control lines carry **no session identifier**, so a permission request cannot be routed by session and the only thing that says which conversation is being asked about is which process it came from: one process per session, one control channel per session. And a refusal the host gives produces **no** `system/permission_denied` line, because that line reports a local rule deciding; an adapter watching only for it would miss every refusal a wearer actually made.
+
+## An answer reaches the harness only when it is waited on
+
+The harness discards an answer it is not waiting on without complaint. A session that forwarded one hopefully would report success to a wearer whose decision never landed, leaving the agent blocked on a question they believe they answered. So the session remembers each request identifier as the approval passes through, refuses an answer quoting one it does not hold, and refuses the same answer twice.
+
+## What is absorbed
+
+`rate_limit_event`, `system/status`, and `system/thinking_tokens` are real lines that become no observation at all. A wearer would do nothing differently for any of them, and the observation vocabulary is closed so that every member is a situation someone can act on.
+
+`system/permission_denied` is absorbed too: the errored tool result that follows already says the call failed.
+
+## Streaming without saying it twice
+
+With partial messages on, the harness reports the same prose twice, once as deltas and once as the completed message. The fold appends whatever it is handed, so passing both through would show every sentence written out twice. The completed block is therefore emitted as a terminator carrying nothing. With partial messages off there are no deltas and the same terminator carries the whole text, and both routes land on the same state.
 
 ## Contract traceability
 
