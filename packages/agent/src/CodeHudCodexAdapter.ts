@@ -6,6 +6,7 @@ import type {
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
+import { CodeHudAgentPolicy } from "./CodeHudAgentPolicy";
 import { CodeHudCodexSession } from "./CodeHudCodexSession";
 import { CodeHudNodeChannel } from "./CodeHudNodeChannel";
 import { CodeHudNodeRunner } from "./CodeHudNodeRunner";
@@ -98,8 +99,8 @@ export class CodeHudCodexAdapter implements ICodeHudAgentAdapter {
         method: "thread/start",
         params: {
           cwd: props.directory,
-          approvalPolicy: "untrusted",
-          sandbox: CodeHudCodexAdapter.sandbox(props.policy),
+          approvalPolicy: CodeHudAgentPolicy.approval(props.policy),
+          sandbox: CodeHudAgentPolicy.sandbox(props.policy),
           approvalsReviewer: "user",
           ...(props.model === undefined ? {} : { model: props.model }),
         },
@@ -167,23 +168,6 @@ export namespace CodeHudCodexAdapter {
       id: number,
     ): Promise<Record<string, unknown>>;
   }
-
-  /**
-   * The sandbox a policy implies.
-   *
-   * Three levels, and the mapping is deliberately conservative: anything the
-   * wearer has to confirm means the agent cannot be trusted to write without
-   * being asked, and anything unattended still stops at the workspace. Nothing
-   * here ever selects full access, because a policy that removes the sandbox is
-   * a decision a wearer should make at a keyboard rather than by speaking.
-   */
-  export const sandbox = (
-    policy: ICodeHudAgentAdapter.IPolicy,
-  ): "read-only" | "workspace-write" => {
-    const write: ICodeHudAgentAdapter.IPolicy.Treatment | undefined =
-      policy.actions["write"];
-    return write === "unattended" ? "workspace-write" : "read-only";
-  };
 
   /**
    * The thread identifier out of a `thread/start` reply.
