@@ -30,28 +30,29 @@ export default {
       },
     },
     {
-      name: "public contracts realize requirements",
+      // Both document layers are references of one claim rather than two
+      // claims over the same hosts. Each claim resolves a host's citations
+      // only against its own reference population, so splitting them would
+      // make every specification citation a dangling target under the
+      // requirement claim and the other way round.
+      name: "public contracts realize the committed contract",
       type: "typescript",
       files: ["packages/*/src/**/*.ts", "!packages/*/src/**/index.ts"],
       symbol: ["type"],
-      reference: {
-        type: "markdown",
-        root: "docs",
-        files: ["requirements/**/*.md", "!requirements/README.md"],
-        symbol: "h3",
-      },
-    },
-    {
-      name: "public contracts realize specifications",
-      type: "typescript",
-      files: ["packages/*/src/**/*.ts", "!packages/*/src/**/index.ts"],
-      symbol: ["type"],
-      reference: {
-        type: "markdown",
-        root: "docs",
-        files: ["specifications/**/*.md", "!specifications/README.md"],
-        symbol: "h3",
-      },
+      reference: [
+        {
+          type: "markdown",
+          root: "docs",
+          files: ["requirements/**/*.md", "!requirements/README.md"],
+          symbol: "h3",
+        },
+        {
+          type: "markdown",
+          root: "docs",
+          files: ["specifications/**/*.md", "!specifications/README.md"],
+          symbol: "h3",
+        },
+      ],
     },
   ],
 } satisfies IEvidenceConfig;
