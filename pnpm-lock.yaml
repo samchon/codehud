@@ -247,6 +247,31 @@ importers:
         specifier: catalog:typescript
         version: 7.0.2
 
+  packages/simulator:
+    dependencies:
+      '@codehud/interface':
+        specifier: workspace:^
+        version: link:../interface
+    devDependencies:
+      '@ttsc/evidence':
+        specifier: catalog:typescript
+        version: 0.30.2(@ttsc/lint@0.30.2)
+      '@ttsc/lint':
+        specifier: catalog:typescript
+        version: 0.30.2
+      '@types/node':
+        specifier: catalog:utils
+        version: 22.20.3
+      rimraf:
+        specifier: catalog:utils
+        version: 6.1.3
+      ttsc:
+        specifier: catalog:typescript
+        version: 0.30.2
+      typescript:
+        specifier: catalog:typescript
+        version: 7.0.2
+
   test:
     dependencies:
       '@codehud/agent':
@@ -264,6 +289,9 @@ importers:
       '@codehud/projection':
         specifier: workspace:^
         version: link:../packages/projection
+      '@codehud/simulator':
+        specifier: workspace:^
+        version: link:../packages/simulator
       '@nestia/e2e':
         specifier: catalog:samchon
         version: 12.1.0
