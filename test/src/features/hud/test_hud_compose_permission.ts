@@ -1,4 +1,8 @@
-import type { ICodeHudFrame, ICodeHudState } from "@codehud/interface";
+import type {
+  ICodeHudContext,
+  ICodeHudFrame,
+  ICodeHudState,
+} from "@codehud/interface";
 import {
   CodeHudComposer,
   CodeHudContext,
@@ -36,6 +40,11 @@ export async function test_hud_compose_permission(): Promise<void> {
   const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
   const composer: CodeHudComposer = new CodeHudComposer(CodeHudContext.DEFAULT);
   Stream.reset();
+
+  // The two labels are the harness's, supplied by the fixture below; only the
+  // connectives around them belong to the configuration. Spelling those out as
+  // a literal would tie the rule to wording the composer merely passes through.
+  const words: ICodeHudContext.IVocabulary = CodeHudContext.DEFAULT.vocabulary;
   const asked: ICodeHudState = reducer.reduce(
     reducer.reduce(reducer.initialize(), Stream.session()),
     Stream.permission("r1", "Write src/index.ts", "Creates a new file."),
@@ -49,7 +58,7 @@ export async function test_hud_compose_permission(): Promise<void> {
   TestValidator.equals(
     "hint names both answers",
     narrow.hint,
-    "Say Allow or Deny",
+    `${words.say} Allow ${words.or} Deny`,
   );
   TestValidator.equals(
     "hint never names the persisting option",
@@ -60,7 +69,11 @@ export async function test_hud_compose_permission(): Promise<void> {
   const wide: ICodeHudFrame = composer.compose(asked, Stream.WIDE);
   TestValidator.equals("detail survives with room", wide.lines.length, 2);
   TestValidator.equals("detail tone", wide.lines[1]!.tone, "secondary");
-  TestValidator.equals("hint still present", wide.hint, "Say Allow or Deny");
+  TestValidator.equals(
+    "hint still present",
+    wide.hint,
+    `${words.say} Allow ${words.or} Deny`,
+  );
 
   const onesided: ICodeHudState = {
     ...asked,

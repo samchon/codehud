@@ -1,4 +1,8 @@
-import type { ICodeHudFrame, ICodeHudState } from "@codehud/interface";
+import type {
+  ICodeHudContext,
+  ICodeHudFrame,
+  ICodeHudState,
+} from "@codehud/interface";
 import {
   CodeHudComposer,
   CodeHudContext,
@@ -41,6 +45,12 @@ export async function test_hud_compose_states(): Promise<void> {
   Stream.reset();
   const fresh: ICodeHudState = reducer.initialize();
 
+  // Read from the configuration rather than repeated as literals. The rule
+  // under test is that each situation selects its own entry, not what the
+  // default wording happens to be, and the defaults differ from one another,
+  // so a composer that selected the wrong entry still fails here.
+  const words: ICodeHudContext.IVocabulary = CodeHudContext.DEFAULT.vocabulary;
+
   const connecting: ICodeHudFrame = composer.compose(fresh, Stream.NARROW);
   TestValidator.equals("connecting kind", connecting.kind, "status");
   TestValidator.equals("connecting grade", connecting.urgency, "ambient");
@@ -49,7 +59,11 @@ export async function test_hud_compose_states(): Promise<void> {
     { ...fresh, activity: "idle" },
     Stream.NARROW,
   );
-  TestValidator.equals("idle with no session", bare.lines[0]!.text, "Ready");
+  TestValidator.equals(
+    "idle with no session",
+    bare.lines[0]!.text,
+    words.ready,
+  );
 
   const opened: ICodeHudState = reducer.reduce(
     fresh,
@@ -85,7 +99,7 @@ export async function test_hud_compose_states(): Promise<void> {
   TestValidator.equals(
     "working with no history",
     started.lines[0]!.text,
-    "Working",
+    words.working,
   );
 
   const musing: ICodeHudFrame = composer.compose(
@@ -95,7 +109,7 @@ export async function test_hud_compose_states(): Promise<void> {
   TestValidator.equals(
     "thinking with no history",
     musing.lines[0]!.text,
-    "Thinking",
+    words.thinking,
   );
 
   const tooling: ICodeHudState = reducer.reduce(
@@ -119,7 +133,7 @@ export async function test_hud_compose_states(): Promise<void> {
   TestValidator.equals("success tone", ok.lines[0]!.tone, "primary");
   TestValidator.predicate(
     "success verdict",
-    ok.lines[1]!.text.startsWith("Done"),
+    ok.lines[1]!.text.startsWith(words.succeeded),
   );
 
   const bad: ICodeHudFrame = composer.compose(
@@ -130,7 +144,7 @@ export async function test_hud_compose_states(): Promise<void> {
   TestValidator.equals("failure tone", bad.lines[0]!.tone, "alert");
   TestValidator.predicate(
     "failure verdict",
-    bad.lines[1]!.text.startsWith("Failed"),
+    bad.lines[1]!.text.startsWith(words.failed),
   );
 
   const stopped: ICodeHudFrame = composer.compose(
@@ -145,7 +159,7 @@ export async function test_hud_compose_states(): Promise<void> {
   TestValidator.equals("interruption tone", stopped.lines[0]!.tone, "primary");
   TestValidator.predicate(
     "interruption verdict",
-    stopped.lines[1]!.text.startsWith("Stopped"),
+    stopped.lines[1]!.text.startsWith(words.stopped),
   );
 
   const fault: ICodeHudFrame = composer.compose(
