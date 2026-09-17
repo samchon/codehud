@@ -44,7 +44,19 @@ export default {
       // have to be turned off is the lint rule that demands documentation on
       // every export, and that lives in the package's own lint config.
       files: ["packages/*/src/**/*.ts", "!packages/*/src/**/index.ts"],
-      symbol: ["type"],
+      // Properties are hosts too, not only the types that contain them. Some
+      // promises live on one field rather than on the shape around it: the
+      // harness's own session identifier is the whole of what makes handoff
+      // possible, and saying so on the type would spread a precise claim across
+      // everything else the type carries.
+      //
+      // Until this was widened a citation on a property was an error, reported
+      // as graph-out-of-scope-host. That was checked by moving one there and
+      // reading the diagnostic, which matters: the same move under the old
+      // setting also produced one error under the new one, for a different
+      // reason, and counting errors rather than reading them said the change
+      // did nothing.
+      symbol: ["type", "property"],
       reference: [
         {
           type: "markdown",
