@@ -24,11 +24,22 @@ import type { ICodeHudHarnessChannel } from "./ICodeHudHarnessChannel";
  * @evidence requirements/agent-control/turn-and-approval.md#agent-permission-blocking Holds the approvals the server is waiting on, so an answer is paired against something rather than sent hopefully.
  * @evidence specifications/agent-harness/normalized-stream.md#spec-agent-session-open Implements the session surface as identity, observations, instruction delivery, and idempotent termination, and nothing else.
  * @evidence specifications/agent-harness/control-and-approval.md#spec-agent-permission-pairing Refuses an answer quoting no identifier or one it does not recognize, and applies it to nothing.
+ * @evidence requirements/agent-control/turn-and-approval.md#agent-permission-answer-fidelity Writes each answer in the terms the request that prompted it accepts, rather than in one shape the server would silently refuse.
+ * @evidence specifications/agent-harness/control-and-approval.md#spec-agent-answer-vocabulary Keeps each pending request's kind and resolves an option only among the answers that kind takes, refusing an identifier belonging to another.
  * @author Samchon
  */
 export class CodeHudCodexSession implements ICodeHudAgentSession {
   private readonly normalizer: CodeHudCodexNormalizer;
-  private readonly waiting: Set<string> = new Set();
+
+  /**
+   * The approvals the server is waiting on, and how each expects an answer.
+   *
+   * The method is kept rather than only the identifier because the answer's
+   * shape follows it: three of the five approval methods speak vocabularies the
+   * other two would refuse, and by the time an answer is being written the
+   * request that prompted it is gone.
+   */
+  private readonly waiting: Map<string, string> = new Map();
   private outgoing: number = 100;
   private ended: boolean = false;
 
@@ -70,18 +81,20 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
   public get events(): AsyncIterable<ICodeHudAgentEvent> {
     const source: AsyncIterable<unknown> = this.channel.lines;
     const normalizer: CodeHudCodexNormalizer = this.normalizer;
-    const waiting: Set<string> = this.waiting;
+    const waiting: Map<string, string> = this.waiting;
     return {
       [Symbol.asyncIterator]:
         async function* (): AsyncGenerator<ICodeHudAgentEvent> {
-          for await (const line of source)
-            for (const event of normalizer.normalize(
-              line as CodeHudCodexNormalizer.IMessage,
-            )) {
-              if (event.type === "permission") waiting.add(event.request);
+          for await (const line of source) {
+            const message: CodeHudCodexNormalizer.IMessage =
+              line as CodeHudCodexNormalizer.IMessage;
+            for (const event of normalizer.normalize(message)) {
+              if (event.type === "permission" && message.method !== undefined)
+                waiting.set(event.request, message.method);
               if (event.type === "result") waiting.clear();
               yield event;
             }
+          }
         },
     };
   }
@@ -90,11 +103,16 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
    * Submits one instruction.
    *
    * A decision is refused unless the server is actually waiting on the
-   * identifier it quotes, and the option is sent back as the server's own
-   * decision word rather than translated. That is not a shortcut: this protocol
-   * has two decision vocabularies, and answering a modern request in the legacy
-   * one is refused silently, leaving a wearer told their answer landed while
-   * the agent sits blocked on the question they believe they answered.
+   * identifier it quotes, and the answer is written in the vocabulary that
+   * request's own method speaks. That is not a shortcut: this protocol has
+   * three answer shapes across five approval methods, and one written in the
+   * wrong one is refused silently, leaving a wearer told their answer landed
+   * while the agent sits blocked on the question they believe they answered.
+   *
+   * An option is therefore looked up among the answers offered for *that*
+   * method rather than among all of them. A legacy decision word reaching a
+   * modern request is not a near miss to be translated; it is an answer to a
+   * question that was never asked, and it is refused.
    */
   public async send(command: ICodeHudAgentCommand): Promise<void> {
     if (this.ended === true)
@@ -109,19 +127,24 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
     if (command.type === "interrupt")
       return this.request("turn/interrupt", { threadId: this.thread() });
 
-    if (this.waiting.has(command.request) === false)
+    const method: string | undefined = this.waiting.get(command.request);
+    const vocabulary: CodeHudCodexNormalizer.Vocabulary | undefined =
+      method === undefined
+        ? undefined
+        : CodeHudCodexNormalizer.APPROVALS.get(method);
+    if (vocabulary === undefined)
       throw new Error(`no approval is pending under ${command.request}`);
-    const option = CodeHudCodexNormalizer.OPTIONS.find(
+    const option = CodeHudCodexNormalizer.OPTIONS[vocabulary].find(
       (candidate) => candidate.id === command.option,
     );
     if (option === undefined)
-      throw new Error(`${command.option} is not an answer this server offers`);
+      throw new Error(`${command.option} is not an answer ${method} takes`);
     this.waiting.delete(command.request);
 
     return this.channel.write({
       jsonrpc: "2.0",
       id: Number(command.request),
-      result: { decision: option.id },
+      result: CodeHudCodexNormalizer.answer(vocabulary, option),
     });
   }
 

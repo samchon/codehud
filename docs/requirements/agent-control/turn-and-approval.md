@@ -22,6 +22,18 @@ Harnesses differ in how many answers they offer and what each one means, so the 
 
 A persisting consent cannot have its scope read on a wearable display, so it must be shown distinctly and must not be bound to the easiest gesture.
 
+### An answer reaches the harness in the terms it accepts {#agent-permission-answer-fidelity}
+
+A harness may accept several shapes of answer, one per kind of request, and refuse the others without saying so. An answer in the wrong shape is worse than no answer at all: the wearer is told theirs landed and walks away, while the agent stays blocked on the question they believe they settled.
+
+The product must express each answer in the terms the request that prompted it accepts, and must refuse to send one it has no terms for rather than sending an approximation.
+
+### An answer whose scope cannot be displayed is not offered {#agent-permission-scope-limit}
+
+Some answers a harness offers grant more than the request in front of the wearer: an amendment admitting a class of future commands, or access to files and the network for a whole turn. Their scope is structured data a head-up display cannot render, so a wearer choosing one cannot know what they gave.
+
+The product must not offer such an answer on a wearable surface, whatever the harness lists as available. The request itself must still reach the wearer, and refusing it must remain possible from there, so that a wearer learns what was asked and the harness is never left waiting on a question this surface cannot answer.
+
 ### Approvals have a budget, and it is small {#agent-approval-budget}
 
 A harness left at its default settings asks for approval every few minutes. A wearer cannot walk, cook, or hold a conversation while stopping that often, so the default configuration makes the product unusable even though every individual prompt is correct.

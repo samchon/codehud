@@ -43,18 +43,26 @@ import { Codex } from "../internal/codex";
  *    a later convenience from being added quietly beside the rest.
  */
 export async function test_agent_codex_no_timeout(): Promise<void> {
-  const offered: string[] = CodeHudCodexNormalizer.OPTIONS.map(
+  // The captured method speaks the modern vocabulary, which is where the two
+  // answers below come from; the prohibition itself holds across all three,
+  // since a timeout reaching the server from any of them would be the same
+  // defect.
+  const offered: string[] = CodeHudCodexNormalizer.OPTIONS.modern.map(
     (option) => option.id,
   );
   TestValidator.equals("two answers are offered", offered, [
     "accept",
     "decline",
   ]);
-  TestValidator.equals(
-    "and neither of them is a timeout",
-    offered.some((id) => id.includes("timed") || id.includes("timeout")),
-    false,
-  );
+  for (const vocabulary of ["modern", "legacy", "profile"] as const)
+    TestValidator.equals(
+      `and none of ${vocabulary}'s is a timeout`,
+      CodeHudCodexNormalizer.OPTIONS[vocabulary].some(
+        (option) =>
+          option.id.includes("timed") || option.id.includes("timeout"),
+      ),
+      false,
+    );
 
   class Channel implements ICodeHudHarnessChannel {
     public readonly written: Record<string, unknown>[] = [];
@@ -108,8 +116,11 @@ export async function test_agent_codex_no_timeout(): Promise<void> {
   for await (const event of session.events)
     if (event.type === "permission") break;
 
+  // The middle two are the legacy vocabulary's own words, valid against a
+  // legacy method and meaningless against this one. They are refused here for
+  // the same reason a timeout is: the request in hand does not take them.
   for (const forbidden of ["timed_out", "approved", "denied", "abort"])
-    await TestValidator.error(`${forbidden} is not an answer on offer`, () =>
+    await TestValidator.error(`${forbidden} is not an answer this takes`, () =>
       session.send({
         type: "decision",
         request: String(asked),

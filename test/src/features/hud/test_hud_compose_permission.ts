@@ -33,8 +33,13 @@ import { Stream } from "../internal/stream";
  * 6. On a wider device the detail survives alongside the hint.
  * 7. When the harness offers no negative answer there is no hint, the arm where
  *    a legend would name a phrase that does nothing.
- * 8. When the labels are too long to name both, the hint falls back to a
- *    shorter form that still fits.
+ * 8. When it offers only a refusal there is still a hint, naming it alone. Not
+ *    every request can be answered affirmatively from a wearable — a Codex
+ *    permissions request grants a profile of paths and network access, and that
+ *    surface offers only to withhold it — and a request shown with no words to
+ *    clear it is one a wearer cannot answer at all.
+ * 9. When the labels are too long to name both, the hint falls back to a
+ *    shorter form that still fits, on either shape.
  */
 export async function test_hud_compose_permission(): Promise<void> {
   const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
@@ -103,6 +108,21 @@ export async function test_hud_compose_permission(): Promise<void> {
     undefined,
   );
 
+  const refusing: ICodeHudState = {
+    ...asked,
+    pending: {
+      ...asked.pending!,
+      options: [
+        { id: "no", label: "Deny", affirmative: false, persistent: false },
+      ],
+    },
+  };
+  TestValidator.equals(
+    "a refusal alone is still named",
+    composer.compose(refusing, Stream.NARROW).hint,
+    `${words.say} Deny`,
+  );
+
   const verbose: ICodeHudState = {
     ...asked,
     pending: {
@@ -128,5 +148,25 @@ export async function test_hud_compose_permission(): Promise<void> {
     "an over-long hint falls back and still fits",
     fallback.hint !== undefined &&
       fallback.hint.length <= Stream.NARROW.columns,
+  );
+
+  const wordy: ICodeHudState = {
+    ...asked,
+    pending: {
+      ...asked.pending!,
+      options: [
+        {
+          id: "no",
+          label: "No, withhold that access entirely",
+          affirmative: false,
+          persistent: false,
+        },
+      ],
+    },
+  };
+  const trimmed: ICodeHudFrame = composer.compose(wordy, Stream.NARROW);
+  TestValidator.predicate(
+    "and a refusal alone falls back the same way",
+    trimmed.hint !== undefined && trimmed.hint.length <= Stream.NARROW.columns,
   );
 }
