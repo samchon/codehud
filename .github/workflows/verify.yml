@@ -5,13 +5,20 @@ on:
     branches: [master]
   pull_request:
 
+permissions:
+  contents: read
+
+# A pull-request push replaces its predecessor rather than queueing behind it.
+# A master push never cancels: the post-merge run on an exact merge commit is
+# the record that the merge itself is green, and a cancelled one records nothing.
 concurrency:
-  group: verify-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +35,18 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # After the install, because the path lives under node_modules and an
+      # install would otherwise write over a restored cache.
+      #
+      # This is the whole of the run's cost. Measured on run 35210914958, build
+      # took 108 seconds of a 131 second job, and almost all of it was ttsc
+      # compiling the @ttsc/lint Go plugin from a cold cache. The tests took 16.
+      - name: Cache the compiler plugin
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/ttsc/plugins
+          key: ttsc-plugins-v1-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Build
         run: pnpm run build
 
@@ -40,13 +59,17 @@ jobs:
       - name: Evidence graph
         run: pnpm run evidence
 
-      # A build that leaves the tree dirty means an artifact is tracked that
-      # should not be, or a generated file was committed stale.
+      # A dirty tree after the checks means a tracked artifact was committed
+      # stale or a build wrote somewhere it should not. Untracked files count:
+      # a generated file nothing ignores is the same defect wearing a different
+      # hat, and `git diff` alone would not see it.
       - name: Working tree is clean
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "The tree is dirty after install, build, and checks:"
-            git status --porcelain
-            git diff
+          git diff --check HEAD --
+          git diff --exit-code HEAD --
+          untracked="$(git ls-files --others --exclude-standard)"
+          if [ -n "$untracked" ]; then
+            echo "untracked files after the checks:"
+            printf '%s\n' "$untracked"
             exit 1
           fi
