@@ -1,0 +1,78 @@
+import type { ICodeHudState } from "@codehud/interface";
+import { CodeHudReducer } from "@codehud/projection";
+import { TestValidator } from "@nestia/e2e";
+
+import { Stream } from "../internal/stream";
+
+/**
+ * A streaming message accumulates while incomplete and becomes history when it
+ * finishes.
+ *
+ * The display shows the message being written, not a transcript, so the buffer
+ * has to survive every partial delta and then empty exactly once.
+ *
+ * Scenarios:
+ *
+ * 1. Reasoning sets thinking and leaves the message buffer alone, the arm that
+ *    distinguishes internal reasoning from prose addressed to the wearer.
+ * 2. An incomplete delta accumulates and leaves the buffer non-empty.
+ * 3. Several incomplete deltas concatenate in order.
+ * 4. A completing delta empties the buffer and records one history entry
+ *    carrying the whole accumulated text.
+ * 5. The recorded title is trimmed, since the harness's deltas carry the
+ *    spacing of prose rather than of a display line.
+ * 6. A completing delta with no prior partial still records, the boundary where
+ *    the buffer was empty to begin with.
+ */
+export async function test_hud_reduce_message(): Promise<void> {
+  Stream.reset();
+  const fresh: ICodeHudState = CodeHudReducer.initialize();
+
+  const thinking: ICodeHudState = CodeHudReducer.reduce(
+    fresh,
+    Stream.reasoning("hm"),
+  );
+  TestValidator.equals(
+    "reasoning sets thinking",
+    thinking.activity,
+    "thinking",
+  );
+  TestValidator.equals("reasoning leaves the buffer", thinking.message, "");
+  TestValidator.equals("reasoning records nothing", thinking.history.length, 0);
+
+  const one: ICodeHudState = CodeHudReducer.reduce(
+    thinking,
+    Stream.message("The ", false),
+  );
+  TestValidator.equals("partial sets working", one.activity, "working");
+  TestValidator.equals("partial accumulates", one.message, "The ");
+  TestValidator.equals("partial records nothing", one.history.length, 0);
+
+  const two: ICodeHudState = CodeHudReducer.reduce(
+    one,
+    Stream.message("fold  ", false),
+  );
+  TestValidator.equals("partials concatenate", two.message, "The fold  ");
+
+  const done: ICodeHudState = CodeHudReducer.reduce(
+    two,
+    Stream.message("is pure.", true),
+  );
+  TestValidator.equals("completion empties the buffer", done.message, "");
+  TestValidator.equals("completion records one entry", done.history.length, 1);
+  TestValidator.equals("entry kind", done.history[0]!.kind, "message");
+  TestValidator.equals(
+    "entry carries the whole message, trimmed",
+    done.history[0]!.title,
+    "The fold  is pure.",
+  );
+  TestValidator.equals("entry is finished", done.history[0]!.done, true);
+  TestValidator.equals("entry did not fail", done.history[0]!.failed, false);
+
+  const solo: ICodeHudState = CodeHudReducer.reduce(
+    CodeHudReducer.initialize(),
+    Stream.message("one shot", true),
+  );
+  TestValidator.equals("a lone completion records", solo.history.length, 1);
+  TestValidator.equals("and empties", solo.message, "");
+}

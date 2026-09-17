@@ -1,0 +1,26 @@
+{
+  "private": true,
+  "name": "@codehud/test",
+  "version": "0.1.0",
+  "description": "CodeHUD test program: deterministic reducer, composer, and contract validation",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "ttsc --noEmit -p tsconfig.json",
+    "start": "ttsx -P tsconfig.json src/index.ts"
+  },
+  "author": "Samchon",
+  "license": "MIT",
+  "dependencies": {
+    "@codehud/projection": "workspace:^",
+    "@codehud/interface": "workspace:^",
+    "@nestia/e2e": "catalog:samchon"
+  },
+  "devDependencies": {
+    "@ttsc/lint": "catalog:typescript",
+    "@types/node": "catalog:utils",
+    "chalk": "catalog:utils",
+    "ttsc": "catalog:typescript",
+    "tsx": "catalog:utils",
+    "typescript": "catalog:typescript"
+  }
+}
