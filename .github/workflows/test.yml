@@ -65,6 +65,20 @@ jobs:
         with:
           path: node_modules/.cache/ttsc/plugins
           key: ttsc-plugins-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          # A changed lockfile is not a changed plugin. The key has to include
+          # the lockfile so a ttsc or @ttsc/lint bump gets a fresh entry, but
+          # adding an unrelated dependency changes it too, and without a
+          # fallback every such pull request recompiles the Go plugin from
+          # cold: measured at 2m28s against 35s warm.
+          #
+          # Restoring an entry built from a different lockfile is safe because
+          # the cache is content-addressed. Each plugin lives under a hash of
+          # its own identity, holding `plugin.exe` and a `.last-used` stamp,
+          # with a `.gc-last-run` beside them. ttsc looks up by that hash: an
+          # unchanged plugin hits, a changed one compiles a new entry, and the
+          # stale one is collected rather than mistaken for current.
+          restore-keys: |
+            ttsc-plugins-${{ runner.os }}-
 
       - run: pnpm run test
 
