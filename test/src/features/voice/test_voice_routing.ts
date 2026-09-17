@@ -38,8 +38,12 @@ import { Stream } from "../internal/stream";
  * 6. The floor guards consent and nothing else. A misheard navigation word
  *    costs a glance; a misheard approval cannot be undone, and only the second
  *    justifies refusing to act.
- * 7. Selection is by ordinal, never by pronouncing an identifier.
- * 8. The grammar states itself in full, which is what the help command is for.
+ * 7. A consent answer carrying no confidence at all is unheard for the same
+ *    reason as one below the floor. The contract says it of the field: a
+ *    recognizer that reports nothing there cannot be used for consent, so the
+ *    absence of a number is not a reason to admit the answer.
+ * 8. Selection is by ordinal, never by pronouncing an identifier.
+ * 9. The grammar states itself in full, which is what the help command is for.
  */
 export async function test_voice_routing(): Promise<void> {
   const router: CodeHudVoiceRouter = new CodeHudVoiceRouter(
@@ -58,13 +62,28 @@ export async function test_voice_routing(): Promise<void> {
   );
   TestValidator.equals(
     "the affirmative consent word is the approval",
-    router.route(consent.affirmative),
+    router.route(consent.affirmative, { confidence: 1 }),
     { type: "command", command: "allow" },
   );
   TestValidator.equals(
     "and the negative one is the refusal",
-    router.route(consent.negative),
+    router.route(consent.negative, { confidence: 1 }),
     { type: "command", command: "deny" },
+  );
+  TestValidator.equals(
+    "while a recognizer that reported no confidence answers neither",
+    router.route(consent.affirmative),
+    { type: "unheard" },
+  );
+  TestValidator.equals(
+    "not even to refuse, which would also be an answer",
+    router.route(consent.negative).type,
+    "unheard",
+  );
+  TestValidator.equals(
+    "and the refusal carries no number, because none was reported",
+    (router.route(consent.affirmative) as { confidence?: number }).confidence,
+    undefined,
   );
 
   TestValidator.equals(

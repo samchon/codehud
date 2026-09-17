@@ -122,6 +122,14 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
    * The settle happens only after delivery succeeds. An instruction that failed
    * to reach the bridge leaves the approval where it was, because the wearer
    * still has to answer it.
+   *
+   * The reducer owns what settling means. This used to clear the pending field
+   * here instead, which cleared one of the two things settling changes: the
+   * fold kept the activity that the approval had put it in, and a fold that is
+   * waiting with nothing pending composes to the idle frame. A wearer who said
+   * *allow* watched the command they had just authorized disappear and the
+   * display go back to reporting the directory, as if nothing were running,
+   * until the harness's next observation arrived.
    */
   public async send(
     session: string,
@@ -131,8 +139,8 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
     if (command.type !== "decision") return;
 
     const fold: ICodeHudState | undefined = this.folds.get(session);
-    if (fold?.pending?.request === command.request)
-      this.folds.set(session, { ...fold, pending: undefined });
+    if (fold !== undefined)
+      this.folds.set(session, this.reducer.settle(fold, command.request));
   }
 
   /** Ends a session and forgets what this device held about it. */

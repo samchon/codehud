@@ -167,6 +167,16 @@ export async function test_client_vertical(): Promise<void> {
     client.state(id).pending,
     undefined,
   );
+  TestValidator.equals(
+    "leaving a session that is working rather than one that looks idle",
+    client.state(id).activity,
+    "working",
+  );
+  TestValidator.equals(
+    "so the display goes back to the prose still in flight, not to idle",
+    client.frame(id).kind,
+    "stream",
+  );
 
   // A delivery that fails leaves the wearer with the question they still owe.
   session.ask("r2", "Delete build/", "Removes generated output.");

@@ -31,6 +31,12 @@ import { Stream } from "../internal/stream";
  *    negative twin.
  * 8. An upsert of an existing entry does not move the cursor either, since
  *    nothing was prepended.
+ * 9. When the retention cap drops the very entry the cursor was on, the cursor
+ *    stops at the oldest that survived instead of following past the end. A
+ *    cursor past the end renders as the idle frame while review is still
+ *    active: the wearer is thrown out of the history they were walking, the
+ *    display says nothing about it, and their next word moves from a position
+ *    that no longer exists.
  */
 export async function test_hud_review_cursor(): Promise<void> {
   const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
@@ -116,5 +122,46 @@ export async function test_hud_review_cursor(): Promise<void> {
     "an upsert does not move the cursor",
     upserted.review.offset,
     2,
+  );
+
+  // The cap, and the entry the cursor was reading falling off the end of it.
+  const small: CodeHudReducer = new CodeHudReducer(
+    CodeHudContext.create({ history: 3 }),
+  );
+  let capped: ICodeHudState = small.initialize();
+  for (const name of ["a", "b", "c"])
+    capped = small.reduce(
+      capped,
+      Stream.tool(name, `Edit ${name}.ts`, "finish", false),
+    );
+  for (let i: number = 0; i < 3; ++i) capped = small.review(capped, "back");
+  TestValidator.equals(
+    "the wearer walked to the oldest entry",
+    capped.history[capped.review.offset]?.title,
+    "Edit a.ts",
+  );
+
+  const evicted: ICodeHudState = small.reduce(
+    capped,
+    Stream.tool("d", "Edit d.ts", "finish", false),
+  );
+  TestValidator.equals(
+    "the entry the cursor was on is gone",
+    evicted.history.some((entry) => entry.title === "Edit a.ts"),
+    false,
+  );
+  TestValidator.equals(
+    "so the cursor stops at the oldest that survived",
+    evicted.review.offset,
+    evicted.history.length - 1,
+  );
+  TestValidator.predicate(
+    "which is an entry rather than nothing",
+    evicted.history[evicted.review.offset] !== undefined,
+  );
+  TestValidator.equals(
+    "and the wearer is still in review",
+    evicted.review.active,
+    true,
   );
 }
