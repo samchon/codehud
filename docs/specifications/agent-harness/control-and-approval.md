@@ -28,6 +28,22 @@ Each option carries an identifier, a short label sized for a narrow display, whe
 
 An option that persists is not bound to the input requiring the least effort. The projection boundary assigns inputs by this rule regardless of the order the harness listed them.
 
+### An answer is written in its own request's vocabulary {#spec-agent-answer-vocabulary}
+
+<!-- @evidence requirements/agent-control/turn-and-approval.md#agent-permission-answer-fidelity Refines answering in the terms the harness accepts into a per-request-kind vocabulary that an adapter selects by the request being answered. -->
+
+An adapter records, for every pending approval request, which kind of request it was, and composes the answer in the vocabulary that kind accepts. The kinds a harness family exposes need not share an answer shape, and an adapter treats them as distinct rather than as one shape with variations.
+
+An option identifier is resolved against the answers offered for that kind alone. An identifier valid for another kind is refused, applied to nothing, and never translated into something the harness would accept.
+
+### The offered answers are the adapter's own {#spec-agent-offered-answers}
+
+<!-- @evidence requirements/agent-control/turn-and-approval.md#agent-permission-scope-limit Refines the display-scope limit into a rule governing which of a harness's available answers an adapter reports. -->
+
+The options an adapter reports are chosen by the adapter. A list of available answers supplied by the harness on the request is not mirrored: an answer that persists beyond the request, and an answer that amends a policy or grants access for longer than the request, are excluded whether or not the harness offers them.
+
+A request whose every affirmative answer is excluded is still reported, carrying its refusal alone, and the refusal is a well-formed answer in that request's own vocabulary. Every reported request carries a refusal, so no request reaches a wearer that they cannot clear.
+
 ### The session permission policy {#spec-agent-permission-policy}
 
 <!-- @evidence requirements/agent-control/turn-and-approval.md#agent-approval-budget Refines the approval budget into a per-session policy that classifies actions into unattended, attended, and doubly-confirmed. -->

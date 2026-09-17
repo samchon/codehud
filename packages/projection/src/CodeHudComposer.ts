@@ -265,12 +265,19 @@ export class CodeHudComposer {
   }
 
   /**
-   * Builds the spoken hint for a pending approval, when both answers exist.
+   * Builds the spoken hint for a pending approval.
    *
    * Names the labels the harness reported rather than the configured consent
    * tokens, because the options are data and a wearer answering with a word the
    * harness does not offer has not answered. The persisting option is never
    * named, since it must not be the easiest answer to give.
+   *
+   * A refusal alone still earns a hint. Not every request a harness sends can
+   * be answered affirmatively from a wearable — a Codex permissions request
+   * grants a profile of paths and network access, and this surface offers only
+   * to withhold it — and a request a wearer is shown but told no words for is
+   * one they cannot clear at all. What has no hint is a request with no refusal
+   * in it, which is not a question.
    */
   private utterances(
     options: ICodeHudAgentPermission[],
@@ -282,12 +289,18 @@ export class CodeHudComposer {
     const no: ICodeHudAgentPermission | undefined = options.find(
       (o) => o.affirmative === false,
     );
-    if (yes === undefined || no === undefined) return undefined;
+    if (no === undefined) return undefined;
     const { say, or } = this.context.vocabulary;
-    const full: string = `${say} ${yes.label} ${or} ${no.label}`;
+    const full: string =
+      yes === undefined
+        ? `${say} ${no.label}`
+        : `${say} ${yes.label} ${or} ${no.label}`;
     return full.length <= geometry.columns
       ? full
-      : CodeHudText.fit(`${yes.label} / ${no.label}`, geometry.columns);
+      : CodeHudText.fit(
+          yes === undefined ? no.label : `${yes.label} / ${no.label}`,
+          geometry.columns,
+        );
   }
 
   /**

@@ -19,6 +19,8 @@ import type {
  * @evidence requirements/agent-control/harness-abstraction.md#agent-normalized-observation Translates the second harness family's output into the same observation vocabulary, absorbing what would not change a wearer's action.
  * @evidence specifications/agent-harness/normalized-stream.md#spec-agent-event-vocabulary Produces the closed union with a per-session counter from zero, reports a command under one identifier across its phases with a one-line description made here, and keeps reasoning distinct from prose.
  * @evidence specifications/agent-harness/control-and-approval.md#spec-agent-permission-pairing Carries the server's own request identifier onto the approval observation, so an answer can quote it back.
+ * @evidence requirements/agent-control/turn-and-approval.md#agent-permission-scope-limit Offers only the answers whose scope a two-line display can state, so no answer a wearer cannot understand is reachable from the glasses.
+ * @evidence specifications/agent-harness/control-and-approval.md#spec-agent-offered-answers Chooses the reported options per request kind instead of mirroring the server's available list, excludes the persisting and policy-amending answers, and reports a refusal on every request.
  * @author Samchon
  */
 export class CodeHudCodexNormalizer {
@@ -54,7 +56,7 @@ export class CodeHudCodexNormalizer {
   ): ICodeHudAgentEvent[] {
     // A request, not a notification: the server is asking, and waiting.
     if (message.id !== undefined && message.method !== undefined)
-      return CodeHudCodexNormalizer.APPROVALS.includes(message.method) === true
+      return CodeHudCodexNormalizer.APPROVALS.has(message.method) === true
         ? this.approval(message)
         : [];
 
@@ -184,20 +186,44 @@ export class CodeHudCodexNormalizer {
    */
   public streaming: boolean = true;
 
+  /**
+   * Turns one approval request into the question a wearer answers.
+   *
+   * The offered options come from the method rather than from a single table,
+   * because the five methods do not share an answer shape, and from this
+   * adapter rather than from the server's own `availableDecisions`: that list
+   * includes the policy amendments this surface will not offer.
+   *
+   * A permissions request names no command, so it says what it is instead. The
+   * server's reason is preferred when it gave one, since it is written about
+   * this request and anything written here is written about all of them.
+   */
   private approval(
     message: CodeHudCodexNormalizer.IMessage,
   ): ICodeHudAgentEvent[] {
     const id: number | undefined = message.id;
-    if (id === undefined) return [];
+    const vocabulary: CodeHudCodexNormalizer.Vocabulary | undefined =
+      CodeHudCodexNormalizer.APPROVALS.get(message.method ?? "");
+    if (id === undefined || vocabulary === undefined) return [];
+    const spoken: string | string[] | undefined = message.params?.command;
+    const command: string | undefined =
+      spoken === undefined
+        ? undefined
+        : Array.isArray(spoken) === true
+          ? spoken.join(" ")
+          : spoken;
     return [
       this.base<ICodeHudAgentEvent.IPermission>({
         type: "permission",
         request: String(id),
-        title: CodeHudCodexNormalizer.title(message.params?.command ?? ""),
+        title:
+          command !== undefined
+            ? CodeHudCodexNormalizer.title(command)
+            : CodeHudCodexNormalizer.asked(message.params?.reason),
         ...(message.params?.cwd === undefined
           ? {}
           : { detail: message.params.cwd }),
-        options: [...CodeHudCodexNormalizer.OPTIONS],
+        options: [...CodeHudCodexNormalizer.OPTIONS[vocabulary]],
       }),
     ];
   }
@@ -237,47 +263,245 @@ export class CodeHudCodexNormalizer {
 }
 export namespace CodeHudCodexNormalizer {
   /**
-   * The server requests that ask a wearer to decide.
+   * How one approval method expects to be answered.
+   *
+   * Three, not one. The server's five approval requests do not share an answer
+   * shape, and the difference is invisible until something blocks: a modern
+   * request takes a decision word from its own enumeration, a legacy one takes
+   * a `ReviewDecision` whose refusal is a structure rather than a word, and a
+   * permissions request takes no decision at all — it takes the profile being
+   * granted and the scope of the grant.
+   */
+  export type Vocabulary = "modern" | "legacy" | "profile";
+
+  /**
+   * The server requests that ask a wearer to decide, and how each is answered.
    *
    * Five, of which an ordinary turn produced one. The other four are here
    * because an adapter that met one and did nothing would leave the harness
    * waiting on an answer nobody was ever shown.
+   *
+   * A map rather than an object so a method name can never find an answer on
+   * `Object.prototype`. Read from the schema the installed binary generates
+   * (`codex app-server generate-json-schema`, codex-cli 0.154.0), which is the
+   * only statement of the response shapes that comes from the server itself.
    */
-  export const APPROVALS: readonly string[] = Object.freeze([
-    "item/commandExecution/requestApproval",
-    "item/fileChange/requestApproval",
-    "item/permissions/requestApproval",
-    "applyPatchApproval",
-    "execCommandApproval",
+  export const APPROVALS: ReadonlyMap<string, Vocabulary> = new Map<
+    string,
+    Vocabulary
+  >([
+    ["item/commandExecution/requestApproval", "modern"],
+    ["item/fileChange/requestApproval", "modern"],
+    ["item/permissions/requestApproval", "profile"],
+    ["applyPatchApproval", "legacy"],
+    ["execCommandApproval", "legacy"],
   ]);
 
   /**
-   * The two answers this adapter offers.
+   * What this adapter puts on the wire when a request goes unanswered in the
+   * legacy vocabulary.
    *
-   * Their identifiers are the server's own words rather than ours, because the
-   * session sends them straight back and a translation table between two
-   * vocabularies is a place for exactly the mistake this repository already
-   * made: answering a modern request in the legacy vocabulary, which the server
-   * silently refuses.
-   *
-   * Neither persists. The protocol offers `acceptForSession`, and a choice that
-   * silences later requests of the same shape is not one a wearer should be
-   * able to make by accident from a two-line display.
+   * The legacy refusal carries a sentence rather than being a bare word, and
+   * the server has no use for it beyond the transcript. It says where the
+   * refusal came from, because a refusal with no attribution reads in a
+   * terminal like the harness declining its own work.
    */
-  export const OPTIONS: readonly ICodeHudAgentPermission[] = Object.freeze([
-    Object.freeze({
-      id: "accept",
-      label: "Allow",
-      affirmative: true,
-      persistent: false,
-    }),
-    Object.freeze({
-      id: "decline",
-      label: "Deny",
-      affirmative: false,
-      persistent: false,
-    }),
-  ]);
+  export const REJECTION: string = "Declined from the wearable surface.";
+
+  /**
+   * What a permissions request is called when the server gave no reason.
+   *
+   * Never the profile it asked for. A granted profile is a list of paths and a
+   * network flag, and a display with two lines that tried to state it would
+   * either lie by truncation or spend both lines saying less than this does.
+   */
+  export const ESCALATION: string = "Wider access requested";
+
+  /**
+   * What a request naming no command is called.
+   *
+   * Not put through {@link title}, which is written for commands and would
+   * announce a sentence as one. The server's own reason is preferred when it
+   * gave one, since it was written about this request and anything written here
+   * is written about all of them.
+   */
+  export const asked = (reason: string | undefined): string => {
+    const flat: string = (reason ?? "").replace(/\s+/gu, " ").trim();
+    return flat.length === 0 ? ESCALATION : flat;
+  };
+
+  /**
+   * The answers this adapter offers, per vocabulary.
+   *
+   * Identifiers are the server's own words wherever the server has one, because
+   * a translation table between two vocabularies is a place for exactly the
+   * mistake this repository already made: answering a modern request in the
+   * legacy vocabulary, which the server silently refuses.
+   *
+   * Nothing here persists. The protocol offers `acceptForSession`, and a choice
+   * that silences later requests of the same shape is not one a wearer should
+   * be able to make by accident from a two-line display.
+   *
+   * Nothing here amends a policy either, and that is the wider rule. The
+   * command vocabulary offers `acceptWithExecpolicyAmendment` and
+   * `applyNetworkPolicyAmendment`, the legacy one offers three more, and the
+   * server proposes them on the request itself and lists them in
+   * `availableDecisions`. Each grants a *class* of future action whose scope is
+   * a structured object — a command prefix vector, a host and a rule action —
+   * that a two-line display cannot render at all. Mirroring the server's list
+   * would put the broad grant one word away from the narrow one on the surface
+   * least able to tell them apart, so the list is deliberately not mirrored.
+   *
+   * A permissions request is the same case in the other direction: every
+   * affirmative answer to it is a grant of extra filesystem or network access
+   * for the turn or the session, so this surface offers only the refusal. The
+   * request still reaches the wearer, because an agent that asked for wider
+   * access and was refused explains the failure that follows; and the refusal
+   * is a well-formed answer, so the harness is unblocked rather than left
+   * waiting on a question nobody can answer from here.
+   */
+  export const OPTIONS: Readonly<
+    Record<Vocabulary, readonly ICodeHudAgentPermission[]>
+  > = Object.freeze({
+    modern: Object.freeze([
+      Object.freeze({
+        id: "accept",
+        label: "Allow",
+        affirmative: true,
+        persistent: false,
+      }),
+      Object.freeze({
+        id: "decline",
+        label: "Deny",
+        affirmative: false,
+        persistent: false,
+      }),
+    ]),
+    legacy: Object.freeze([
+      Object.freeze({
+        id: "approved",
+        label: "Allow",
+        affirmative: true,
+        persistent: false,
+      }),
+      Object.freeze({
+        id: "denied",
+        label: "Deny",
+        affirmative: false,
+        persistent: false,
+      }),
+    ]),
+    profile: Object.freeze([
+      Object.freeze({
+        id: "withhold",
+        label: "Deny",
+        affirmative: false,
+        persistent: false,
+      }),
+    ]),
+  });
+
+  /**
+   * The JSON-RPC result that answers one approval request.
+   *
+   * Three writers rather than one, each returning only what its own vocabulary
+   * admits. Written that way so the suite can assign each one's result to the
+   * vendor's own generated response type without a cast: a union wide enough to
+   * hold all three would be assignable to none of them, and the check that
+   * matters here is precisely that these shapes are the ones the server takes.
+   *
+   * That check lives in the suite rather than in this package, which keeps its
+   * single dependency: importing 700 generated declarations here would subject
+   * a vendor's emitted files to this repository's documentation rules.
+   */
+  export const answer = (
+    vocabulary: Vocabulary,
+    option: ICodeHudAgentPermission,
+  ): IAnswer => {
+    switch (vocabulary) {
+      case "modern":
+        return decided(option);
+      case "legacy":
+        return reviewed(option);
+      case "profile":
+        return withheld();
+    }
+  };
+
+  /** The answer a modern approval method takes. */
+  export const decided = (option: ICodeHudAgentPermission): IDecided => ({
+    decision: option.affirmative === true ? "accept" : "decline",
+  });
+
+  /**
+   * The answer a legacy approval method takes.
+   *
+   * The refusal carries a sentence the affirmative has no place for, which is
+   * why this cannot be the same writer as the modern one with a different
+   * table of words.
+   */
+  export const reviewed = (option: ICodeHudAgentPermission): IReviewed =>
+    option.affirmative === true
+      ? { decision: "approved" }
+      : { decision: { denied: { rejection: REJECTION } } };
+
+  /**
+   * The answer a permissions request takes.
+   *
+   * Takes no option, because there is only one answer to give: granting nothing
+   * is this protocol's refusal — the response type has no decline member at all
+   * — and `turn` is the narrower of its two scopes.
+   */
+  export const withheld = (): IGranted => ({ permissions: {}, scope: "turn" });
+
+  /**
+   * What an answer may be on the wire.
+   *
+   * Three members for three vocabularies. Stated here rather than imported so
+   * this package keeps its single dependency, and pinned to the vendor's own
+   * generated response types by the suite, which is where a claim about another
+   * program's shape belongs.
+   */
+  export type IAnswer = IDecided | IReviewed | IGranted;
+
+  /**
+   * The answer a modern approval method carries.
+   *
+   * Two words of the five its enumeration admits. The other three persist the
+   * consent or amend a policy, and neither is offered from here.
+   */
+  export interface IDecided {
+    /** The decision, in the modern vocabulary. */
+    decision: "accept" | "decline";
+  }
+
+  /**
+   * The answer a legacy approval method carries.
+   *
+   * The affirmative is a word and the refusal is a structure, which is the
+   * whole reason a decision cannot be passed through untranslated: the same
+   * answer that is one string here is a different string in the modern
+   * vocabulary and an object in this one.
+   */
+  export interface IReviewed {
+    /** The decision, in the legacy vocabulary. */
+    decision: "approved" | { denied: { rejection: string } };
+  }
+
+  /**
+   * The answer a permissions request carries.
+   *
+   * No decision word exists for this one. What the server wants back is the
+   * profile being granted and how long the grant lasts, and a refusal is an
+   * empty profile rather than a refusing word.
+   */
+  export interface IGranted {
+    /** What is granted, which from this surface is always nothing. */
+    permissions: Record<string, never>;
+
+    /** How long the grant lasts, which from this surface is never the session. */
+    scope: "turn";
+  }
 
   /** One JSON-RPC message from the server, as far as normalization needs it. */
   export interface IMessage {
@@ -301,11 +525,28 @@ export namespace CodeHudCodexNormalizer {
       /** Prose fragment, on an agent message delta. */
       delta?: string;
 
-      /** What is being asked about, on an approval request. */
-      command?: string;
+      /**
+       * What is being asked about, on an approval request.
+       *
+       * One line on the modern methods and an argument vector on the legacy
+       * ones, which is not a distinction worth carrying past this file: both
+       * say the same thing, and a normalizer that only knew the first would
+       * throw on a request from a server old enough to send the second.
+       */
+      command?: string | string[];
 
       /** Where it would run, on an approval request. */
       cwd?: string;
+
+      /**
+       * Why the server is asking, when it said.
+       *
+       * Optional on every approval request and the only prose a permissions
+       * request carries: that one names no command, so without this there is
+       * nothing to put in front of a wearer but the fact that something was
+       * asked.
+       */
+      reason?: string;
 
       /** What went wrong, on an error notification. */
       message?: string;
