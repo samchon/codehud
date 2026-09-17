@@ -69,6 +69,7 @@ export class CodeHudCodexNormalizer {
             type: "session",
             model: message.params?.turn?.model ?? "",
             directory: this.directory,
+            ...(this.identity === undefined ? {} : { native: this.identity }),
             resumed: this.resumed,
           }),
         ];

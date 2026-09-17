@@ -75,6 +75,7 @@ export class CodeHudClaudeNormalizer {
         type: "session",
         model: line.model ?? "",
         directory: line.cwd ?? "",
+        ...(line.session_id === undefined ? {} : { native: line.session_id }),
         // A resumed conversation is one the harness was pointed at, which the
         // adapter knows from how it launched rather than from this line.
         resumed: this.resumed,

@@ -124,6 +124,28 @@ export namespace Harness {
       this.wake = null;
     }
 
+    /**
+     * Announces the session, naming the harness's own conversation.
+     *
+     * A real harness says this in its first observation rather than when it is
+     * launched, which is why the identifier has to travel on an observation
+     * instead of being handed over at adoption.
+     */
+    public announce(native?: string): void {
+      this.pending.push({
+        type: "session",
+        session: "adapter-said-this",
+        sequence: -1,
+        at: 0,
+        model: "opus",
+        directory: "/repo",
+        resumed: false,
+        ...(native === undefined ? {} : { native }),
+      });
+      this.wake?.();
+      this.wake = null;
+    }
+
     /** Ends the observation stream without closing the session. */
     public end(): void {
       this.finished = true;
