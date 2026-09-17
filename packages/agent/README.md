@@ -14,6 +14,8 @@ This is one of the product's two adapter axes. It absorbs the difference between
 | `CodeHudNodeRunner` | class | Reaches the host machine through Node |
 | `ICodeHudHarnessRunner` | interface | The seam between the two |
 
+`CodeHudHarnessProbe.version` and `CodeHudHarnessProbe.reason` are pure and public: one reads a version out of whatever a harness printed, the other turns whatever was thrown into a line short enough for a display. `CodeHudNodeRunner.directories` and `CodeHudNodeRunner.invocation` are the two platform rules, taking the separator and the platform as parameters so that both operating systems' behaviour is reachable from either.
+
 ```typescript
 import { CodeHudHarnessProbe, CodeHudNodeRunner } from "@codehud/agent";
 
@@ -28,6 +30,8 @@ A wearer choosing a harness on a two-line display has to be told that one is mis
 
 A harness that runs but reports no version is available without one. An unreadable version is not grounds for hiding a working harness.
 
+Absence and an unreadable path are different answers. A broken path variable, an unreadable directory, and a permission failure are all things a wearer would act on differently from "not installed", and reporting them as absence would send them to install something they already have.
+
 ## Two things measured rather than assumed
 
 Both were found against the binaries on a real machine, not taken from documentation.
@@ -35,6 +39,10 @@ Both were found against the binaries on a real machine, not taken from documenta
 **Version output disagrees in shape.** `claude --version` prints `2.1.274 (Claude Code)` and `codex --version` prints `codex-cli 0.154.0`, so the rule is to find the first dotted numeric token rather than to match a position.
 
 **A Windows shim cannot be spawned directly.** A global npm install writes `claude`, `claude.cmd`, and `claude.ps1` side by side. The extensionless one is a shell script Windows cannot start at all, and since the fix for CVE-2024-27980 Node refuses to spawn the `.cmd` either, throwing `EINVAL` before the process exists. Resolution therefore prefers the `PATHEXT` candidates, and launching one goes through `cmd.exe /d /s /c` as an ordinary argument vector rather than through a shell.
+
+**A quoted path entry hides what is inside it.** Windows admits them and a great many machines have at least one, because an installer that wrote a path containing a space quoted it. Joining a quoted entry produces a path that cannot exist, so a harness living in one would be reported absent. Entries are unwrapped before anything is looked for inside them.
+
+One behaviour worth knowing rather than fixing: resolution checks for an executable bit, and Windows has none. There `fs.access` with the execute flag is an existence check, so a file with a `PATHEXT` extension is returned whether or not it can run. The launch rewrite is what makes that safe in practice.
 
 ## Testing without the binaries
 
