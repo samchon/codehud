@@ -1,4 +1,8 @@
-import type { ICodeHudFrame, ICodeHudState } from "@codehud/interface";
+import type {
+  ICodeHudContext,
+  ICodeHudFrame,
+  ICodeHudState,
+} from "@codehud/interface";
 import {
   CodeHudComposer,
   CodeHudContext,
@@ -37,6 +41,11 @@ export async function test_hud_compose_review(): Promise<void> {
   const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
   const composer: CodeHudComposer = new CodeHudComposer(CodeHudContext.DEFAULT);
   Stream.reset();
+
+  // The counter's separator and the review hint are configuration, not facts
+  // about the cursor. Written as literals they would make a reworded display
+  // look like a broken one.
+  const words: ICodeHudContext.IVocabulary = CodeHudContext.DEFAULT.vocabulary;
   let state: ICodeHudState = reducer.reduce(
     reducer.initialize(),
     Stream.session(),
@@ -66,15 +75,15 @@ export async function test_hud_compose_review(): Promise<void> {
     frame.lines[0]!.tone,
     "alert",
   );
-  TestValidator.equals("position line", frame.lines[1]!.text, "2 of 4");
+  TestValidator.equals(
+    "position line",
+    frame.lines[1]!.text,
+    `2 ${words.within} 4`,
+  );
   TestValidator.equals("no hint on two rows", frame.hint, undefined);
 
   const wide: ICodeHudFrame = composer.compose(reviewing, Stream.WIDE);
-  TestValidator.equals(
-    "hint names the review words",
-    wide.hint,
-    "Say back, forward, or latest",
-  );
+  TestValidator.equals("hint names the review words", wide.hint, words.review);
 
   const newest: ICodeHudFrame = composer.compose(
     { ...state, review: { active: true, offset: 0 } },
@@ -83,7 +92,7 @@ export async function test_hud_compose_review(): Promise<void> {
   TestValidator.equals(
     "newest is one of three",
     newest.lines[1]!.text,
-    "1 of 4",
+    `1 ${words.within} 4`,
   );
   TestValidator.equals("and is not alert", newest.lines[0]!.tone, "primary");
 

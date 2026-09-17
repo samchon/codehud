@@ -9,9 +9,11 @@ description: Defines CodeHUD implementation rules, package boundaries, testing s
 
 - [Forbidden](#forbidden)
 - [Work Rules](#work-rules)
+- [Classes And Namespaces](#classes-and-namespaces)
 - [Package Boundaries](#package-boundaries)
 - [Consequence Analysis](#consequence-analysis)
 - [Testing](#testing)
+- [What Is Not A Test](#what-is-not-a-test)
 - [Coverage is 100% on what you write](#coverage-is-100-on-what-you-write)
 - [Validation](#validation)
 - [Change Integrity](#change-integrity)
@@ -60,8 +62,8 @@ No test enforces these, so they are read in review.
 - `packages/interface` is **pure types with no runtime dependency**. It is the shared vocabulary both axes speak; constraints live in field JSDoc, not in validator tags.
 - `packages/projection` is the projection boundary. It imports `packages/interface` and nothing else, and its exported functions are pure: no clock, no random source, no input, no output, no mutable global.
 - **The two adapter axes never import each other.** The harness axis (`packages/agent`) references no display geometry, input gesture, or manufacturer. The device axis references no harness family, observation kind, or instruction kind. A change that adds a member to one axis and requires editing the other is rejected.
-- `packages/bridge` runs on the repository machine and owns process spawning, pairing, and session retention. It may import `agent` and `interface`; it must not import `hud`, because composition belongs to the device that has a geometry.
-- `packages/client` runs on the device host and owns transport, folding, and routing. It imports `hud` and `interface`.
+- `packages/bridge` runs on the repository machine and owns process spawning, pairing, and session retention. It may import `agent` and `interface`; it must not import `projection`, because composition belongs to the device that has a geometry.
+- `packages/client` runs on the device host and owns transport, folding, and routing. It imports `projection` and `interface`.
 - A device adapter renders what it is handed and reports what it observes. Composing, eliding, or rearranging display content and assigning meaning to input are not its authority. This is a specification, not a preference: [`#spec-device-adapter-authority`](../../../docs/specifications/device-surface/capability-and-input.md).
 
 ## Consequence Analysis
@@ -89,9 +91,20 @@ Never hardcode a test to the current repository shape or implementation text. Ex
 
 Assert with `TestValidator.equals(title, actual, expected)` and `TestValidator.predicate(title, <boolean>)`.
 
-Run with `pnpm run test`.
+Run with `pnpm run test`. The suite never builds first: `ttsx` resolves each workspace dependency to its own source, so a built `lib/` would be a second copy of what the suite already reads.
 
 **A case that arranges its own subject must fail when the arrangement fails.** Build the subject through typed in-memory inputs and confirm the intended state before asserting its outcome. A negative twin that never changes the relevant input tests the happy path again.
+
+## What Is Not A Test
+
+A case that cannot fail for a product reason is worse than no case. It costs a run, it survives review because it is green, and it goes red one day for a reason nobody has to care about. Delete these on sight rather than repairing them.
+
+- **The manifest.** A case that reads `package.json`, a workspace layout, or a dependency list asserts that a file says what the file says.
+- **Its own output.** A case that writes a file and then checks the file it just wrote proves the filesystem works.
+- **Configuration text.** A string the system originates lives in `ICodeHudContext`. A case naming its default wording fails when the wording changes and nothing is wrong. Read the entry from the configuration instead: `words.ready` still proves the composer chose the *ready* entry over the *working* one, which is the rule, and survives a reword, which is not.
+- **A type restated.** `["ambient", "notice", "demand"].includes(frame.urgency)` cannot fail; the compiler already refused the alternatives.
+
+**Prove the gate is armed before keeping it.** Break the implementation the case is supposed to protect and watch the case go red, then restore. A case derived from the same source as the subject is the easy way to write something vacuous, so this is where the proof matters most: reword a default and the case must stay green; misroute the selection and it must fail.
 
 ## Coverage is 100% on what you write
 
