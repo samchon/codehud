@@ -13,9 +13,11 @@
  * @evidence specifications/device-surface/capability-and-input.md#spec-device-input-vocabulary Types the three-member union with the coordinate-free constraint the specification fixes.
  * @author Samchon
  */
-export type IGlassesInput =
-  IGlassesInput.ISpeech | IGlassesInput.ITouch | IGlassesInput.IMotion;
-export namespace IGlassesInput {
+export type ICodeHudGlassesInput =
+  | ICodeHudGlassesInput.ISpeech
+  | ICodeHudGlassesInput.ITouch
+  | ICodeHudGlassesInput.IMotion;
+export namespace ICodeHudGlassesInput {
   /**
    * Recognized speech from the wearer.
    *

@@ -79,27 +79,27 @@ If spoken review navigation is adequate, the product ships one APK and roughly 3
 The nine-member wire union is obsolete; the contract is now two remote interfaces. Delete `packages/interface/src/bridge/IBridgeMessage.ts` and define the bridge-side and client-side provider contracts.
 Realizes: `#spec-bridge-duplex-surface`.
 
-### C2. Rewrite `IGlassesInput` with speech as the required member `core`
+### C2. Rewrite `ICodeHudGlassesInput` with speech as the required member `core`
 Current shape treats touch as primary. Speech becomes required; touch and head gestures become optional accelerators.
 Realizes: `#spec-device-input-vocabulary`.
 
-### C3. Promote `IGlassesAdapter.listen()` to mandatory `core`
+### C3. Promote `ICodeHudGlassesAdapter.listen()` to mandatory `core`
 And add connection-time refusal when the microphone channel is absent.
 Realizes: `#spec-device-capability-channels`.
 
-### C4. Add the permission policy to `IAgentAdapter.IOpenProps` `core`
+### C4. Add the permission policy to `ICodeHudAgentAdapter.IOpenProps` `core`
 Currently only `directory`, `resume`, `model`.
 Realizes: `#spec-agent-permission-policy`.
 
-### C5. Add a review cursor to `IHudState` and `HudComposer` `core`
+### C5. Add a review cursor to `ICodeHudState` and `CodeHudComposer` `core`
 Bounded retained history plus a cursor; composition recomputes the visible window rather than assuming a scroll container.
 Realizes: `#spec-projection-review-traversal`.
 
-### C6. Convert `IHudFrame.footer` from gesture legend to spoken hint `core`
+### C6. Convert `ICodeHudFrame.footer` from gesture legend to spoken hint `core`
 Realizes: `#spec-projection-frame-fits` (footer only when an input is bound).
 
 ### C7. Claude Code adapter `core`
-`claude -p --input-format stream-json --output-format stream-json --verbose --session-id`; normalize `system` / `assistant` / `user` / `result` / `stream_event` / `control_request` into `IAgentEvent`; route approvals through `control_request`.
+`claude -p --input-format stream-json --output-format stream-json --verbose --session-id`; normalize `system` / `assistant` / `user` / `result` / `stream_event` / `control_request` into `ICodeHudAgentEvent`; route approvals through `control_request`.
 Realizes: `#spec-agent-event-vocabulary`, `#spec-agent-permission-pairing`.
 
 ### C8. Codex adapter `core`
@@ -127,7 +127,7 @@ Grade permission table, session addressing on demand frames, deferred delivery, 
 Realizes: all four `#spec-notification-*` units.
 
 ### C14. Terminal simulator `core`
-A `IGlassesAdapter` that draws in a shell at a configurable geometry. Typed input stands in for speech **in the simulator only**. This is the one place `#spec-voice-no-text-entry` does not apply, and the exclusion must be recorded as such.
+A `ICodeHudGlassesAdapter` that draws in a shell at a configurable geometry. Typed input stands in for speech **in the simulator only**. This is the one place `#spec-voice-no-text-entry` does not apply, and the exclusion must be recorded as such.
 
 ### C15. Session handoff `core`
 Expose harness session identifiers so a terminal can resume what the glasses started, and discover terminal-started sessions from the glasses.
@@ -148,7 +148,7 @@ Realizes: `#spec-bridge-client-liveness`.
 Thin Kotlin module over the CXR AAR: connect, disconnect, render, sleep, plus the declared channel operations. No composition, no interpretation.
 Realizes: `#spec-device-adapter-authority`.
 
-### D4. `IHudFrame` to Custom View JSON converter `core`
+### D4. `ICodeHudFrame` to Custom View JSON converter `core`
 Deliberately **not** Kotlin. Generating the Android-flavoured layout tree and the patch array is a pure function and belongs in TypeScript, so the native module stays a transport shim.
 
 ---

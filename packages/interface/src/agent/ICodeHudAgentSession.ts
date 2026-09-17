@@ -1,5 +1,5 @@
-import type { IAgentCommand } from "./IAgentCommand";
-import type { IAgentEvent } from "./IAgentEvent";
+import type { ICodeHudAgentCommand } from "./ICodeHudAgentCommand";
+import type { ICodeHudAgentEvent } from "./ICodeHudAgentEvent";
 
 /**
  * A live conversation with one coding agent process.
@@ -12,7 +12,7 @@ import type { IAgentEvent } from "./IAgentEvent";
  * @evidence specifications/agent-harness/normalized-stream.md#spec-agent-session-open Types the session surface the specification limits to identity, observations, instruction delivery, and idempotent termination.
  * @author Samchon
  */
-export interface IAgentSession {
+export interface ICodeHudAgentSession {
   /**
    * Identifier the wire protocol addresses this session by.
    *
@@ -27,7 +27,7 @@ export interface IAgentSession {
    * Iterating consumes; the bridge is the sole consumer and fans out to
    * devices, so a device disconnecting never stalls the harness.
    */
-  readonly events: AsyncIterable<IAgentEvent>;
+  readonly events: AsyncIterable<ICodeHudAgentEvent>;
 
   /**
    * Submits one instruction to the agent.
@@ -35,7 +35,7 @@ export interface IAgentSession {
    * Resolves once the instruction has been handed to the harness, not once the
    * agent has acted on it; the effect arrives as events.
    */
-  send(command: IAgentCommand): Promise<void>;
+  send(command: ICodeHudAgentCommand): Promise<void>;
 
   /**
    * Ends the session and releases the harness process.

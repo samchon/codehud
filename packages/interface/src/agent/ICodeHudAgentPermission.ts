@@ -9,12 +9,12 @@
  * @evidence specifications/agent-harness/control-and-approval.md#spec-agent-option-self-description Types the self-describing option the specification requires instead of a fixed enumeration.
  * @author Samchon
  */
-export interface IAgentPermission {
+export interface ICodeHudAgentPermission {
   /**
    * Opaque identifier the adapter uses to route the answer back.
    *
    * The device never interprets it; it echoes the value in
-   * {@link IAgentCommand.IDecision.optionId}.
+   * {@link ICodeHudAgentCommand.IDecision.optionId}.
    */
   id: string;
 

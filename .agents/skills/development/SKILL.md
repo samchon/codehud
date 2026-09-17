@@ -44,7 +44,7 @@ Formatting and whitespace checks are commit behavior; the [pull-request skill](.
 No test enforces these, so they are read in review.
 
 - `packages/interface` is **pure types with no runtime dependency**. It is the shared vocabulary both axes speak; constraints live in field JSDoc, not in validator tags.
-- `packages/hud` is the projection boundary. It imports `packages/interface` and nothing else, and its exported functions are pure: no clock, no random source, no input, no output, no mutable global.
+- `packages/projection` is the projection boundary. It imports `packages/interface` and nothing else, and its exported functions are pure: no clock, no random source, no input, no output, no mutable global.
 - **The two adapter axes never import each other.** The harness axis (`packages/agent`) references no display geometry, input gesture, or manufacturer. The device axis references no harness family, observation kind, or instruction kind. A change that adds a member to one axis and requires editing the other is rejected.
 - `packages/bridge` runs on the repository machine and owns process spawning, pairing, and session retention. It may import `agent` and `interface`; it must not import `hud`, because composition belongs to the device that has a geometry.
 - `packages/client` runs on the device host and owns transport, folding, and routing. It imports `hud` and `interface`.

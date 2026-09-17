@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@codehud/station",
+  "name": "@codehud/workspace",
   "version": "0.1.0",
   "description": "Drive Claude Code and Codex from smart glasses: one app, no hosted server, one adapter per device.",
   "packageManager": "pnpm@10.6.4",

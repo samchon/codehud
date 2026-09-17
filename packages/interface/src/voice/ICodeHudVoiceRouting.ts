@@ -11,12 +11,12 @@
  * @evidence specifications/voice-surface/utterance-routing.md#spec-voice-deterministic-routing Types the routing outcome the specification requires to be computed deterministically and without a model call.
  * @author Samchon
  */
-export type IVoiceRouting =
-  | IVoiceRouting.ICommand
-  | IVoiceRouting.IQuery
-  | IVoiceRouting.IPrompt
-  | IVoiceRouting.IAmbiguous;
-export namespace IVoiceRouting {
+export type ICodeHudVoiceRouting =
+  | ICodeHudVoiceRouting.ICommand
+  | ICodeHudVoiceRouting.IQuery
+  | ICodeHudVoiceRouting.IPrompt
+  | ICodeHudVoiceRouting.IAmbiguous;
+export namespace ICodeHudVoiceRouting {
   /**
    * The utterance operated the client rather than the agent.
    *

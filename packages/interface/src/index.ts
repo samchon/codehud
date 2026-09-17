@@ -1,20 +1,20 @@
-export * from "./agent/IAgentAdapter";
-export * from "./agent/IAgentCommand";
-export * from "./agent/IAgentDescriptor";
-export * from "./agent/IAgentEvent";
-export * from "./agent/IAgentPermission";
-export * from "./agent/IAgentSession";
+export * from "./agent/ICodeHudAgentAdapter";
+export * from "./agent/ICodeHudAgentCommand";
+export * from "./agent/ICodeHudAgentDescriptor";
+export * from "./agent/ICodeHudAgentEvent";
+export * from "./agent/ICodeHudAgentPermission";
+export * from "./agent/ICodeHudAgentSession";
 
-export * from "./bridge/IBridgeProvider";
-export * from "./bridge/IClientProvider";
+export * from "./bridge/ICodeHudBridgeProvider";
+export * from "./bridge/ICodeHudClientProvider";
 
-export * from "./glasses/IGlassesAdapter";
-export * from "./glasses/IGlassesDescriptor";
-export * from "./glasses/IGlassesInput";
+export * from "./glasses/ICodeHudGlassesAdapter";
+export * from "./glasses/ICodeHudGlassesDescriptor";
+export * from "./glasses/ICodeHudGlassesInput";
 
-export * from "./hud/IHudFrame";
-export * from "./hud/IHudState";
+export * from "./hud/ICodeHudFrame";
+export * from "./hud/ICodeHudState";
 
-export * from "./notification/INotification";
+export * from "./notification/ICodeHudNotification";
 
-export * from "./voice/IVoiceRouting";
+export * from "./voice/ICodeHudVoiceRouting";

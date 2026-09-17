@@ -9,14 +9,14 @@
  * @evidence specifications/agent-harness/normalized-stream.md#spec-agent-probe-result Types the usable half of the discovery result the specification fixes.
  * @author Samchon
  */
-export interface IAgentDescriptor {
+export interface ICodeHudAgentDescriptor {
   /**
    * Stable machine key of the harness, unique within one bridge.
    *
-   * Used as the selector in {@link IAgentAdapter} lookups and in the wire
+   * Used as the selector in {@link ICodeHudAgentAdapter} lookups and in the wire
    * protocol, so it must stay constant across restarts of the same install.
    */
-  kind: IAgentDescriptor.Kind;
+  kind: ICodeHudAgentDescriptor.Kind;
 
   /**
    * Human label rendered on the head-up display, such as `Claude Code`.
@@ -41,7 +41,7 @@ export interface IAgentDescriptor {
    */
   executable: string;
 }
-export namespace IAgentDescriptor {
+export namespace ICodeHudAgentDescriptor {
   /**
    * Closed set of harness families this project normalizes.
    *
