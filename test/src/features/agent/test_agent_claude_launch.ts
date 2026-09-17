@@ -1,6 +1,6 @@
 import {
   CodeHudClaudeAdapter,
-  type ICodeHudClaudeChannel,
+  type ICodeHudHarnessChannel,
 } from "@codehud/agent";
 import type {
   ICodeHudAgentAdapter,
@@ -45,7 +45,7 @@ export async function test_agent_claude_launch(): Promise<void> {
     actions: { write: "confirmed" },
   };
 
-  class Channel implements ICodeHudClaudeChannel {
+  class Channel implements ICodeHudHarnessChannel {
     public readonly written: unknown[] = [];
     public closed: number = 0;
     public constructor(private readonly refuse: boolean = false) {}

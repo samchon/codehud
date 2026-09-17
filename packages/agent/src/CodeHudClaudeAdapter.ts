@@ -9,7 +9,7 @@ import { randomUUID } from "node:crypto";
 import { CodeHudClaudeSession } from "./CodeHudClaudeSession";
 import { CodeHudNodeChannel } from "./CodeHudNodeChannel";
 import { CodeHudNodeRunner } from "./CodeHudNodeRunner";
-import type { ICodeHudClaudeChannel } from "./ICodeHudClaudeChannel";
+import type { ICodeHudHarnessChannel } from "./ICodeHudHarnessChannel";
 
 /**
  * Launches Claude Code and hands back a conversation.
@@ -68,7 +68,7 @@ export class CodeHudClaudeAdapter implements ICodeHudAgentAdapter {
       CodeHudClaudeAdapter.args(props),
       this.props.platform,
     );
-    const channel: ICodeHudClaudeChannel =
+    const channel: ICodeHudHarnessChannel =
       this.props.channel?.(file, args, props.directory) ??
       new CodeHudNodeChannel(
         spawn(file, args, {
@@ -124,7 +124,7 @@ export namespace CodeHudClaudeAdapter {
       file: string,
       args: string[],
       directory: string,
-    ) => ICodeHudClaudeChannel;
+    ) => ICodeHudHarnessChannel;
 
     /** Mints session identifiers, so a test can state the ones it expects. */
     id?: () => string;

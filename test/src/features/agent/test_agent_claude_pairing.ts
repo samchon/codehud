@@ -1,6 +1,6 @@
 import {
   CodeHudClaudeSession,
-  type ICodeHudClaudeChannel,
+  type ICodeHudHarnessChannel,
 } from "@codehud/agent";
 import type { ICodeHudAgentEvent } from "@codehud/interface";
 import { TestValidator } from "@nestia/e2e";
@@ -37,7 +37,7 @@ import { Claude } from "../internal/claude";
  *    refused rather than silently dropped.
  */
 export async function test_agent_claude_pairing(): Promise<void> {
-  class Channel implements ICodeHudClaudeChannel {
+  class Channel implements ICodeHudHarnessChannel {
     public readonly written: unknown[] = [];
     public closed: number = 0;
     public constructor(private readonly feed: Claude.IEnvelope[]) {}

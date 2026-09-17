@@ -1,6 +1,6 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 
-import type { ICodeHudClaudeChannel } from "./ICodeHudClaudeChannel";
+import type { ICodeHudHarnessChannel } from "./ICodeHudHarnessChannel";
 
 /**
  * A running harness process, reached through Node.
@@ -20,7 +20,7 @@ import type { ICodeHudClaudeChannel } from "./ICodeHudClaudeChannel";
  * @evidence specifications/agent-harness/normalized-stream.md#spec-agent-session-open Carries the observation stream, instruction delivery, and termination the session surface is defined over.
  * @author Samchon
  */
-export class CodeHudNodeChannel implements ICodeHudClaudeChannel {
+export class CodeHudNodeChannel implements ICodeHudHarnessChannel {
   private buffer: string = "";
   private ended: boolean = false;
 
