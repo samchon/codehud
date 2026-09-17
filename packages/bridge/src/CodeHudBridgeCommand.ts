@@ -1,5 +1,6 @@
 import {
   CodeHudClaudeAdapter,
+  CodeHudCodexAdapter,
   CodeHudHarnessProbe,
   CodeHudNodeRunner,
   type ICodeHudHarnessRunner,
@@ -185,9 +186,13 @@ export namespace CodeHudBridgeCommand {
       ICodeHudBridgeProvider.IOpen["kind"],
       ICodeHudAgentAdapter
     > = new Map();
-    for (const entry of found)
-      if (entry.descriptor !== undefined && entry.kind === "claude-code")
+    for (const entry of found) {
+      if (entry.descriptor === undefined) continue;
+      if (entry.kind === "claude-code")
         built.set(entry.kind, new CodeHudClaudeAdapter(entry.descriptor));
+      else if (entry.kind === "codex")
+        built.set(entry.kind, new CodeHudCodexAdapter(entry.descriptor));
+    }
     return built;
   };
 
