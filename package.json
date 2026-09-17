@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "description": "Drive Claude Code and Codex from smart glasses: one app, no hosted server, one adapter per device.",
   "packageManager": "pnpm@10.6.4",
+  "engines": {
+    "node": "22.23.2"
+  },
   "scripts": {
     "build": "pnpm --filter=./packages/** -r build",
     "test": "pnpm --filter @samchon/glasses-test build && pnpm --filter @samchon/glasses-test start",
