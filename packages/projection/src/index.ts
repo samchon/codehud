@@ -3,3 +3,4 @@ export * from "./CodeHudContext";
 export * from "./CodeHudNotifier";
 export * from "./CodeHudReducer";
 export * from "./CodeHudText";
+export * from "./CodeHudVoiceRouter";

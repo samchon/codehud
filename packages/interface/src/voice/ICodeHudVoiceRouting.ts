@@ -15,7 +15,8 @@ export type ICodeHudVoiceRouting =
   | ICodeHudVoiceRouting.ICommand
   | ICodeHudVoiceRouting.IQuery
   | ICodeHudVoiceRouting.IPrompt
-  | ICodeHudVoiceRouting.IAmbiguous;
+  | ICodeHudVoiceRouting.IAmbiguous
+  | ICodeHudVoiceRouting.IUnheard;
 export namespace ICodeHudVoiceRouting {
   /**
    * The utterance operated the client rather than the agent.
@@ -119,6 +120,27 @@ export namespace ICodeHudVoiceRouting {
 
     /** The commands the utterance matched. */
     candidates: ICommand.Kind[];
+  }
+
+  /**
+   * Nothing was heard clearly enough to act on.
+   *
+   * Distinct from every other member, and distinct from silence. A consent
+   * answer recognized below the stated floor is neither an approval nor a
+   * refusal: the request stays pending and the system asks again. Routing it as
+   * a prompt would send noise to the agent, and resolving it either way would
+   * be the system answering on the wearer's behalf.
+   *
+   * It exists because the union could not express this and the specification
+   * requires it. An answer that cannot be represented gets represented as
+   * something else, and here the something else would have been irreversible.
+   */
+  export interface IUnheard {
+    /** Discriminator. */
+    type: "unheard";
+
+    /** What the recognizer reported, for a device that wants to say why. */
+    confidence: number;
   }
 
   /**
