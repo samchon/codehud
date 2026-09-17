@@ -5,11 +5,11 @@ description: Defines glasses branch, commit, pull-request, check-reading, and me
 
 # Pull Request Submission
 
-Standing instruction (user, 2026-09-17): work proceeds in **topic-unit pull requests**. One coherent topic per PR, never committed to `master` directly.
+Two standing user instructions govern when this workflow runs and how far it goes. [AGENTS.md's `## Attitude`](../../../AGENTS.md#attitude) owns their wording: work ships in topic-unit pull requests, and the published issues are conquered one at a time and merged without asking.
 
-Standing autonomous mandate (user, 2026-09-17): the published issues are worked one at a time and merged without asking, each through implementation, Self-Review rounds, and green CI. The mandate is the request for every step it names, including push and merge, and every check, verification, and Self-Review gate still applies to each step.
+This skill owns what each step of that delivery does. The mandate is the request for every step it names, including push and merge, and every check, verification, and Self-Review gate still applies to each step.
 
-Outside that mandate, permission to open is not permission to merge. Merge only when the user explicitly asks.
+Outside the mandate, permission to open is not permission to merge. Merge only when the user explicitly asks.
 
 ## Branch From The Target
 

@@ -85,7 +85,7 @@ Write each Markdown paragraph on one source line. Never hard-wrap a paragraph at
 
 One source line does not mean one long paragraph. Insert a blank line whenever the idea changes. Keep structural line breaks for paragraphs, list items, headings, tables, and fenced code.
 
-Markdown has no repository formatter. Inspect Markdown-only diffs directly, then run `git diff --check`. Run `pnpm run format` only for the configured TypeScript sources.
+Markdown has no repository formatter, so a Markdown diff is read rather than checked by a tool. The [pull-request skill](../pull-request/SKILL.md#commit-logical-units) owns what that means at commit time.
 
 ## Voice
 
