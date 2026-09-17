@@ -5,23 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 catalogs:
-  net:
-    '@types/qrcode-terminal':
-      specifier: ^0.12.2
-      version: 0.12.2
-    '@types/ws':
-      specifier: ^8.5.13
-      version: 8.18.1
-    qrcode-terminal:
-      specifier: ^0.12.0
-      version: 0.12.0
-    ws:
-      specifier: ^8.18.0
-      version: 8.21.3
-  samchon:
-    '@nestia/e2e':
-      specifier: ^12.1.0
-      version: 12.1.0
   typescript:
     '@trivago/prettier-plugin-sort-imports':
       specifier: ^5.2.2
@@ -48,12 +31,6 @@ catalogs:
     '@types/node':
       specifier: ^22.19.17
       version: 22.20.3
-    chalk:
-      specifier: 4.1.2
-      version: 4.1.2
-    commander:
-      specifier: ^12.1.0
-      version: 12.1.0
     rimraf:
       specifier: ^6.0.1
       version: 6.1.3
@@ -93,231 +70,6 @@ importers:
   config:
     devDependencies:
       '@ttsc/lint':
-        specifier: catalog:typescript
-        version: 0.30.2
-      typescript:
-        specifier: catalog:typescript
-        version: 7.0.2
-
-  packages/agent:
-    dependencies:
-      '@samchon/glasses-interface':
-        specifier: workspace:^
-        version: link:../interface
-    devDependencies:
-      '@ttsc/evidence':
-        specifier: catalog:typescript
-        version: 0.30.2(@ttsc/lint@0.30.2)
-      '@ttsc/lint':
-        specifier: catalog:typescript
-        version: 0.30.2
-      '@types/node':
-        specifier: catalog:utils
-        version: 22.20.3
-      rimraf:
-        specifier: catalog:utils
-        version: 6.1.3
-      ttsc:
-        specifier: catalog:typescript
-        version: 0.30.2
-      typescript:
-        specifier: catalog:typescript
-        version: 7.0.2
-
-  packages/bridge:
-    dependencies:
-      '@samchon/glasses-agent':
-        specifier: workspace:^
-        version: link:../agent
-      '@samchon/glasses-interface':
-        specifier: workspace:^
-        version: link:../interface
-      commander:
-        specifier: catalog:utils
-        version: 12.1.0
-      qrcode-terminal:
-        specifier: catalog:net
-        version: 0.12.0
-      ws:
-        specifier: catalog:net
-        version: 8.21.3
-    devDependencies:
-      '@ttsc/evidence':
-        specifier: catalog:typescript
-        version: 0.30.2(@ttsc/lint@0.30.2)
-      '@ttsc/lint':
-        specifier: catalog:typescript
-        version: 0.30.2
-      '@types/node':
-        specifier: catalog:utils
-        version: 22.20.3
-      '@types/qrcode-terminal':
-        specifier: catalog:net
-        version: 0.12.2
-      '@types/ws':
-        specifier: catalog:net
-        version: 8.18.1
-      rimraf:
-        specifier: catalog:utils
-        version: 6.1.3
-      ttsc:
-        specifier: catalog:typescript
-        version: 0.30.2
-      typescript:
-        specifier: catalog:typescript
-        version: 7.0.2
-
-  packages/client:
-    dependencies:
-      '@samchon/glasses-hud':
-        specifier: workspace:^
-        version: link:../hud
-      '@samchon/glasses-interface':
-        specifier: workspace:^
-        version: link:../interface
-    devDependencies:
-      '@ttsc/evidence':
-        specifier: catalog:typescript
-        version: 0.30.2(@ttsc/lint@0.30.2)
-      '@ttsc/lint':
-        specifier: catalog:typescript
-        version: 0.30.2
-      '@types/node':
-        specifier: catalog:utils
-        version: 22.20.3
-      rimraf:
-        specifier: catalog:utils
-        version: 6.1.3
-      ttsc:
-        specifier: catalog:typescript
-        version: 0.30.2
-      typescript:
-        specifier: catalog:typescript
-        version: 7.0.2
-
-  packages/hud:
-    dependencies:
-      '@samchon/glasses-interface':
-        specifier: workspace:^
-        version: link:../interface
-    devDependencies:
-      '@ttsc/evidence':
-        specifier: catalog:typescript
-        version: 0.30.2(@ttsc/lint@0.30.2)
-      '@ttsc/lint':
-        specifier: catalog:typescript
-        version: 0.30.2
-      '@types/node':
-        specifier: catalog:utils
-        version: 22.20.3
-      rimraf:
-        specifier: catalog:utils
-        version: 6.1.3
-      ttsc:
-        specifier: catalog:typescript
-        version: 0.30.2
-      typescript:
-        specifier: catalog:typescript
-        version: 7.0.2
-
-  packages/interface:
-    devDependencies:
-      '@ttsc/evidence':
-        specifier: catalog:typescript
-        version: 0.30.2(@ttsc/lint@0.30.2)
-      '@ttsc/lint':
-        specifier: catalog:typescript
-        version: 0.30.2
-      '@types/node':
-        specifier: catalog:utils
-        version: 22.20.3
-      rimraf:
-        specifier: catalog:utils
-        version: 6.1.3
-      ttsc:
-        specifier: catalog:typescript
-        version: 0.30.2
-      typescript:
-        specifier: catalog:typescript
-        version: 7.0.2
-
-  packages/simulator:
-    dependencies:
-      '@samchon/glasses-client':
-        specifier: workspace:^
-        version: link:../client
-      '@samchon/glasses-hud':
-        specifier: workspace:^
-        version: link:../hud
-      '@samchon/glasses-interface':
-        specifier: workspace:^
-        version: link:../interface
-      chalk:
-        specifier: catalog:utils
-        version: 4.1.2
-      commander:
-        specifier: catalog:utils
-        version: 12.1.0
-      ws:
-        specifier: catalog:net
-        version: 8.21.3
-    devDependencies:
-      '@ttsc/evidence':
-        specifier: catalog:typescript
-        version: 0.30.2(@ttsc/lint@0.30.2)
-      '@ttsc/lint':
-        specifier: catalog:typescript
-        version: 0.30.2
-      '@types/node':
-        specifier: catalog:utils
-        version: 22.20.3
-      '@types/ws':
-        specifier: catalog:net
-        version: 8.18.1
-      rimraf:
-        specifier: catalog:utils
-        version: 6.1.3
-      ttsc:
-        specifier: catalog:typescript
-        version: 0.30.2
-      typescript:
-        specifier: catalog:typescript
-        version: 7.0.2
-
-  test:
-    dependencies:
-      '@nestia/e2e':
-        specifier: catalog:samchon
-        version: 12.1.0
-      '@samchon/glasses-agent':
-        specifier: workspace:^
-        version: link:../packages/agent
-      '@samchon/glasses-client':
-        specifier: workspace:^
-        version: link:../packages/client
-      '@samchon/glasses-hud':
-        specifier: workspace:^
-        version: link:../packages/hud
-      '@samchon/glasses-interface':
-        specifier: workspace:^
-        version: link:../packages/interface
-      '@samchon/glasses-simulator':
-        specifier: workspace:^
-        version: link:../packages/simulator
-      glasses-bridge:
-        specifier: workspace:^
-        version: link:../packages/bridge
-    devDependencies:
-      '@ttsc/lint':
-        specifier: catalog:typescript
-        version: 0.30.2
-      '@types/node':
-        specifier: catalog:utils
-        version: 22.20.3
-      chalk:
-        specifier: catalog:utils
-        version: 4.1.2
-      ttsc:
         specifier: catalog:typescript
         version: 0.30.2
       typescript:
@@ -375,9 +127,6 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
-
-  '@nestia/e2e@12.1.0':
-    resolution: {integrity: sha512-WjhNi9YGBDPEq5ik8ApgTPxI6RxezzWdvDiBx7hmqnhEKqzdHxGD5T+aleuNkJdvKYPrSdS0crDynLfe+38fMw==}
 
   '@prisma/prisma-schema-wasm@7.10.0-2.d0368e25c88e68caa4d283b5f2d88d1b76ed9356':
     resolution: {integrity: sha512-loEbWBr+xUSqtIYaoJCrIuDeVs/fSY29Efshp+3rrTgQtyEqJ2iGuLTt9XnRZYBUE+eWC8ps0nOblyckgBehJQ==}
@@ -443,12 +192,6 @@ packages:
 
   '@types/node@22.20.3':
     resolution: {integrity: sha512-DZmzkmwHzXrLPAXPyKNDzlIwMMUZCVacoD25ywdy5YTKGbOx/2ld+Q38Im2zJ0vBuZP5Prd3VZutKZyXwkOS8A==}
-
-  '@types/qrcode-terminal@0.12.2':
-    resolution: {integrity: sha512-v+RcIEJ+Uhd6ygSQ0u5YYY7ZM+la7GgPbs0V/7l/kFs2uO4S8BcIUEMoP7za4DNIqNnUD5npf0A/7kBhrCKG5Q==}
-
-  '@types/ws@8.18.1':
-    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -588,10 +331,6 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
-  ansi-styles@4.3.0:
-    resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
-    engines: {node: '>=8'}
-
   balanced-match@4.0.4:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
     engines: {node: 18 || 20 || >=22}
@@ -600,23 +339,8 @@ packages:
     resolution: {integrity: sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==}
     engines: {node: 20 || >=22}
 
-  chalk@4.1.2:
-    resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
-    engines: {node: '>=10'}
-
   cjs-module-lexer@2.2.1:
     resolution: {integrity: sha512-Ca8swihM+/4yKecYHY52kgJd300hi2lADU/a1RxNTRe+RJ9jvqQlESpbz9DnG9mowez8qwXHB8qYdIUw9e+F5Q==}
-
-  color-convert@2.0.1:
-    resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
-    engines: {node: '>=7.0.0'}
-
-  color-name@1.1.4:
-    resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
-
-  commander@12.1.0:
-    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
-    engines: {node: '>=18'}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -634,10 +358,6 @@ packages:
   glob@13.0.6:
     resolution: {integrity: sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw==}
     engines: {node: 18 || 20 || >=22}
-
-  has-flag@4.0.0:
-    resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
-    engines: {node: '>=8'}
 
   javascript-natural-sort@0.7.1:
     resolution: {integrity: sha512-nO6jcEfZWQXDhOiBtG2KvKyEptz7RVbpGP4vTD2hLBdmNQSsCiicO2Ioinv6UI4y9ukqnBpy+XZ9H6uLNgJTlw==}
@@ -683,10 +403,6 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  qrcode-terminal@0.12.0:
-    resolution: {integrity: sha512-EXtzRZmC+YGmGlDFbXKxQiMZNwCLEO6BANKXG4iCtSIM0yqc/pappSx3RIKr4r0uh5JsBckOXeKrB3Iz7mdQpQ==}
-    hasBin: true
-
   randexp@0.5.3:
     resolution: {integrity: sha512-U+5l2KrcMNOUPYvazA3h5ekF80FHTUG+87SEAmHZmolh1M+i/WyTCxVzmi+tidIa1tM4BSe8g2Y/D3loWDjj+w==}
     engines: {node: '>=4'}
@@ -699,10 +415,6 @@ packages:
     resolution: {integrity: sha512-LKg+Cr2ZF61fkcaK1UdkH2yEBBKnYjTyWzTJT6KNPcSPaiT7HSdhtMXQuN5wkTX0Xu72KQ1l8S42rlmexS2hSA==}
     engines: {node: 20 || >=22}
     hasBin: true
-
-  supports-color@7.2.0:
-    resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
-    engines: {node: '>=8'}
 
   tstl@3.0.0:
     resolution: {integrity: sha512-pR83y6/tbJx6jeGRqGJXk2t/eCUynaHEE6zsOLB0Zga8ej61LXtPfoeiROdhezpoCT15+1QMbqKB1Um5kasSKg==}
@@ -730,18 +442,6 @@ packages:
 
   web-tree-sitter@0.27.0:
     resolution: {integrity: sha512-XK08gj6RwTMQatAG7uVRP8MunqotL/XC19vHgkSPKmELgbGPBj4ECvB8haHOUnyj6ls2B8t42UTro14zxGgAHg==}
-
-  ws@8.21.3:
-    resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
 
   yaml@2.9.1:
     resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
@@ -811,8 +511,6 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@nestia/e2e@12.1.0': {}
-
   '@prisma/prisma-schema-wasm@7.10.0-2.d0368e25c88e68caa4d283b5f2d88d1b76ed9356': {}
 
   '@trivago/prettier-plugin-sort-imports@5.2.2(prettier@3.9.7)':
@@ -861,12 +559,6 @@ snapshots:
   '@types/node@22.20.3':
     dependencies:
       undici-types: 6.21.0
-
-  '@types/qrcode-terminal@0.12.2': {}
-
-  '@types/ws@8.18.1':
-    dependencies:
-      '@types/node': 22.20.3
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true
@@ -948,30 +640,13 @@ snapshots:
 
   acorn@8.16.0: {}
 
-  ansi-styles@4.3.0:
-    dependencies:
-      color-convert: 2.0.1
-
   balanced-match@4.0.4: {}
 
   brace-expansion@5.0.12:
     dependencies:
       balanced-match: 4.0.4
 
-  chalk@4.1.2:
-    dependencies:
-      ansi-styles: 4.3.0
-      supports-color: 7.2.0
-
   cjs-module-lexer@2.2.1: {}
-
-  color-convert@2.0.1:
-    dependencies:
-      color-name: 1.1.4
-
-  color-name@1.1.4: {}
-
-  commander@12.1.0: {}
 
   debug@4.4.3:
     dependencies:
@@ -984,8 +659,6 @@ snapshots:
       minimatch: 10.2.6
       minipass: 7.1.3
       path-scurry: 2.0.2
-
-  has-flag@4.0.0: {}
 
   javascript-natural-sort@0.7.1: {}
 
@@ -1016,8 +689,6 @@ snapshots:
 
   prettier@3.9.7: {}
 
-  qrcode-terminal@0.12.0: {}
-
   randexp@0.5.3:
     dependencies:
       drange: 1.1.1
@@ -1029,10 +700,6 @@ snapshots:
     dependencies:
       glob: 13.0.6
       package-json-from-dist: 1.0.1
-
-  supports-color@7.2.0:
-    dependencies:
-      has-flag: 4.0.0
 
   tstl@3.0.0: {}
 
@@ -1083,7 +750,5 @@ snapshots:
   undici-types@6.21.0: {}
 
   web-tree-sitter@0.27.0: {}
-
-  ws@8.21.3: {}
 
   yaml@2.9.1: {}
