@@ -45,6 +45,7 @@ export namespace CodeHudContext {
       failed: "Failed",
       say: "Say",
       or: "or",
+      within: "of",
       interrupt: "Say stop",
       review: "Say back, forward, or latest",
     }),

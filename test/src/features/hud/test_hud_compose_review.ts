@@ -45,6 +45,7 @@ export async function test_hud_compose_review(): Promise<void> {
     state,
     Stream.tool("c1", "Edit first.ts", "finish", false),
   );
+  state = reducer.reduce(state, Stream.message("I edited one file.", true));
   state = reducer.reduce(
     state,
     Stream.tool("c2", "Bash pnpm test", "finish", true),
@@ -65,7 +66,7 @@ export async function test_hud_compose_review(): Promise<void> {
     frame.lines[0]!.tone,
     "alert",
   );
-  TestValidator.equals("position line", frame.lines[1]!.text, "2 of 3");
+  TestValidator.equals("position line", frame.lines[1]!.text, "2 of 4");
   TestValidator.equals("no hint on two rows", frame.hint, undefined);
 
   const wide: ICodeHudFrame = composer.compose(reviewing, Stream.WIDE);
@@ -82,9 +83,33 @@ export async function test_hud_compose_review(): Promise<void> {
   TestValidator.equals(
     "newest is one of three",
     newest.lines[1]!.text,
-    "1 of 3",
+    "1 of 4",
   );
   TestValidator.equals("and is not alert", newest.lines[0]!.tone, "primary");
+
+  // Emphasis distinguishes what an entry is. On a monochrome two-line display
+  // the text and its weight are all a wearer has to tell a turn summary from a
+  // tool call, so each kind is pinned here and a failure overrides all of them.
+  const tones = [0, 1, 2, 3].map(
+    (offset) =>
+      composer.compose(
+        { ...state, review: { active: true, offset } },
+        Stream.NARROW,
+      ).lines[0]!.tone,
+  );
+  TestValidator.equals("a result is primary", tones[0], "primary");
+  TestValidator.equals("a failure overrides the kind", tones[1], "alert");
+  TestValidator.equals("a message is secondary", tones[2], "secondary");
+  TestValidator.equals("a tool is muted", tones[3], "muted");
+
+  TestValidator.equals(
+    "the positional word comes from the vocabulary",
+    composer.compose(
+      { ...state, review: { active: true, offset: 0 } },
+      Stream.NARROW,
+    ).lines[1]!.text,
+    `1 ${CodeHudContext.DEFAULT.vocabulary.within} 4`,
+  );
 
   const past: ICodeHudFrame = composer.compose(
     { ...state, review: { active: true, offset: 99 } },

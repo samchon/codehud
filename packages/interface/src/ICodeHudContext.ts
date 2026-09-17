@@ -32,6 +32,16 @@ export interface ICodeHudContext {
    * Configuration rather than a constant because the tokens have to be chosen
    * for acoustic distance in the wearer's language, and because a recognizer
    * that reports no confidence cannot be used for consent at all.
+   *
+   * The projection does not read this. A pending approval's hint names the
+   * labels the harness reported, since a wearer answering with a word the
+   * harness does not offer has not answered. It lands here now so that the
+   * consent tokens live beside the rest of the configuration rather than
+   * arriving later as a second context nobody expected.
+   *
+   * @publicUnconsumed the voice router: it decides whether a recognized
+   *   utterance clears the confidence floor and whether a destructive action's
+   *   second confirmation was given, and both need these values.
    */
   consent: ICodeHudVoiceRouting.IConsent;
 
@@ -90,6 +100,15 @@ export namespace ICodeHudContext {
 
     /** Conjunction between two offered answers, such as `or`. */
     or: string;
+
+    /**
+     * Preposition joining a position to a total, such as `of` in `2 of 7`.
+     *
+     * Here for the same reason as the rest of this section: a wearer reviewing
+     * history reads it on every frame, and a literal in the composer would be
+     * one word of the interface nobody could translate.
+     */
+    within: string;
 
     /** Complete hint for stopping a turn in flight. */
     interrupt: string;

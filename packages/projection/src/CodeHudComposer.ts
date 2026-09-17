@@ -162,12 +162,12 @@ export class CodeHudComposer {
         : undefined,
     );
     const lines: ICodeHudFrame.ILine[] = [
-      this.line(entry.title, entry.failed ? "alert" : "primary", geometry),
+      this.line(entry.title, this.emphasis(entry), geometry),
     ];
     if (room >= 2)
       lines.push(
         this.line(
-          `${state.review.offset + 1} of ${state.history.length}`,
+          `${state.review.offset + 1} ${this.context.vocabulary.within} ${state.history.length}`,
           "muted",
           geometry,
         ),
@@ -243,6 +243,26 @@ export class CodeHudComposer {
     return candidate === undefined || geometry.rows < 2
       ? { hint: undefined, room: geometry.rows }
       : { hint: candidate, room: geometry.rows - 1 };
+  }
+
+  /**
+   * How much weight a reviewed entry carries.
+   *
+   * A wearer walking back through a turn on a monochrome two-line display has
+   * only the text and its emphasis to tell a turn summary from a tool call.
+   * Emphasis carries that rather than a leading marker, because a marker would
+   * cost a column on the surface that has fewest of them.
+   */
+  private emphasis(entry: ICodeHudState.IEntry): ICodeHudFrame.ILine.Tone {
+    if (entry.failed === true) return "alert";
+    switch (entry.kind) {
+      case "result":
+        return "primary";
+      case "message":
+        return "secondary";
+      case "tool":
+        return "muted";
+    }
   }
 
   private verdict(outcome: "success" | "error" | "interrupted"): string {
