@@ -13,8 +13,8 @@ import type { ICodeHudVoiceRouting } from "./voice/ICodeHudVoiceRouting";
  * reducer and the composer be constructed once, with a stated configuration,
  * and then used as the pure functions they are.
  *
- * @evidence requirements/voice-interaction/spoken-control.md#voice-consent-integrity Carries the consent vocabulary and confidence floor as configuration rather than as constants the wearer cannot see.
- * @evidence specifications/voice-surface/utterance-routing.md#spec-voice-consent-integrity Types the consent configuration the acoustic-distance and threshold rules are stated over.
+ * @evidence requirements/voice-interaction/spoken-control.md#voice-consent-integrity Makes the consent tokens and the confidence floor stated values rather than constants, which is the precondition for choosing them for acoustic distance at all. Enforcing them is the voice router's, declared on the field.
+ * @evidence specifications/voice-surface/utterance-routing.md#spec-voice-consent-integrity Gives the floor and the differently worded second confirmation somewhere to be stated. The admission rule itself is typed by ICodeHudVoiceRouting.IConsent and applied by the router.
  * @author Samchon
  */
 export interface ICodeHudContext {

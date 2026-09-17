@@ -12,8 +12,8 @@ import type { ICodeHudContext } from "@codehud/interface";
  * words chosen for acoustic distance in the wearer's language, which is the
  * open question the consent requirement states and which no default can settle.
  *
- * @evidence requirements/voice-interaction/spoken-control.md#voice-consent-integrity Supplies a stated consent configuration so no consent token is a constant buried in the composer.
- * @evidence specifications/voice-surface/utterance-routing.md#spec-voice-consent-integrity Builds the confidence floor and the differently worded second confirmation the specification requires.
+ * @evidence requirements/voice-interaction/spoken-control.md#voice-consent-integrity Supplies starting values for the consent tokens and the floor, so that no consent word is a constant buried in a source file. It chooses nothing for acoustic distance and enforces nothing; both belong to the wearer's configuration and to the voice router.
+ * @evidence specifications/voice-surface/utterance-routing.md#spec-voice-consent-integrity Supplies a default floor and a second confirmation worded differently from the affirmative, which is the one part of the rule a default can satisfy. The threshold comparison and the re-request are the router's.
  * @author Samchon
  */
 export namespace CodeHudContext {

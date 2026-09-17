@@ -28,10 +28,13 @@ import { Stream } from "../internal/stream";
  * 1. Every state reachable through the reducer, composed at every supported
  *    geometry, keeps every line within the column count.
  * 2. The same, for the row count, counting the spoken hint as a row.
- * 3. Every frame carries a grade, since a frame with no grade is a defect
- *    rather than an implicit ambient.
- * 4. Every frame carries at least one line, so a device is never handed an
+ * 3. Every frame carries at least one line, so a device is never handed an
  *    empty screen with nothing to explain it.
+ * 4. The grade a state produces is the same on every surface. Urgency belongs
+ *    to the situation rather than to the display, so a narrow device must not
+ *    raise it to compensate for having less room. Asserting that the grade is
+ *    one of the three admitted values would instead be untestable: the type
+ *    already guarantees it, so the check could never fail.
  * 5. The key changes when the visible content changes, which is what lets an
  *    adapter skip a redundant draw without skipping a real one.
  */
@@ -138,13 +141,17 @@ export async function test_hud_compose_geometry(): Promise<void> {
       );
 
       TestValidator.predicate(
-        `${where}: carries a grade`,
-        ["ambient", "notice", "demand"].includes(frame.urgency),
-      );
-
-      TestValidator.predicate(
         `${where}: says something`,
         frame.lines.length >= 1,
+      );
+
+      // Urgency is a property of the situation, not of the surface. A narrow
+      // display must not raise the grade to compensate for having less room,
+      // and a wide one must not lower it.
+      TestValidator.equals(
+        `${where}: grade does not vary with geometry`,
+        frame.urgency,
+        composer.compose(state, Stream.WIDE).urgency,
       );
     }
 
