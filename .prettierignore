@@ -2,3 +2,8 @@ node_modules
 lib
 dist
 pnpm-lock.yaml
+
+# Emitted by `codex app-server generate-ts` and banner-marked "DO NOT MODIFY BY
+# HAND". Formatting them would rewrite 574 files the next regeneration then
+# rewrites back, turning every vendor bump into a diff nobody can read.
+packages/codex-protocol/src
