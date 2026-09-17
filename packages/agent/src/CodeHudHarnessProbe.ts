@@ -40,14 +40,25 @@ export class CodeHudHarnessProbe {
   private async one(
     family: CodeHudHarnessProbe.IFamily,
   ): Promise<ICodeHudAgentAdapter.IProbe> {
-    const executable: string | null = await this.runner
-      .resolve(family.command)
-      .catch(() => null);
-    if (executable === null)
+    // Absence and an unreadable path are both unusable and are not the same
+    // thing to be told. Collapsing them would report a broken PATH, an
+    // unreadable directory, or a permission failure as "not installed", and
+    // send the wearer to install something they already have.
+    let found: string | null;
+    try {
+      found = await this.runner.resolve(family.command);
+    } catch (thrown: unknown) {
+      return {
+        kind: family.kind,
+        reason: `${family.command} could not be looked up: ${CodeHudHarnessProbe.reason(thrown)}`,
+      };
+    }
+    if (found === null)
       return {
         kind: family.kind,
         reason: `${family.command} was not found on the PATH`,
       };
+    const executable: string = found;
 
     // A harness that answers nothing, answers slowly, or exits non-zero is
     // still installed. Only a version that cannot be read is absent, and the
@@ -109,6 +120,21 @@ export namespace CodeHudHarnessProbe {
       title: "Codex",
     }),
   ]);
+
+  /**
+   * Renders whatever was thrown as something a wearer can read.
+   *
+   * A rejection crossing this boundary is not always an `Error`, and a display
+   * showing `[object Object]` tells a wearer less than nothing. Stack traces
+   * are dropped here on purpose: the refusal has to fit a narrow display, and
+   * the full text belongs in the bridge's own log on the host machine.
+   */
+  export const reason = (thrown: unknown): string =>
+    thrown instanceof Error
+      ? thrown.message
+      : typeof thrown === "string"
+        ? thrown
+        : "the reason was not reported";
 
   /**
    * Extracts a version from whatever a harness prints when asked for one.

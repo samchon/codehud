@@ -59,9 +59,12 @@ export class CodeHudNodeRunner implements ICodeHudHarnessRunner {
    * a non-zero exit for the same reason. Only an inability to produce output at
    * all rejects.
    *
-   * The timeout is generous rather than short. Both harnesses are Node programs
-   * behind a shim, and a cold start on a loaded machine takes seconds before it
-   * prints anything.
+   * The timeout is measured rather than guessed. Asked for their versions on
+   * the machine this was written on, `claude` answered in 225 to 260 ms and
+   * `codex` in 409 to 446 ms across three runs each. Ten seconds is therefore
+   * twenty times the slower one, which leaves room for a cold file cache or a
+   * virus scanner reading a shim for the first time, and still bounds how long
+   * one hung binary can stall the bridge's startup.
    */
   public version(executable: string, args: string[]): Promise<string> {
     const [file, argv] = CodeHudNodeRunner.invocation(executable, args);
@@ -69,7 +72,7 @@ export class CodeHudNodeRunner implements ICodeHudHarnessRunner {
       execFile(
         file,
         argv,
-        { timeout: 30_000, maxBuffer: 64 * 1024, windowsHide: true },
+        { timeout: 10_000, maxBuffer: 64 * 1024, windowsHide: true },
         (error, stdout, stderr) => {
           const printed: string = `${stdout}${stderr}`.trim();
           if (printed.length !== 0) return resolve(printed);

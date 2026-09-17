@@ -26,8 +26,10 @@ import { TestValidator } from "@nestia/e2e";
  * 3. Descriptor and reason are never both present and never both absent, which
  *    is the invariant the specification states and the one a caller relies on
  *    to decide what to render.
- * 4. A resolver that throws is treated as absence rather than propagating, since
- *    one unreachable path must not hide the other harness.
+ * 4. A resolver that throws does not propagate, since one unreachable path must
+ *    not hide the other harness, and does not claim absence either. A broken
+ *    PATH, an unreadable directory, and a permission failure are all reasons a
+ *    wearer would act on differently from "not installed".
  * 5. A harness that resolves but cannot report a version is available without
  *    one. An unreported version is not a reason to hide a working harness.
  * 6. A harness whose version output holds no version is the same case, reached
@@ -117,9 +119,14 @@ export async function test_agent_probe(): Promise<void> {
     ),
   ).probe();
   TestValidator.equals(
-    "a throwing resolver is absence, not a failure",
+    "a throwing resolver leaves the harness unusable",
     throwing[0]!.descriptor,
     undefined,
+  );
+  TestValidator.predicate(
+    "and says it could not look, rather than that nothing is there",
+    throwing[0]!.reason?.includes("PATH unreadable") === true &&
+      throwing[0]!.reason?.includes("was not found") === false,
   );
   TestValidator.equals(
     "and does not hide the other harness",
