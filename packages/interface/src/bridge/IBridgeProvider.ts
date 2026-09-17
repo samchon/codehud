@@ -47,9 +47,7 @@ export interface IBridgeProvider {
    * The caller is subscribed to the new session's observations on return; no
    * separate attach is needed for a session it opened itself.
    */
-  open(
-    props: IAgentAdapter.IOpenProps & { kind: IAgentDescriptor.Kind },
-  ): Promise<string>;
+  open(props: IBridgeProvider.IOpen): Promise<string>;
 
   /**
    * Subscribes to a session that is already running, from a stated counter.
@@ -84,6 +82,23 @@ export namespace IBridgeProvider {
    * rather than assumed and a mismatch is refused with an explanation.
    */
   export const VERSION = 1;
+
+  /**
+   * What the wearer chose to launch, beyond how to launch it.
+   *
+   * Extends the harness-agnostic open properties with the one fact only the
+   * bridge needs: which harness family to spawn.
+   */
+  export interface IOpen extends IAgentAdapter.IOpenProps {
+    /**
+     * Harness family to launch.
+     *
+     * Named here rather than inferred from the working directory, because a
+     * wearer routinely runs both harnesses against one repository and the
+     * choice is theirs rather than the bridge's to make.
+     */
+    kind: IAgentDescriptor.Kind;
+  }
 
   /**
    * What a connecting device presents about itself.

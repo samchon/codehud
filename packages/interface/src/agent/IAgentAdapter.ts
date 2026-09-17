@@ -82,29 +82,19 @@ export namespace IAgentAdapter {
    */
   export interface IPolicy {
     /**
-     * Action classes that proceed without reaching the wearer.
+     * How each action class is treated, keyed by the class.
      *
-     * Reads belong here. An action class absent from every list defaults to
-     * {@link attended}, because silently widening the unattended set is the
-     * one mistake in this structure that cannot be noticed from the display.
-     */
-    unattended: IPolicy.Action[];
-
-    /**
-     * Action classes that raise an approval request.
+     * A mapping rather than one list per treatment, so an action cannot appear
+     * under two treatments at once. Three lists would let a policy say that
+     * deletion both proceeds unattended and requires two confirmations, and
+     * whichever one the implementation read first would become the answer.
      *
-     * Writes, executions, and anything leaving the host machine belong here.
+     * An action absent from the mapping is treated as {@link Treatment}
+     * `attended`. The default is the cautious one because silently widening
+     * the unattended set is the one mistake in this structure a wearer cannot
+     * notice from the display.
      */
-    attended: IPolicy.Action[];
-
-    /**
-     * Action classes that require a second, differently worded confirmation.
-     *
-     * Deletion, history rewriting, force publication, and credential exposure
-     * belong here. One misrecognized utterance must not be able to satisfy
-     * both confirmations, so the second is never a repetition of the first.
-     */
-    confirmed: IPolicy.Action[];
+    actions: Partial<Record<IPolicy.Action, IPolicy.Treatment>>;
   }
   export namespace IPolicy {
     /**
@@ -123,6 +113,18 @@ export namespace IAgentAdapter {
       | "history"
       | "publish"
       | "credential";
+
+    /**
+     * What happens when an action of a given class comes up.
+     *
+     * `unattended` proceeds silently and suits reads. `attended` raises an
+     * approval request and suits writes, executions, and anything leaving the
+     * host machine. `confirmed` raises one and then requires a second,
+     * differently worded confirmation, so that one misrecognized utterance
+     * cannot satisfy both; deletion, history rewriting, force publication, and
+     * credential exposure belong there.
+     */
+    export type Treatment = "unattended" | "attended" | "confirmed";
   }
 
   /**

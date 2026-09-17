@@ -8,20 +8,24 @@ import type { IHudFrame } from "../hud/IHudFrame";
  * doing. A product that spends that carelessly gets taken off and left on a
  * desk.
  *
- * The grade is the same fact {@link IHudFrame.urgency} carries, so composition
- * and attention cannot disagree about whether the wearer is interrupted.
+ * The grade is read from {@link IHudFrame.urgency} on the carried frame, so
+ * composition and attention cannot disagree about whether the wearer is
+ * interrupted.
  *
- * @evidence requirements/notification/attention-and-quiet.md#notification-three-grades Carries exactly one of three grades, with no fourth and no ungraded alert.
+ * @evidence requirements/notification/attention-and-quiet.md#notification-three-grades Carries the graded frame, so every alert has exactly one grade and no alert is ungraded.
  * @evidence requirements/notification/attention-and-quiet.md#notification-names-session Carries the working directory every demand-grade alert must state, since an approval whose repository is unknown is not answerable.
  * @evidence specifications/notification/attention-contract.md#spec-notification-grade-permissions Types the grade the fixed permission table over waking and speaking is keyed by.
  * @evidence specifications/notification/attention-contract.md#spec-notification-session-addressing Types the addressing the specification makes mandatory at demand grade.
  * @author Samchon
  */
 export interface INotification {
-  /** How insistently this may be presented. */
-  urgency: IHudFrame.Urgency;
-
-  /** What the wearer is being told, already fitted for the display. */
+  /**
+   * What the wearer is being told, already fitted for the display.
+   *
+   * The grade lives on the frame rather than beside it. A second copy here
+   * could disagree with the one composition produced, and whichever the
+   * delivery path happened to read would decide whether a wearer was woken.
+   */
   frame: IHudFrame;
 
   /**
