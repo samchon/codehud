@@ -41,6 +41,16 @@ The title describes the merged outcome in `<type>(<scope>)` style, not the work 
 
 When the PR closes a published issue, say so with a closing keyword in the body so the issue closes on merge.
 
+**A closing keyword fires from anywhere in the body, including out of the middle of a sentence that denies it.** The body of #49 read `Closes #37 in part is **not** claimed`, written to say the issue was staying open. GitHub matched the keyword, closed #37 on merge, and nothing reported it; it was found later by reading the closed list against what had actually been done. Never put `close`, `closes`, `closed`, `fix`, `fixes`, `fixed`, `resolve`, `resolves`, or `resolved` next to an issue number unless you mean it. Write the denial without one: "widening the graph to property granularity stays open, tracked in #37".
+
+Before opening, list every reference GitHub will act on and compare it against the ones you intend:
+
+```bash
+grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]*:?[[:space:]]*(#|GH-)[0-9]+' body.md
+```
+
+An empty result is the correct answer for a PR that closes nothing. Any line the intended list does not contain is a bug in the body, not a detail to explain in prose.
+
 ## Read Checks For The Applicable Head
 
 After every push, watch `gh pr checks <PR>` until each check settles. On failure, fetch the job log, diagnose the real cause, fix it in place, push a new commit, and let the checks resume.
@@ -54,6 +64,8 @@ Where a required workflow does not exist yet, say so in the Self-Review and reco
 Under the standing autonomous mandate, or when the user explicitly asks, and once every required check passes: squash-merge and delete the branch.
 
 After GitHub records the merge, observe the `master` push checks on the exact merge commit. A green pull-request head does not substitute for the post-merge event, and a red master run reopens delivery work immediately.
+
+Then read what the merge closed. `gh pr view <PR> --json closingIssuesReferences` names every issue GitHub linked; anything there the topic did not actually finish is reopened immediately with the reason, before the next topic starts.
 
 If CI is red because code, tests, build, formatting, or generated artifacts failed, fix the PR and wait for green.
 
