@@ -54,7 +54,7 @@ export async function test_bridge_unreachable_device(): Promise<void> {
   TestValidator.equals(
     "the device beside it received everything, in order",
     healthy.seen,
-    [1, 2, 3],
+    [0, 1, 2],
   );
   TestValidator.equals(
     "the harness was never closed over a delivery failure",
@@ -72,7 +72,7 @@ export async function test_bridge_unreachable_device(): Promise<void> {
   TestValidator.equals(
     "the stream did not stop behind the dropped device",
     healthy.seen,
-    [1, 2, 3, 4],
+    [0, 1, 2, 3],
   );
   TestValidator.equals(
     "and the dropped device was not tried again",
@@ -86,6 +86,6 @@ export async function test_bridge_unreachable_device(): Promise<void> {
   TestValidator.equals(
     "a fresh device is served the whole retained history",
     returned.seen,
-    [1, 2, 3, 4],
+    [0, 1, 2, 3],
   );
 }

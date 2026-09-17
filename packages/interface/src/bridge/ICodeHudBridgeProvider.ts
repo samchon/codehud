@@ -178,10 +178,13 @@ export namespace ICodeHudBridgeProvider {
     directory: string;
 
     /**
-     * Highest observation counter the bridge has produced for this session.
+     * How many observations the bridge has produced for this session.
      *
-     * Lets a reconnecting device ask only for what it missed instead of
-     * replaying a long turn from the beginning.
+     * Counters start at zero, so this is also the counter the next observation
+     * will carry. A device that wants only what it has not seen attaches from
+     * this number; one that wants the whole turn attaches from zero. Either way
+     * it names the lowest counter it still needs rather than the highest it
+     * holds, which keeps the empty session unambiguous.
      */
     sequence: number;
   }
