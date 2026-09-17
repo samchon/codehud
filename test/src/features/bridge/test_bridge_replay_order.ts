@@ -50,7 +50,7 @@ export async function test_bridge_replay_order(): Promise<void> {
   session.emit("two");
   await Harness.settle();
 
-  TestValidator.equals("counters start at one and ascend", early.seen, [1, 2]);
+  TestValidator.equals("counters start at zero and ascend", early.seen, [0, 1]);
   TestValidator.equals(
     "the bridge stamps its own session identifier",
     registry.list()[0]!.sequence,
@@ -58,9 +58,9 @@ export async function test_bridge_replay_order(): Promise<void> {
   );
 
   const late: Harness.Device = new Harness.Device();
-  registry.attach("s1", 2, late);
+  registry.attach("s1", 1, late);
   await Harness.settle();
-  TestValidator.equals("replay starts where the device asked", late.seen, [2]);
+  TestValidator.equals("replay starts where the device asked", late.seen, [1]);
 
   // The race: a device attaches and the harness speaks in the same turn, before
   // anything the attach queued has been delivered. Its replayed observations
@@ -71,7 +71,7 @@ export async function test_bridge_replay_order(): Promise<void> {
     false,
     Harness.Device.REPLAY_IS_SLOWER,
   );
-  registry.attach("s1", 1, racing);
+  registry.attach("s1", 0, racing);
   session.emit("three");
   session.emit("four");
   await Harness.settle();
@@ -79,17 +79,17 @@ export async function test_bridge_replay_order(): Promise<void> {
   TestValidator.equals(
     "a device attaching mid-stream receives a gapless ascending run",
     racing.seen,
-    [1, 2, 3, 4],
+    [0, 1, 2, 3],
   );
   TestValidator.equals(
     "and so does the device that was there all along",
     early.seen,
-    [1, 2, 3, 4],
+    [0, 1, 2, 3],
   );
   TestValidator.equals(
     "and the one that joined late, from where it asked",
     late.seen,
-    [2, 3, 4],
+    [1, 2, 3],
   );
 
   const beyond: Harness.Device = new Harness.Device();
@@ -103,6 +103,6 @@ export async function test_bridge_replay_order(): Promise<void> {
   TestValidator.equals(
     "replaying does not consume what was retained",
     everything.seen,
-    [1, 2, 3, 4],
+    [0, 1, 2, 3],
   );
 }

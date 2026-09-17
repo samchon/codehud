@@ -186,6 +186,6 @@ export async function test_bridge_launch_refusal(): Promise<void> {
   TestValidator.equals(
     "the opener receives observations without attaching, from the first",
     good.device.seen,
-    [1, 2],
+    [0, 1],
   );
 }

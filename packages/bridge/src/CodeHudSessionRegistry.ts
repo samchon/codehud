@@ -199,8 +199,13 @@ export class CodeHudSessionRegistry {
    * Consumes the harness's observations, stamping and retaining each one.
    *
    * The counter is the bridge's rather than the adapter's, so a harness with no
-   * session concept of its own still multiplexes and replays correctly. It
-   * starts at one, which leaves zero meaning "I hold nothing, send everything".
+   * session concept of its own still multiplexes and replays correctly.
+   *
+   * It starts at zero, because the contract says so. An earlier version started
+   * at one so that zero could mean "I hold nothing, send everything", which was
+   * a convenience the specification had already ruled out and which this code
+   * had a comment defending. The convenience survives anyway: a device names
+   * the lowest counter it still needs, and one holding nothing names zero.
    */
   private async pump(record: CodeHudSessionRegistry.IRecord): Promise<void> {
     try {
@@ -209,7 +214,7 @@ export class CodeHudSessionRegistry {
         const event: ICodeHudAgentEvent = {
           ...raw,
           session: record.session.id,
-          sequence: ++record.sequence,
+          sequence: record.sequence++,
         };
         record.events.push(event);
         for (const [, queue] of record.subscribers)
@@ -253,7 +258,7 @@ export namespace CodeHudSessionRegistry {
     /** Every observation produced, retained from the first for replay. */
     events: ICodeHudAgentEvent[];
 
-    /** Highest counter stamped so far. */
+    /** Counter the next observation will carry, and so the number produced. */
     sequence: number;
 
     /** Attached devices, each with the queue that keeps its order. */

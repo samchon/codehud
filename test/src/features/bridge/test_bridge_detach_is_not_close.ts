@@ -38,14 +38,14 @@ export async function test_bridge_detach_is_not_close(): Promise<void> {
   registry.attach("s1", 0, device);
   session.emit("before");
   await Harness.settle();
-  TestValidator.equals("delivered while attached", device.seen, [1]);
+  TestValidator.equals("delivered while attached", device.seen, [0]);
 
   registry.detach(device);
   session.emit("while away");
   session.emit("still away");
   await Harness.settle();
 
-  TestValidator.equals("nothing arrives after detaching", device.seen, [1]);
+  TestValidator.equals("nothing arrives after detaching", device.seen, [0]);
   TestValidator.equals("the harness was never closed", session.closed, 0);
   TestValidator.equals(
     "the session is still advertised",
@@ -58,12 +58,12 @@ export async function test_bridge_detach_is_not_close(): Promise<void> {
     3,
   );
 
-  registry.attach("s1", 2, device);
+  registry.attach("s1", 1, device);
   await Harness.settle();
   TestValidator.equals(
     "returning serves exactly what accumulated while away",
     device.seen,
-    [1, 2, 3],
+    [0, 1, 2],
   );
 
   await registry.close("s1");
