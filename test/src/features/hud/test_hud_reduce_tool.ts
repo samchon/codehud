@@ -1,5 +1,5 @@
 import type { ICodeHudState } from "@codehud/interface";
-import { CodeHudReducer } from "@codehud/projection";
+import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -23,15 +23,16 @@ import { Stream } from "../internal/stream";
  * 6. The newest entry is first, since that is the order review walks.
  */
 export async function test_hud_reduce_tool(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
   Stream.reset();
-  let state: ICodeHudState = CodeHudReducer.initialize();
+  let state: ICodeHudState = reducer.initialize();
 
-  state = CodeHudReducer.reduce(state, Stream.tool("c1", "Edit a.ts", "start"));
+  state = reducer.reduce(state, Stream.tool("c1", "Edit a.ts", "start"));
   TestValidator.equals("start records one", state.history.length, 1);
   TestValidator.equals("start sets working", state.activity, "working");
   TestValidator.equals("start is unfinished", state.history[0]!.done, false);
 
-  state = CodeHudReducer.reduce(
+  state = reducer.reduce(
     state,
     Stream.tool("c1", "Edit a.ts (2 of 5)", "update"),
   );
@@ -47,7 +48,7 @@ export async function test_hud_reduce_tool(): Promise<void> {
     false,
   );
 
-  state = CodeHudReducer.reduce(
+  state = reducer.reduce(
     state,
     Stream.tool("c1", "Edit a.ts", "finish", false),
   );
@@ -55,10 +56,7 @@ export async function test_hud_reduce_tool(): Promise<void> {
   TestValidator.equals("finish marks done", state.history[0]!.done, true);
   TestValidator.equals("finish did not fail", state.history[0]!.failed, false);
 
-  state = CodeHudReducer.reduce(
-    state,
-    Stream.tool("c2", "Bash pnpm test", "start"),
-  );
+  state = reducer.reduce(state, Stream.tool("c2", "Bash pnpm test", "start"));
   TestValidator.equals("a second call adds", state.history.length, 2);
   TestValidator.equals(
     "newest is first",
@@ -67,7 +65,7 @@ export async function test_hud_reduce_tool(): Promise<void> {
   );
   TestValidator.equals("older survives", state.history[1]!.title, "Edit a.ts");
 
-  state = CodeHudReducer.reduce(
+  state = reducer.reduce(
     state,
     Stream.tool("c2", "Bash pnpm test", "finish", true),
   );

@@ -3,7 +3,11 @@ import type {
   ICodeHudGlassesDescriptor,
   ICodeHudState,
 } from "@codehud/interface";
-import { CodeHudComposer, CodeHudReducer } from "@codehud/projection";
+import {
+  CodeHudComposer,
+  CodeHudContext,
+  CodeHudReducer,
+} from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -32,6 +36,8 @@ import { Stream } from "../internal/stream";
  *    adapter skip a redundant draw without skipping a real one.
  */
 export async function test_hud_compose_geometry(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
+  const composer: CodeHudComposer = new CodeHudComposer(CodeHudContext.DEFAULT);
   const geometries: ICodeHudGlassesDescriptor.IGeometry[] = [
     Stream.SINGLE,
     Stream.NARROW,
@@ -46,16 +52,16 @@ export async function test_hud_compose_geometry(): Promise<void> {
   };
 
   Stream.reset();
-  let s: ICodeHudState = CodeHudReducer.initialize();
+  let s: ICodeHudState = reducer.initialize();
   push("connecting", s);
 
-  s = CodeHudReducer.reduce(s, Stream.session("/home/dev/projects/codehud"));
+  s = reducer.reduce(s, Stream.session("/home/dev/projects/codehud"));
   push("idle", s);
 
-  s = CodeHudReducer.reduce(s, Stream.reasoning("considering the options"));
+  s = reducer.reduce(s, Stream.reasoning("considering the options"));
   push("thinking", s);
 
-  s = CodeHudReducer.reduce(
+  s = reducer.reduce(
     s,
     Stream.tool(
       "c1",
@@ -65,7 +71,7 @@ export async function test_hud_compose_geometry(): Promise<void> {
   );
   push("working with a tool", s);
 
-  s = CodeHudReducer.reduce(
+  s = reducer.reduce(
     s,
     Stream.message(
       "The composer fits every line before the adapter sees it, ",
@@ -74,13 +80,10 @@ export async function test_hud_compose_geometry(): Promise<void> {
   );
   push("streaming", s);
 
-  s = CodeHudReducer.reduce(
-    s,
-    Stream.message("which is the whole point.", true),
-  );
+  s = reducer.reduce(s, Stream.message("which is the whole point.", true));
   push("streamed and recorded", s);
 
-  const asked: ICodeHudState = CodeHudReducer.reduce(
+  const asked: ICodeHudState = reducer.reduce(
     s,
     Stream.permission(
       "r1",
@@ -90,22 +93,22 @@ export async function test_hud_compose_geometry(): Promise<void> {
   );
   push("awaiting approval", asked);
 
-  const done: ICodeHudState = CodeHudReducer.reduce(
+  const done: ICodeHudState = reducer.reduce(
     s,
     Stream.result("Edited two files and ran the suite", "success"),
   );
   push("done", done);
 
-  const failed: ICodeHudState = CodeHudReducer.reduce(
+  const failed: ICodeHudState = reducer.reduce(
     s,
     Stream.result("The suite failed on three cases", "error"),
   );
   push("failed", failed);
 
-  push("reviewing", CodeHudReducer.review(done, "back"));
+  push("reviewing", reducer.review(done, "back"));
   push(
     "faulted",
-    CodeHudReducer.reduce(
+    reducer.reduce(
       s,
       Stream.error("claude exited with code 1 before answering", true),
     ),
@@ -113,7 +116,7 @@ export async function test_hud_compose_geometry(): Promise<void> {
 
   for (const { name, state } of states)
     for (const geometry of geometries) {
-      const frame: ICodeHudFrame = CodeHudComposer.compose(state, geometry);
+      const frame: ICodeHudFrame = composer.compose(state, geometry);
       const where = `${name} at ${geometry.columns}x${geometry.rows}`;
 
       for (const line of frame.lines)
@@ -145,15 +148,15 @@ export async function test_hud_compose_geometry(): Promise<void> {
       );
     }
 
-  const before: ICodeHudFrame = CodeHudComposer.compose(done, Stream.NARROW);
-  const after: ICodeHudFrame = CodeHudComposer.compose(failed, Stream.NARROW);
+  const before: ICodeHudFrame = composer.compose(done, Stream.NARROW);
+  const after: ICodeHudFrame = composer.compose(failed, Stream.NARROW);
   TestValidator.predicate(
     "the key follows the visible content",
     before.key !== after.key,
   );
   TestValidator.equals(
     "and is stable for unchanged content",
-    CodeHudComposer.compose(done, Stream.NARROW).key,
+    composer.compose(done, Stream.NARROW).key,
     before.key,
   );
 }

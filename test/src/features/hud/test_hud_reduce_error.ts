@@ -1,5 +1,5 @@
 import type { ICodeHudState } from "@codehud/interface";
-import { CodeHudReducer } from "@codehud/projection";
+import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -22,13 +22,14 @@ import { Stream } from "../internal/stream";
  *    counter still advances but the fault stands.
  */
 export async function test_hud_reduce_error(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
   Stream.reset();
-  const asked: ICodeHudState = CodeHudReducer.reduce(
-    CodeHudReducer.reduce(CodeHudReducer.initialize(), Stream.session()),
+  const asked: ICodeHudState = reducer.reduce(
+    reducer.reduce(reducer.initialize(), Stream.session()),
     Stream.permission("r1", "Write src/index.ts"),
   );
 
-  const dead: ICodeHudState = CodeHudReducer.reduce(
+  const dead: ICodeHudState = reducer.reduce(
     asked,
     Stream.error("claude exited with code 1", true),
   );
@@ -36,7 +37,7 @@ export async function test_hud_reduce_error(): Promise<void> {
   TestValidator.equals("message held", dead.fault, "claude exited with code 1");
   TestValidator.equals("pending cleared", dead.pending, undefined);
 
-  const noisy: ICodeHudState = CodeHudReducer.reduce(
+  const noisy: ICodeHudState = reducer.reduce(
     asked,
     Stream.error("tool retried", false),
   );
@@ -52,7 +53,7 @@ export async function test_hud_reduce_error(): Promise<void> {
     noisy.sequence > asked.sequence,
   );
 
-  const after: ICodeHudState = CodeHudReducer.reduce(
+  const after: ICodeHudState = reducer.reduce(
     dead,
     Stream.error("still noisy", false),
   );

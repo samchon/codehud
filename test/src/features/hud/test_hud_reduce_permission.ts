@@ -1,5 +1,5 @@
 import type { ICodeHudState } from "@codehud/interface";
-import { CodeHudReducer } from "@codehud/projection";
+import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -25,13 +25,14 @@ import { Stream } from "../internal/stream";
  * 5. A result clears a pending request, since the turn ended without it.
  */
 export async function test_hud_reduce_permission(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
   Stream.reset();
-  const opened: ICodeHudState = CodeHudReducer.reduce(
-    CodeHudReducer.initialize(),
+  const opened: ICodeHudState = reducer.reduce(
+    reducer.initialize(),
     Stream.session(),
   );
 
-  const asked: ICodeHudState = CodeHudReducer.reduce(
+  const asked: ICodeHudState = reducer.reduce(
     opened,
     Stream.permission("r1", "Write src/index.ts", "Creates a new file."),
   );
@@ -44,22 +45,22 @@ export async function test_hud_reduce_permission(): Promise<void> {
   );
   TestValidator.equals("options held", asked.pending?.options.length, 3);
 
-  const answered: ICodeHudState = CodeHudReducer.settle(asked, "r1");
+  const answered: ICodeHudState = reducer.settle(asked, "r1");
   TestValidator.equals("cleared", answered.pending, undefined);
   TestValidator.equals("resumes working", answered.activity, "working");
 
-  const wrong: ICodeHudState = CodeHudReducer.settle(asked, "r2");
+  const wrong: ICodeHudState = reducer.settle(asked, "r2");
   TestValidator.equals("a foreign answer changes nothing", wrong, asked);
 
-  const none: ICodeHudState = CodeHudReducer.settle(opened, "r1");
+  const none: ICodeHudState = reducer.settle(opened, "r1");
   TestValidator.equals("answering nothing changes nothing", none, opened);
 
   Stream.reset();
-  const asked2: ICodeHudState = CodeHudReducer.reduce(
-    CodeHudReducer.reduce(CodeHudReducer.initialize(), Stream.session()),
+  const asked2: ICodeHudState = reducer.reduce(
+    reducer.reduce(reducer.initialize(), Stream.session()),
     Stream.permission("r9", "Delete build/"),
   );
-  const ended: ICodeHudState = CodeHudReducer.reduce(
+  const ended: ICodeHudState = reducer.reduce(
     asked2,
     Stream.result("Nothing changed", "interrupted"),
   );

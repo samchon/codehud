@@ -1,5 +1,5 @@
 import type { ICodeHudState } from "@codehud/interface";
-import { CodeHudReducer } from "@codehud/projection";
+import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -25,13 +25,11 @@ import { Stream } from "../internal/stream";
  *    the buffer was empty to begin with.
  */
 export async function test_hud_reduce_message(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
   Stream.reset();
-  const fresh: ICodeHudState = CodeHudReducer.initialize();
+  const fresh: ICodeHudState = reducer.initialize();
 
-  const thinking: ICodeHudState = CodeHudReducer.reduce(
-    fresh,
-    Stream.reasoning("hm"),
-  );
+  const thinking: ICodeHudState = reducer.reduce(fresh, Stream.reasoning("hm"));
   TestValidator.equals(
     "reasoning sets thinking",
     thinking.activity,
@@ -40,7 +38,7 @@ export async function test_hud_reduce_message(): Promise<void> {
   TestValidator.equals("reasoning leaves the buffer", thinking.message, "");
   TestValidator.equals("reasoning records nothing", thinking.history.length, 0);
 
-  const one: ICodeHudState = CodeHudReducer.reduce(
+  const one: ICodeHudState = reducer.reduce(
     thinking,
     Stream.message("The ", false),
   );
@@ -48,13 +46,13 @@ export async function test_hud_reduce_message(): Promise<void> {
   TestValidator.equals("partial accumulates", one.message, "The ");
   TestValidator.equals("partial records nothing", one.history.length, 0);
 
-  const two: ICodeHudState = CodeHudReducer.reduce(
+  const two: ICodeHudState = reducer.reduce(
     one,
     Stream.message("fold  ", false),
   );
   TestValidator.equals("partials concatenate", two.message, "The fold  ");
 
-  const done: ICodeHudState = CodeHudReducer.reduce(
+  const done: ICodeHudState = reducer.reduce(
     two,
     Stream.message("is pure.", true),
   );
@@ -69,8 +67,8 @@ export async function test_hud_reduce_message(): Promise<void> {
   TestValidator.equals("entry is finished", done.history[0]!.done, true);
   TestValidator.equals("entry did not fail", done.history[0]!.failed, false);
 
-  const solo: ICodeHudState = CodeHudReducer.reduce(
-    CodeHudReducer.initialize(),
+  const solo: ICodeHudState = reducer.reduce(
+    reducer.initialize(),
     Stream.message("one shot", true),
   );
   TestValidator.equals("a lone completion records", solo.history.length, 1);

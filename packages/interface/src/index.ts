@@ -1,3 +1,5 @@
+export * from "./ICodeHudContext";
+
 export * from "./agent/ICodeHudAgentAdapter";
 export * from "./agent/ICodeHudAgentCommand";
 export * from "./agent/ICodeHudAgentDescriptor";

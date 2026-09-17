@@ -6,6 +6,14 @@ The projection boundary: the reducer that folds a coding agent's observations in
 
 An agent produces thousands of tokens per turn. A wearable display carries two lines and holds a wearer's attention for about two seconds. Closing that gap is the product, and this package is where it happens.
 
+## Configuration, not literals
+
+Both stages take an `ICodeHudContext`: how much history to retain, the consent vocabulary and its confidence floor, and every word the display originates rather than reports. That is why they are classes rather than namespaces despite being pure. A standing label baked into the composer is a product decision a wearer cannot see, a translator cannot reach, and a test cannot vary.
+
+`CodeHudContext.DEFAULT` is frozen and `CodeHudContext.create()` merges by section, so stating one word of the vocabulary keeps the rest of it.
+
+The consent tokens in the default are placeholders in the honest sense: ordinary English words chosen so the composer has something to render, not words chosen for acoustic distance in the wearer's language. That choice is an open question the consent requirement states, and no default can settle it.
+
 ## Two stages, deliberately separate
 
 `CodeHudReducer` folds observations into `ICodeHudState`. It reads no column count, no clock, no random source, and no input or output, so a recorded observation stream replays to the same state every time. That purity is what makes the most important logic in the product testable with no hardware and no socket.

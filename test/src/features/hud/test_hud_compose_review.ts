@@ -1,5 +1,9 @@
 import type { ICodeHudFrame, ICodeHudState } from "@codehud/interface";
-import { CodeHudComposer, CodeHudReducer } from "@codehud/projection";
+import {
+  CodeHudComposer,
+  CodeHudContext,
+  CodeHudReducer,
+} from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -30,29 +34,25 @@ import { Stream } from "../internal/stream";
  *    because it is blocking the agent and review is not.
  */
 export async function test_hud_compose_review(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
+  const composer: CodeHudComposer = new CodeHudComposer(CodeHudContext.DEFAULT);
   Stream.reset();
-  let state: ICodeHudState = CodeHudReducer.reduce(
-    CodeHudReducer.initialize(),
+  let state: ICodeHudState = reducer.reduce(
+    reducer.initialize(),
     Stream.session(),
   );
-  state = CodeHudReducer.reduce(
+  state = reducer.reduce(
     state,
     Stream.tool("c1", "Edit first.ts", "finish", false),
   );
-  state = CodeHudReducer.reduce(
+  state = reducer.reduce(
     state,
     Stream.tool("c2", "Bash pnpm test", "finish", true),
   );
-  state = CodeHudReducer.reduce(
-    state,
-    Stream.result("One file edited", "success"),
-  );
+  state = reducer.reduce(state, Stream.result("One file edited", "success"));
 
-  const reviewing: ICodeHudState = CodeHudReducer.review(state, "back");
-  const frame: ICodeHudFrame = CodeHudComposer.compose(
-    reviewing,
-    Stream.NARROW,
-  );
+  const reviewing: ICodeHudState = reducer.review(state, "back");
+  const frame: ICodeHudFrame = composer.compose(reviewing, Stream.NARROW);
   TestValidator.equals("review outranks the activity", frame.kind, "review");
   TestValidator.equals("review grade", frame.urgency, "ambient");
   TestValidator.equals(
@@ -68,14 +68,14 @@ export async function test_hud_compose_review(): Promise<void> {
   TestValidator.equals("position line", frame.lines[1]!.text, "2 of 3");
   TestValidator.equals("no hint on two rows", frame.hint, undefined);
 
-  const wide: ICodeHudFrame = CodeHudComposer.compose(reviewing, Stream.WIDE);
+  const wide: ICodeHudFrame = composer.compose(reviewing, Stream.WIDE);
   TestValidator.equals(
     "hint names the review words",
     wide.hint,
     "Say back, forward, or latest",
   );
 
-  const newest: ICodeHudFrame = CodeHudComposer.compose(
+  const newest: ICodeHudFrame = composer.compose(
     { ...state, review: { active: true, offset: 0 } },
     Stream.NARROW,
   );
@@ -86,19 +86,19 @@ export async function test_hud_compose_review(): Promise<void> {
   );
   TestValidator.equals("and is not alert", newest.lines[0]!.tone, "primary");
 
-  const past: ICodeHudFrame = CodeHudComposer.compose(
+  const past: ICodeHudFrame = composer.compose(
     { ...state, review: { active: true, offset: 99 } },
     Stream.NARROW,
   );
   TestValidator.equals("a cursor past the end falls back", past.kind, "idle");
 
-  const interrupted: ICodeHudState = CodeHudReducer.reduce(
+  const interrupted: ICodeHudState = reducer.reduce(
     reviewing,
     Stream.permission("r1", "Write src/index.ts"),
   );
   TestValidator.equals(
     "an approval outranks review",
-    CodeHudComposer.compose(interrupted, Stream.NARROW).kind,
+    composer.compose(interrupted, Stream.NARROW).kind,
     "permission",
   );
 }

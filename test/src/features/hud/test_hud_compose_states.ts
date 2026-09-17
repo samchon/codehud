@@ -1,5 +1,9 @@
 import type { ICodeHudFrame, ICodeHudState } from "@codehud/interface";
-import { CodeHudComposer, CodeHudReducer } from "@codehud/projection";
+import {
+  CodeHudComposer,
+  CodeHudContext,
+  CodeHudReducer,
+} from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -32,27 +36,26 @@ import { Stream } from "../internal/stream";
  * 9. Done with no recorded result falls back to idle, the defensive arm.
  */
 export async function test_hud_compose_states(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
+  const composer: CodeHudComposer = new CodeHudComposer(CodeHudContext.DEFAULT);
   Stream.reset();
-  const fresh: ICodeHudState = CodeHudReducer.initialize();
+  const fresh: ICodeHudState = reducer.initialize();
 
-  const connecting: ICodeHudFrame = CodeHudComposer.compose(
-    fresh,
-    Stream.NARROW,
-  );
+  const connecting: ICodeHudFrame = composer.compose(fresh, Stream.NARROW);
   TestValidator.equals("connecting kind", connecting.kind, "status");
   TestValidator.equals("connecting grade", connecting.urgency, "ambient");
 
-  const bare: ICodeHudFrame = CodeHudComposer.compose(
+  const bare: ICodeHudFrame = composer.compose(
     { ...fresh, activity: "idle" },
     Stream.NARROW,
   );
   TestValidator.equals("idle with no session", bare.lines[0]!.text, "Ready");
 
-  const opened: ICodeHudState = CodeHudReducer.reduce(
+  const opened: ICodeHudState = reducer.reduce(
     fresh,
     Stream.session("/home/dev/projects/codehud"),
   );
-  const idle: ICodeHudFrame = CodeHudComposer.compose(opened, Stream.NARROW);
+  const idle: ICodeHudFrame = composer.compose(opened, Stream.NARROW);
   TestValidator.equals("idle kind", idle.kind, "idle");
   TestValidator.equals("idle grade", idle.urgency, "ambient");
   TestValidator.predicate(
@@ -60,14 +63,11 @@ export async function test_hud_compose_states(): Promise<void> {
     idle.lines[0]!.text.includes("codehud"),
   );
 
-  const streaming: ICodeHudState = CodeHudReducer.reduce(
+  const streaming: ICodeHudState = reducer.reduce(
     opened,
     Stream.message("the newest words are the ones that matter", false),
   );
-  const stream: ICodeHudFrame = CodeHudComposer.compose(
-    streaming,
-    Stream.NARROW,
-  );
+  const stream: ICodeHudFrame = composer.compose(streaming, Stream.NARROW);
   TestValidator.equals("stream kind", stream.kind, "stream");
   TestValidator.equals("stream grade", stream.urgency, "notice");
   TestValidator.predicate(
@@ -78,7 +78,7 @@ export async function test_hud_compose_states(): Promise<void> {
       .includes("matter"),
   );
 
-  const started: ICodeHudFrame = CodeHudComposer.compose(
+  const started: ICodeHudFrame = composer.compose(
     { ...opened, activity: "working" },
     Stream.NARROW,
   );
@@ -88,7 +88,7 @@ export async function test_hud_compose_states(): Promise<void> {
     "Working",
   );
 
-  const musing: ICodeHudFrame = CodeHudComposer.compose(
+  const musing: ICodeHudFrame = composer.compose(
     { ...opened, activity: "thinking" },
     Stream.NARROW,
   );
@@ -98,11 +98,11 @@ export async function test_hud_compose_states(): Promise<void> {
     "Thinking",
   );
 
-  const tooling: ICodeHudState = CodeHudReducer.reduce(
+  const tooling: ICodeHudState = reducer.reduce(
     opened,
     Stream.tool("c1", "Edit a.ts", "start"),
   );
-  const status: ICodeHudFrame = CodeHudComposer.compose(tooling, Stream.NARROW);
+  const status: ICodeHudFrame = composer.compose(tooling, Stream.NARROW);
   TestValidator.equals("status kind", status.kind, "status");
   TestValidator.equals(
     "status shows the tool",
@@ -110,8 +110,8 @@ export async function test_hud_compose_states(): Promise<void> {
     "Edit a.ts",
   );
 
-  const ok: ICodeHudFrame = CodeHudComposer.compose(
-    CodeHudReducer.reduce(opened, Stream.result("Edited two files", "success")),
+  const ok: ICodeHudFrame = composer.compose(
+    reducer.reduce(opened, Stream.result("Edited two files", "success")),
     Stream.NARROW,
   );
   TestValidator.equals("success kind", ok.kind, "result");
@@ -122,8 +122,8 @@ export async function test_hud_compose_states(): Promise<void> {
     ok.lines[1]!.text.startsWith("Done"),
   );
 
-  const bad: ICodeHudFrame = CodeHudComposer.compose(
-    CodeHudReducer.reduce(opened, Stream.result("The suite failed", "error")),
+  const bad: ICodeHudFrame = composer.compose(
+    reducer.reduce(opened, Stream.result("The suite failed", "error")),
     Stream.NARROW,
   );
   TestValidator.equals("failure grade", bad.urgency, "demand");
@@ -133,11 +133,8 @@ export async function test_hud_compose_states(): Promise<void> {
     bad.lines[1]!.text.startsWith("Failed"),
   );
 
-  const stopped: ICodeHudFrame = CodeHudComposer.compose(
-    CodeHudReducer.reduce(
-      opened,
-      Stream.result("Stopped by you", "interrupted"),
-    ),
+  const stopped: ICodeHudFrame = composer.compose(
+    reducer.reduce(opened, Stream.result("Stopped by you", "interrupted")),
     Stream.NARROW,
   );
   TestValidator.equals(
@@ -151,8 +148,8 @@ export async function test_hud_compose_states(): Promise<void> {
     stopped.lines[1]!.text.startsWith("Stopped"),
   );
 
-  const fault: ICodeHudFrame = CodeHudComposer.compose(
-    CodeHudReducer.reduce(opened, Stream.error("claude exited", true)),
+  const fault: ICodeHudFrame = composer.compose(
+    reducer.reduce(opened, Stream.error("claude exited", true)),
     Stream.NARROW,
   );
   TestValidator.equals("fault kind", fault.kind, "fault");
@@ -163,7 +160,7 @@ export async function test_hud_compose_states(): Promise<void> {
     "claude exited",
   );
 
-  const empty: ICodeHudFrame = CodeHudComposer.compose(
+  const empty: ICodeHudFrame = composer.compose(
     { ...opened, activity: "done" },
     Stream.NARROW,
   );

@@ -1,5 +1,5 @@
 import type { ICodeHudState } from "@codehud/interface";
-import { CodeHudReducer } from "@codehud/projection";
+import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -21,38 +21,39 @@ import { Stream } from "../internal/stream";
  *    call many times never evicts anything.
  */
 export async function test_hud_reduce_history_bound(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
   Stream.reset();
-  let state: ICodeHudState = CodeHudReducer.initialize();
+  let state: ICodeHudState = reducer.initialize();
 
-  for (let i = 0; i < CodeHudReducer.HISTORY - 1; ++i)
-    state = CodeHudReducer.reduce(
+  for (let i = 0; i < CodeHudContext.DEFAULT.history - 1; ++i)
+    state = reducer.reduce(
       state,
       Stream.tool(`c${i}`, `Edit ${i}.ts`, "finish", false),
     );
   TestValidator.equals(
     "below the cap",
     state.history.length,
-    CodeHudReducer.HISTORY - 1,
+    CodeHudContext.DEFAULT.history - 1,
   );
 
-  state = CodeHudReducer.reduce(
+  state = reducer.reduce(
     state,
     Stream.tool("edge", "Edit edge.ts", "finish", false),
   );
   TestValidator.equals(
     "exactly at the cap",
     state.history.length,
-    CodeHudReducer.HISTORY,
+    CodeHudContext.DEFAULT.history,
   );
 
-  state = CodeHudReducer.reduce(
+  state = reducer.reduce(
     state,
     Stream.tool("over", "Edit over.ts", "finish", false),
   );
   TestValidator.equals(
     "held at the cap",
     state.history.length,
-    CodeHudReducer.HISTORY,
+    CodeHudContext.DEFAULT.history,
   );
   TestValidator.equals(
     "newest survives",
@@ -67,7 +68,7 @@ export async function test_hud_reduce_history_bound(): Promise<void> {
 
   const before: number = state.history.length;
   for (let i = 0; i < 10; ++i)
-    state = CodeHudReducer.reduce(
+    state = reducer.reduce(
       state,
       Stream.tool("over", `Edit over.ts (${i})`, "update"),
     );

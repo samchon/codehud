@@ -1,5 +1,5 @@
 import type { ICodeHudAgentEvent, ICodeHudState } from "@codehud/interface";
-import { CodeHudReducer } from "@codehud/projection";
+import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -26,6 +26,7 @@ import { Stream } from "../internal/stream";
  *    the boundary between "already seen" and "new".
  */
 export async function test_hud_reduce_replay(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
   Stream.reset();
   const events: ICodeHudAgentEvent[] = [
     Stream.session(),
@@ -36,28 +37,31 @@ export async function test_hud_reduce_replay(): Promise<void> {
     Stream.result("Read one file", "success"),
   ];
 
-  const fresh: ICodeHudState = CodeHudReducer.initialize();
+  const fresh: ICodeHudState = reducer.initialize();
   TestValidator.equals("starts before everything", fresh.sequence, -1);
   TestValidator.equals("starts connecting", fresh.activity, "connecting");
 
-  const once: ICodeHudState = events.reduce(CodeHudReducer.reduce, fresh);
+  const once: ICodeHudState = events.reduce(
+    (acc, e) => reducer.reduce(acc, e),
+    fresh,
+  );
   TestValidator.equals("activity", once.activity, "done");
   TestValidator.equals("sequence", once.sequence, 5);
   TestValidator.equals("message cleared by the result", once.message, "");
 
   const twice: ICodeHudState = [...events, ...events].reduce(
-    CodeHudReducer.reduce,
+    (acc, e) => reducer.reduce(acc, e),
     fresh,
   );
   TestValidator.equals("replay converges", twice, once);
 
-  const rewound: ICodeHudState = CodeHudReducer.reduce(once, events[1]!);
+  const rewound: ICodeHudState = reducer.reduce(once, events[1]!);
   TestValidator.equals("a stale observation is discarded", rewound, once);
 
   const sameCounter: ICodeHudAgentEvent = { ...Stream.session(), sequence: 5 };
   TestValidator.equals(
     "an observation at the held counter is discarded",
-    CodeHudReducer.reduce(once, sameCounter),
+    reducer.reduce(once, sameCounter),
     once,
   );
 }

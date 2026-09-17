@@ -1,13 +1,19 @@
-import type { ICodeHudAgentEvent, ICodeHudState } from "@codehud/interface";
+import type {
+  ICodeHudAgentEvent,
+  ICodeHudContext,
+  ICodeHudState,
+} from "@codehud/interface";
 
 /**
  * Folds a coding agent's observation stream into the state a display is drawn
  * from.
  *
- * Pure and device-blind. Nothing here reads a column count, a clock, a random
- * source, or any input or output, so a recorded stream replays to the same
- * state every time, with no hardware and no socket. That property is what makes
- * the most important logic in the product testable at all.
+ * A class rather than a namespace because it carries a configuration: how much
+ * history to retain is a choice a wearer can change, not a constant. What it
+ * does not carry is state between calls. Every method is a pure function of the
+ * state and observation it is handed, so a recorded stream replays to the same
+ * result every time, with no hardware, no socket, and no clock. That property
+ * is what makes the most important logic in the product testable at all.
  *
  * @evidence requirements/head-up-display/glanceable-rendering.md#hud-device-independent-state Folds observations into state that references no device fact, so two devices watching one session share it.
  * @evidence requirements/session-continuity/reconnect-and-replay.md#session-idempotent-replay Discards an observation at or below the highest already folded, so a replayed stream converges and a late arrival cannot rewind the display.
@@ -15,14 +21,14 @@ import type { ICodeHudAgentEvent, ICodeHudState } from "@codehud/interface";
  * @evidence specifications/session-lifecycle/attach-and-replay.md#spec-session-replay-convergence Implements the monotonic guard the convergence property is stated over.
  * @author Samchon
  */
-export namespace CodeHudReducer {
+export class CodeHudReducer {
   /**
-   * Entries retained for review.
+   * Constructs a reducer bound to one configuration.
    *
-   * A long turn produces hundreds and the display shows one at a time, so the
-   * cap bounds memory rather than bounding what a wearer may read back to.
+   * The configuration is read at every call rather than copied, so a caller
+   * holding a mutable context sees its own changes. Nothing here mutates it.
    */
-  export const HISTORY = 64;
+  public constructor(private readonly context: ICodeHudContext) {}
 
   /**
    * State of a session before its first observation arrives.
@@ -30,13 +36,15 @@ export namespace CodeHudReducer {
    * Starts at sequence `-1` so an observation numbered zero is still ahead of
    * it, which keeps the replay guard a plain comparison.
    */
-  export const initialize = (): ICodeHudState => ({
-    sequence: -1,
-    activity: "connecting",
-    message: "",
-    history: [],
-    review: { active: false, offset: 0 },
-  });
+  public initialize(): ICodeHudState {
+    return {
+      sequence: -1,
+      activity: "connecting",
+      message: "",
+      history: [],
+      review: { active: false, offset: 0 },
+    };
+  }
 
   /**
    * Applies one observation, returning the state that results.
@@ -45,10 +53,10 @@ export namespace CodeHudReducer {
    * which is what makes a reconnecting device safe to replay into: it asks for
    * everything after what it holds and reaches the same state either way.
    */
-  export const reduce = (
+  public reduce(
     state: ICodeHudState,
     event: ICodeHudAgentEvent,
-  ): ICodeHudState => {
+  ): ICodeHudState {
     if (event.sequence <= state.sequence) return state;
     const next: ICodeHudState = { ...state, sequence: event.sequence };
     switch (event.type) {
@@ -73,7 +81,7 @@ export namespace CodeHudReducer {
           return next;
         }
         next.message = "";
-        return record(next, {
+        return this.record(next, {
           id: `${event.session}:${event.sequence}`,
           kind: "message",
           title: joined.trim(),
@@ -84,7 +92,7 @@ export namespace CodeHudReducer {
 
       case "tool":
         next.activity = "working";
-        return record(next, {
+        return this.record(next, {
           id: event.call,
           kind: "tool",
           title: event.title,
@@ -102,7 +110,7 @@ export namespace CodeHudReducer {
         next.pending = undefined;
         next.last = event;
         next.message = "";
-        return record(next, {
+        return this.record(next, {
           id: `${event.session}:${event.sequence}`,
           kind: "result",
           title: event.summary,
@@ -117,7 +125,7 @@ export namespace CodeHudReducer {
         next.fault = event.message;
         return next;
     }
-  };
+  }
 
   /**
    * Clears a pending request once the wearer has answered it.
@@ -127,29 +135,27 @@ export namespace CodeHudReducer {
    * enough for a wearer to speak again and answer the following request by
    * mistake.
    *
-   * Answering a request that is not the pending one changes nothing, so a
-   * stale answer cannot clear a newer request.
+   * Answering a request that is not the pending one changes nothing, so a stale
+   * answer cannot clear a newer request.
    */
-  export const settle = (
-    state: ICodeHudState,
-    request: string,
-  ): ICodeHudState =>
-    state.pending?.request === request
+  public settle(state: ICodeHudState, request: string): ICodeHudState {
+    return state.pending?.request === request
       ? { ...state, pending: undefined, activity: "working" }
       : state;
+  }
 
   /**
    * Moves the review cursor, or leaves review and follows the newest content.
    *
    * A local state change: no agent turn, no network round trip, and it works
    * while the bridge is unreachable. Movement past either end clamps rather
-   * than failing, because a wearer saying "back" at the end of the history
-   * should stop rather than hear an error.
+   * than failing, because a wearer saying the word for back at the end of the
+   * history should stop rather than hear an error.
    */
-  export const review = (
+  public review(
     state: ICodeHudState,
     move: CodeHudReducer.Move,
-  ): ICodeHudState => {
+  ): ICodeHudState {
     if (move === "latest")
       return { ...state, review: { active: false, offset: 0 } };
     if (state.history.length === 0) return state;
@@ -158,25 +164,19 @@ export namespace CodeHudReducer {
     const offset: number = state.review.active
       ? state.review.offset + delta
       : Math.max(0, delta);
-    const clamped: number = Math.min(
-      Math.max(0, offset),
-      state.history.length - 1,
-    );
-    return { ...state, review: { active: true, offset: clamped } };
-  };
+    return {
+      ...state,
+      review: {
+        active: true,
+        offset: Math.min(Math.max(0, offset), state.history.length - 1),
+      },
+    };
+  }
 
-  /**
-   * Where a review instruction moves the cursor.
-   *
-   * `back` walks toward older entries, `forward` toward newer ones, and
-   * `latest` leaves review so the display follows incoming content again.
-   */
-  export type Move = "back" | "forward" | "latest";
-
-  const record = (
+  private record(
     state: ICodeHudState,
     entry: ICodeHudState.IEntry,
-  ): ICodeHudState => {
+  ): ICodeHudState {
     const index: number = state.history.findIndex((e) => e.id === entry.id);
     if (index !== -1) {
       const history: ICodeHudState.IEntry[] = state.history.slice();
@@ -188,10 +188,19 @@ export namespace CodeHudReducer {
     // position, so the cursor moves with it.
     return {
       ...state,
-      history: [entry, ...state.history].slice(0, HISTORY),
+      history: [entry, ...state.history].slice(0, this.context.history),
       review: state.review.active
         ? { active: true, offset: state.review.offset + 1 }
         : state.review,
     };
-  };
+  }
+}
+export namespace CodeHudReducer {
+  /**
+   * Where a review instruction moves the cursor.
+   *
+   * `back` walks toward older entries, `forward` toward newer ones, and
+   * `latest` leaves review so the display follows incoming content again.
+   */
+  export type Move = "back" | "forward" | "latest";
 }

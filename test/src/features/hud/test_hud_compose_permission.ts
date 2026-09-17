@@ -1,5 +1,9 @@
 import type { ICodeHudFrame, ICodeHudState } from "@codehud/interface";
-import { CodeHudComposer, CodeHudReducer } from "@codehud/projection";
+import {
+  CodeHudComposer,
+  CodeHudContext,
+  CodeHudReducer,
+} from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -29,13 +33,15 @@ import { Stream } from "../internal/stream";
  *    shorter form that still fits.
  */
 export async function test_hud_compose_permission(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
+  const composer: CodeHudComposer = new CodeHudComposer(CodeHudContext.DEFAULT);
   Stream.reset();
-  const asked: ICodeHudState = CodeHudReducer.reduce(
-    CodeHudReducer.reduce(CodeHudReducer.initialize(), Stream.session()),
+  const asked: ICodeHudState = reducer.reduce(
+    reducer.reduce(reducer.initialize(), Stream.session()),
     Stream.permission("r1", "Write src/index.ts", "Creates a new file."),
   );
 
-  const narrow: ICodeHudFrame = CodeHudComposer.compose(asked, Stream.NARROW);
+  const narrow: ICodeHudFrame = composer.compose(asked, Stream.NARROW);
   TestValidator.equals("kind", narrow.kind, "permission");
   TestValidator.equals("grade", narrow.urgency, "demand");
   TestValidator.equals("alert tone", narrow.lines[0]!.tone, "alert");
@@ -51,7 +57,7 @@ export async function test_hud_compose_permission(): Promise<void> {
     false,
   );
 
-  const wide: ICodeHudFrame = CodeHudComposer.compose(asked, Stream.WIDE);
+  const wide: ICodeHudFrame = composer.compose(asked, Stream.WIDE);
   TestValidator.equals("detail survives with room", wide.lines.length, 2);
   TestValidator.equals("detail tone", wide.lines[1]!.tone, "secondary");
   TestValidator.equals("hint still present", wide.hint, "Say Allow or Deny");
@@ -67,7 +73,7 @@ export async function test_hud_compose_permission(): Promise<void> {
   };
   TestValidator.equals(
     "no negative answer means no hint",
-    CodeHudComposer.compose(onesided, Stream.NARROW).hint,
+    composer.compose(onesided, Stream.NARROW).hint,
     undefined,
   );
 
@@ -91,10 +97,7 @@ export async function test_hud_compose_permission(): Promise<void> {
       ],
     },
   };
-  const fallback: ICodeHudFrame = CodeHudComposer.compose(
-    verbose,
-    Stream.NARROW,
-  );
+  const fallback: ICodeHudFrame = composer.compose(verbose, Stream.NARROW);
   TestValidator.predicate(
     "an over-long hint falls back and still fits",
     fallback.hint !== undefined &&

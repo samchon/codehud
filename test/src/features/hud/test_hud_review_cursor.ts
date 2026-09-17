@@ -1,5 +1,5 @@
 import type { ICodeHudState } from "@codehud/interface";
-import { CodeHudReducer } from "@codehud/projection";
+import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
 import { TestValidator } from "@nestia/e2e";
 
 import { Stream } from "../internal/stream";
@@ -29,17 +29,18 @@ import { Stream } from "../internal/stream";
  *    nothing was prepended.
  */
 export async function test_hud_review_cursor(): Promise<void> {
+  const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
   Stream.reset();
-  let state: ICodeHudState = CodeHudReducer.initialize();
+  let state: ICodeHudState = reducer.initialize();
 
   TestValidator.equals(
     "back on empty history changes nothing",
-    CodeHudReducer.review(state, "back"),
+    reducer.review(state, "back"),
     state,
   );
 
   for (const name of ["first", "second", "third"])
-    state = CodeHudReducer.reduce(
+    state = reducer.reduce(
       state,
       Stream.tool(name, `Edit ${name}.ts`, "finish", false),
     );
@@ -50,32 +51,32 @@ export async function test_hud_review_cursor(): Promise<void> {
     "Edit third.ts",
   );
 
-  const back1: ICodeHudState = CodeHudReducer.review(state, "back");
+  const back1: ICodeHudState = reducer.review(state, "back");
   TestValidator.equals("review entered", back1.review.active, true);
   TestValidator.equals("moved one back", back1.review.offset, 1);
 
-  const back2: ICodeHudState = CodeHudReducer.review(back1, "back");
+  const back2: ICodeHudState = reducer.review(back1, "back");
   TestValidator.equals("moved to the oldest", back2.review.offset, 2);
 
-  const clampedBack: ICodeHudState = CodeHudReducer.review(back2, "back");
+  const clampedBack: ICodeHudState = reducer.review(back2, "back");
   TestValidator.equals("clamps at the oldest", clampedBack.review.offset, 2);
 
-  const forward: ICodeHudState = CodeHudReducer.review(back2, "forward");
+  const forward: ICodeHudState = reducer.review(back2, "forward");
   TestValidator.equals("moved forward", forward.review.offset, 1);
 
-  const clampedForward: ICodeHudState = CodeHudReducer.review(
-    CodeHudReducer.review(forward, "forward"),
+  const clampedForward: ICodeHudState = reducer.review(
+    reducer.review(forward, "forward"),
     "forward",
   );
   TestValidator.equals("clamps at the newest", clampedForward.review.offset, 0);
   TestValidator.equals("still reviewing", clampedForward.review.active, true);
 
-  const left: ICodeHudState = CodeHudReducer.review(back2, "latest");
+  const left: ICodeHudState = reducer.review(back2, "latest");
   TestValidator.equals("latest leaves review", left.review.active, false);
   TestValidator.equals("and resets the offset", left.review.offset, 0);
 
   const held: string = back2.history[back2.review.offset]!.title;
-  const shifted: ICodeHudState = CodeHudReducer.reduce(
+  const shifted: ICodeHudState = reducer.reduce(
     back2,
     Stream.tool("fourth", "Edit fourth.ts", "finish", false),
   );
@@ -86,7 +87,7 @@ export async function test_hud_review_cursor(): Promise<void> {
     held,
   );
 
-  const following: ICodeHudState = CodeHudReducer.reduce(
+  const following: ICodeHudState = reducer.reduce(
     state,
     Stream.tool("fifth", "Edit fifth.ts", "finish", false),
   );
@@ -97,7 +98,7 @@ export async function test_hud_review_cursor(): Promise<void> {
   );
   TestValidator.equals("and still following", following.review.active, false);
 
-  const upserted: ICodeHudState = CodeHudReducer.reduce(
+  const upserted: ICodeHudState = reducer.reduce(
     back2,
     Stream.tool("third", "Edit third.ts (again)", "finish", false),
   );

@@ -1,5 +1,6 @@
 import type {
   ICodeHudAgentPermission,
+  ICodeHudContext,
   ICodeHudFrame,
   ICodeHudGlassesDescriptor,
   ICodeHudState,
@@ -15,6 +16,12 @@ import { CodeHudText } from "./CodeHudText";
  * terminal simulator watch one session and each show the version of it their
  * surface can carry.
  *
+ * A class rather than a namespace because every word the display originates
+ * comes from a configuration rather than from a literal here. What fills a
+ * narrow screen when the agent has reported nothing is a product decision a
+ * wearer will hear hundreds of times, and burying it in this file would make
+ * it untranslatable and invisible.
+ *
  * Total on its inputs: the frame it returns always fits the geometry it was
  * given, at every content kind and down to a single row, so an adapter draws it
  * without measuring anything.
@@ -27,7 +34,10 @@ import { CodeHudText } from "./CodeHudText";
  * @evidence specifications/display-projection/frame-and-state.md#spec-projection-review-traversal Implements the cursor traversal with no device scroll primitive assumed.
  * @author Samchon
  */
-export namespace CodeHudComposer {
+export class CodeHudComposer {
+  /** Constructs a composer bound to one configuration. */
+  public constructor(private readonly context: ICodeHudContext) {}
+
   /**
    * Builds the frame a device should currently show.
    *
@@ -36,59 +46,60 @@ export namespace CodeHudComposer {
    * a wearer who cannot read the subject of an approval cannot answer it
    * whether or not they know the words.
    */
-  export const compose = (
+  public compose(
     state: ICodeHudState,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
-  ): ICodeHudFrame => {
-    if (state.fault !== undefined) return fault(state.fault, geometry);
-    if (state.pending !== undefined) return permission(state.pending, geometry);
-    if (state.review.active === true) return review(state, geometry);
+  ): ICodeHudFrame {
+    if (state.fault !== undefined) return this.fault(state.fault, geometry);
+    if (state.pending !== undefined)
+      return this.permission(state.pending, geometry);
+    if (state.review.active === true) return this.review(state, geometry);
     switch (state.activity) {
       case "connecting":
-        return finish("status", "ambient", [
-          line("Connecting", "secondary", geometry),
+        return this.finish("status", "ambient", [
+          this.line(this.context.vocabulary.connecting, "secondary", geometry),
         ]);
       case "thinking":
       case "working":
-        return progress(state, geometry);
+        return this.progress(state, geometry);
       case "done":
-        return result(state, geometry);
+        return this.result(state, geometry);
       case "waiting":
       case "idle":
       case "fault":
-        return idle(state, geometry);
+        return this.idle(state, geometry);
     }
-  };
+  }
 
-  const permission = (
+  private permission(
     pending: NonNullable<ICodeHudState["pending"]>,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
-  ): ICodeHudFrame => {
-    const { hint, room } = layout(
+  ): ICodeHudFrame {
+    const { hint, room } = this.layout(
       geometry,
-      utterances(pending.options, geometry),
+      this.utterances(pending.options, geometry),
     );
     const lines: ICodeHudFrame.ILine[] = [
-      line(pending.title, "alert", geometry),
+      this.line(pending.title, "alert", geometry),
     ];
     if (room >= 2 && pending.detail !== undefined)
-      lines.push(line(pending.detail, "secondary", geometry));
-    return finish("permission", "demand", lines.slice(0, room), hint);
-  };
+      lines.push(this.line(pending.detail, "secondary", geometry));
+    return this.finish("permission", "demand", lines.slice(0, room), hint);
+  }
 
-  const progress = (
+  private progress(
     state: ICodeHudState,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
-  ): ICodeHudFrame => {
-    const { hint, room } = layout(
+  ): ICodeHudFrame {
+    const { hint, room } = this.layout(
       geometry,
       geometry.rows >= 3
-        ? CodeHudText.fit("Say stop", geometry.columns)
+        ? CodeHudText.fit(this.context.vocabulary.interrupt, geometry.columns)
         : undefined,
     );
 
     if (state.message.trim().length !== 0)
-      return finish(
+      return this.finish(
         "stream",
         "notice",
         CodeHudText.tail(state.message, geometry.columns, room).map((text) => ({
@@ -99,103 +110,106 @@ export namespace CodeHudComposer {
       );
 
     const running: ICodeHudState.IEntry | undefined = state.history[0];
+    const standing: string =
+      state.activity === "thinking"
+        ? this.context.vocabulary.thinking
+        : this.context.vocabulary.working;
     const lines: ICodeHudFrame.ILine[] = [
-      line(
-        running?.title ??
-          (state.activity === "thinking" ? "Thinking" : "Working"),
-        "primary",
-        geometry,
-      ),
+      this.line(running?.title ?? standing, "primary", geometry),
     ];
     if (room >= 2 && state.session !== undefined)
-      lines.push(directory(state.session.directory, geometry));
-    return finish("status", "ambient", lines.slice(0, room), hint);
-  };
+      lines.push(this.directory(state.session.directory, geometry));
+    return this.finish("status", "ambient", lines.slice(0, room), hint);
+  }
 
-  const result = (
+  private result(
     state: ICodeHudState,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
-  ): ICodeHudFrame => {
+  ): ICodeHudFrame {
     const last: NonNullable<ICodeHudState["last"]> | undefined = state.last;
-    if (last === undefined) return idle(state, geometry);
+    if (last === undefined) return this.idle(state, geometry);
     const failed: boolean = last.outcome === "error";
     const lines: ICodeHudFrame.ILine[] = [
-      line(last.summary, failed ? "alert" : "primary", geometry),
+      this.line(last.summary, failed ? "alert" : "primary", geometry),
     ];
     if (geometry.rows >= 2)
       lines.push(
-        line(
-          `${verdict(last.outcome)} · ${CodeHudText.elapsed(last.elapsed)}`,
+        this.line(
+          `${this.verdict(last.outcome)} · ${CodeHudText.elapsed(last.elapsed)}`,
           "muted",
           geometry,
         ),
       );
-    return finish(
+    return this.finish(
       "result",
       failed ? "demand" : "notice",
       lines.slice(0, geometry.rows),
     );
-  };
+  }
 
-  const review = (
+  private review(
     state: ICodeHudState,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
-  ): ICodeHudFrame => {
+  ): ICodeHudFrame {
     const entry: ICodeHudState.IEntry | undefined =
       state.history[state.review.offset];
-    if (entry === undefined) return idle(state, geometry);
+    if (entry === undefined) return this.idle(state, geometry);
 
-    const { hint, room } = layout(
+    const { hint, room } = this.layout(
       geometry,
       geometry.rows >= 3
-        ? CodeHudText.fit("Say back, forward, or latest", geometry.columns)
+        ? CodeHudText.fit(this.context.vocabulary.review, geometry.columns)
         : undefined,
     );
     const lines: ICodeHudFrame.ILine[] = [
-      line(entry.title, entry.failed ? "alert" : "primary", geometry),
+      this.line(entry.title, entry.failed ? "alert" : "primary", geometry),
     ];
     if (room >= 2)
       lines.push(
-        line(
+        this.line(
           `${state.review.offset + 1} of ${state.history.length}`,
           "muted",
           geometry,
         ),
       );
-    return finish("review", "ambient", lines.slice(0, room), hint);
-  };
+    return this.finish("review", "ambient", lines.slice(0, room), hint);
+  }
 
-  const idle = (
+  private idle(
     state: ICodeHudState,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
-  ): ICodeHudFrame => {
+  ): ICodeHudFrame {
     const lines: ICodeHudFrame.ILine[] = [];
     if (state.session !== undefined)
-      lines.push(directory(state.session.directory, geometry));
+      lines.push(this.directory(state.session.directory, geometry));
     if (geometry.rows >= 2 && state.last !== undefined)
-      lines.push(line(state.last.summary, "muted", geometry));
-    if (lines.length === 0) lines.push(line("Ready", "muted", geometry));
-    return finish("idle", "ambient", lines.slice(0, geometry.rows));
-  };
+      lines.push(this.line(state.last.summary, "muted", geometry));
+    if (lines.length === 0)
+      lines.push(this.line(this.context.vocabulary.ready, "muted", geometry));
+    return this.finish("idle", "ambient", lines.slice(0, geometry.rows));
+  }
 
-  const fault = (
+  private fault(
     message: string,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
-  ): ICodeHudFrame =>
-    finish("fault", "demand", [line(message, "alert", geometry)]);
+  ): ICodeHudFrame {
+    return this.finish("fault", "demand", [
+      this.line(message, "alert", geometry),
+    ]);
+  }
 
   /**
    * Builds the spoken hint for a pending approval, when both answers exist.
    *
-   * Names the labels the harness reported rather than a fixed pair, because the
-   * options are data and a wearer answering with a word the harness does not
-   * offer has not answered. The persisting option is never named, since it must
-   * not be the easiest answer to give.
+   * Names the labels the harness reported rather than the configured consent
+   * tokens, because the options are data and a wearer answering with a word the
+   * harness does not offer has not answered. The persisting option is never
+   * named, since it must not be the easiest answer to give.
    */
-  const utterances = (
+  private utterances(
     options: ICodeHudAgentPermission[],
     geometry: ICodeHudGlassesDescriptor.IGeometry,
-  ): string | undefined => {
+  ): string | undefined {
     const yes: ICodeHudAgentPermission | undefined = options.find(
       (o) => o.affirmative === true && o.persistent === false,
     );
@@ -203,11 +217,12 @@ export namespace CodeHudComposer {
       (o) => o.affirmative === false,
     );
     if (yes === undefined || no === undefined) return undefined;
-    const full: string = `Say ${yes.label} or ${no.label}`;
+    const { say, or } = this.context.vocabulary;
+    const full: string = `${say} ${yes.label} ${or} ${no.label}`;
     return full.length <= geometry.columns
       ? full
       : CodeHudText.fit(`${yes.label} / ${no.label}`, geometry.columns);
-  };
+  }
 
   /**
    * Decides whether the hint survives, and how many rows remain for content.
@@ -221,53 +236,62 @@ export namespace CodeHudComposer {
    * earlier shape clamped the room to at least one row and left the hint in
    * place, which let a pending approval emit two rows onto a one-row display.
    */
-  const layout = (
+  private layout(
     geometry: ICodeHudGlassesDescriptor.IGeometry,
     candidate: string | undefined,
-  ): { hint: string | undefined; room: number } =>
-    candidate === undefined || geometry.rows < 2
+  ): { hint: string | undefined; room: number } {
+    return candidate === undefined || geometry.rows < 2
       ? { hint: undefined, room: geometry.rows }
       : { hint: candidate, room: geometry.rows - 1 };
+  }
 
-  const verdict = (outcome: "success" | "error" | "interrupted"): string =>
-    outcome === "success"
-      ? "Done"
+  private verdict(outcome: "success" | "error" | "interrupted"): string {
+    const { succeeded, stopped, failed } = this.context.vocabulary;
+    return outcome === "success"
+      ? succeeded
       : outcome === "interrupted"
-        ? "Stopped"
-        : "Failed";
+        ? stopped
+        : failed;
+  }
 
-  const directory = (
+  private directory(
     value: string,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
-  ): ICodeHudFrame.ILine => ({
-    text: CodeHudText.path(value, geometry.columns),
-    tone: "muted",
-  });
+  ): ICodeHudFrame.ILine {
+    return {
+      text: CodeHudText.path(value, geometry.columns),
+      tone: "muted",
+    };
+  }
 
-  const line = (
+  private line(
     text: string,
     tone: ICodeHudFrame.ILine.Tone,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
-  ): ICodeHudFrame.ILine => ({
-    text: CodeHudText.fit(text, geometry.columns),
-    tone,
-  });
+  ): ICodeHudFrame.ILine {
+    return {
+      text: CodeHudText.fit(text, geometry.columns),
+      tone,
+    };
+  }
 
-  const finish = (
+  private finish(
     kind: ICodeHudFrame.Kind,
     urgency: ICodeHudFrame.Urgency,
     lines: ICodeHudFrame.ILine[],
     hint?: string,
-  ): ICodeHudFrame => ({
-    key: [
+  ): ICodeHudFrame {
+    return {
+      key: [
+        kind,
+        urgency,
+        ...lines.map((l) => `${l.tone}:${l.text}`),
+        hint ?? "",
+      ].join(""),
       kind,
+      lines,
+      hint,
       urgency,
-      ...lines.map((l) => `${l.tone}:${l.text}`),
-      hint ?? "",
-    ].join(""),
-    kind,
-    lines,
-    hint,
-    urgency,
-  });
+    };
+  }
 }
