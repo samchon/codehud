@@ -26,7 +26,11 @@ import { Stream } from "../internal/stream";
  * 2. Idle names the working directory, which is how a wearer running several
  *    agents knows which one they are looking at, and falls back to a standing
  *    line when no session has been reported.
- * 3. A streaming message is notice-grade and shows its newest words.
+ * 3. A streaming message is ambient-grade and shows its newest words. Ambient
+ *    because progress within a turn wakes nothing: an agent writing a paragraph
+ *    would otherwise light the display once per sentence. An earlier version
+ *    graded it notice, and this case asserted that, which is how a violation of
+ *    the stated grade table survived being tested.
  * 4. Working without prose shows the running tool, and falls back to a verb
  *    when there is no history yet, the arm that fires at the very start of a
  *    turn.
@@ -83,7 +87,7 @@ export async function test_hud_compose_states(): Promise<void> {
   );
   const stream: ICodeHudFrame = composer.compose(streaming, Stream.NARROW);
   TestValidator.equals("stream kind", stream.kind, "stream");
-  TestValidator.equals("stream grade", stream.urgency, "notice");
+  TestValidator.equals("stream grade", stream.urgency, "ambient");
   TestValidator.predicate(
     "stream shows the newest words",
     stream.lines

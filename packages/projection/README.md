@@ -58,6 +58,31 @@ The split is what lets two devices attach to one session, share the state, and e
 - A late observation never rewinds the display.
 - Moving the review cursor toward newer content while already following it does nothing, rather than pinning the display where the wearer did not ask it to stop.
 
+## Grades decide whether a display lights up
+
+Three, and nothing between:
+
+| Grade | Wake a sleeping display | Speak | What it is for |
+| --- | --- | --- | --- |
+| demand | yes | yes | an approval that blocked a session, a fault that ended one |
+| notice | yes | no | a finished turn |
+| ambient | no | no | progress within a turn |
+
+What `CodeHudNotifier` returns is an **upper bound**, not an instruction. A device that cannot speak does less; nothing may do more.
+
+Two rules here were specified and not implemented until the notifier went in, and both had tests asserting the violation:
+
+- **A demand frame states the session's directory**, always — shortened from the left so the distinguishing trailing segments survive. An approval whose target repository is unknown is not answerable, because "allow" means something different in each checkout. Where there is room for one line the identity shares it with the question rather than either being dropped.
+- **Streaming prose is ambient, not notice.** It had been graded notice, which permits waking a sleeping display — once per sentence, for an agent writing a paragraph. That is the behaviour the three grades exist to prevent.
+
+## Quiet mode defers, and never answers
+
+Quiet removes waking and speech from every grade, demand included. It changes **presentation only**: a suppressed approval still blocks its session, stays pending, and stays the wearer's to answer.
+
+Suppressed demand items accumulate in arrival order and come back together when quiet ends. None is dropped, coalesced, or resolved.
+
+That last word is the point. A system that quietly denied would be answering on the wearer's behalf, and the wrong answer cannot be undone. Nothing here resolves an approval by elapsed time, and nothing ever will.
+
 ## Contract traceability
 
 Every export cites the requirement and specification it realizes. Run `pnpm run evidence` from the workspace root.
