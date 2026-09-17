@@ -31,9 +31,19 @@ export class CodeHudNotifier {
   /**
    * What a device may do about this frame, and what it owes instead.
    *
-   * A suppressed or unreachable demand-grade item is deferred and routed to the
-   * host at the same time: one is what the wearer will see when they come back,
-   * the other is what reaches them before then. Neither resolves anything.
+   * Every demand-grade item the wearer cannot be shown is routed to the host,
+   * whatever kept it from them. Only the ones quiet mode suppressed are also
+   * held here, because quiet mode is the only one of the three that ends with
+   * an event this object can see.
+   *
+   * An unreachable device needs no holding. Whatever it missed was missed by
+   * the display and not by the session: the approval is still pending, and a
+   * device that reconnects attaches from the counter its fold reached and is
+   * shown the request again by the ordinary path. Holding it as well would put
+   * two populations in one queue, and the queue is drained by leaving quiet
+   * mode — so an hour's disconnection would be dumped in front of a wearer at
+   * whatever unrelated moment they next came out of a meeting, and would sit in
+   * memory until they did.
    */
   public present(
     frame: ICodeHudFrame,
@@ -69,7 +79,7 @@ export class CodeHudNotifier {
           : undefined;
     if (reason === undefined) return allowed;
 
-    this.held.push(notification);
+    if (reason === "quiet") this.held.push(notification);
     return { ...allowed, fallback: { reason, notification } };
   }
 

@@ -30,6 +30,8 @@ Quiet mode removes the waking and speaking permissions from every grade includin
 
 Suppressed demand-grade items accumulate in order and are presented together when quiet mode ends. None is dropped, coalesced away, or resolved by the system.
 
+What accumulates is what quiet mode suppressed, and nothing else. An item a disconnected or sleeping device missed is not added to it: the request it concerns is still pending, so a device that returns is shown it again by the ordinary path, and mixing the two populations would present one at the moment the other ended.
+
 ### Unreachable does not mean answered {#spec-notification-fallback-delivery}
 
 <!-- @evidence requirements/notification/attention-and-quiet.md#notification-fallback Refines fallback delivery into a host-side path for demand-grade items and a prohibition on timeout-resolved approvals. -->

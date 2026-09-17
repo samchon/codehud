@@ -37,6 +37,11 @@ import { Stream } from "../internal/stream";
  *    distinguishes a sleeping display from a lost connection.
  * 7. Leaving quiet mode twice returns nothing the second time, because the
  *    first time took it.
+ * 8. What an unreachable device missed is not held for a later quiet-mode exit.
+ *    It goes to the host and nowhere else: the approval is still pending, so a
+ *    device that comes back is shown it again by the ordinary path, while
+ *    holding it would mean an hour of disconnection landing in front of the
+ *    wearer at whatever unrelated moment they next left a meeting.
  */
 export async function test_hud_notify(): Promise<void> {
   const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
@@ -187,5 +192,24 @@ export async function test_hud_notify(): Promise<void> {
     "and has nowhere else to send it",
     away.present(frame(asking), asking).fallback,
     undefined,
+  );
+
+  // What being away leaves behind, which is nothing.
+  TestValidator.equals(
+    "an unreachable device holds nothing for later",
+    away.waiting.deferred,
+    [],
+  );
+  away.silence(true);
+  TestValidator.equals(
+    "so a quiet mode entered afterwards starts empty",
+    away.waiting.deferred,
+    [],
+  );
+  away.present(frame(asking), asking);
+  TestValidator.equals(
+    "and returns only what it suppressed itself",
+    away.silence(false).length,
+    1,
   );
 }
