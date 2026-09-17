@@ -1,4 +1,4 @@
-# Glasses Requirements
+# CodeHUD Requirements
 
 This directory defines the results a wearable coding-agent product must deliver and the boundaries it must hold. Each topic owns a folder, and each document inside a folder owns one reviewable set of requirement units.
 

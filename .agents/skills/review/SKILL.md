@@ -1,6 +1,6 @@
 ---
 name: review
-description: Defines exhaustive review, Self-Review, and solo repository-wide issue-discovery rounds for glasses. Use for every self-review or unqualified review request and as the review mode inside an issue campaign. One reviewer always covers one whole declared surface; this skill never splits a surface across agents.
+description: Defines exhaustive review, Self-Review, and solo repository-wide issue-discovery rounds for CodeHUD. Use for every self-review or unqualified review request and as the review mode inside an issue campaign. One reviewer always covers one whole declared surface; this skill never splits a surface across agents.
 ---
 
 # Review

@@ -1,6 +1,6 @@
 ---
 name: development
-description: Defines glasses implementation rules, package boundaries, testing standards, the coverage obligation on changed positions, validation, and change integrity. Use before writing or modifying source, tests, workflows, package wiring, or fixtures.
+description: Defines CodeHUD implementation rules, package boundaries, testing standards, the coverage obligation on changed positions, validation, and change integrity. Use before writing or modifying source, tests, workflows, package wiring, or fixtures.
 ---
 
 # Development

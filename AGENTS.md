@@ -1,6 +1,6 @@
 # AGENTS.md
 
-`glasses` drives Claude Code and Codex from smart glasses. Speech is the only instruction channel, the display is read and reviewed but never operated, and the harness runs on the machine that holds the repository rather than in a vendor's cloud.
+`CodeHUD` drives Claude Code and Codex from smart glasses. Speech is the only instruction channel, the display is read and reviewed but never operated, and the harness runs on the machine that holds the repository rather than in a vendor's cloud.
 
 What it delivers is supervision and control of a long-running, approval-demanding coding agent from a wearable surface. The reduction that turns an agent's output into something readable in a two-second glance is the product; transport and vendor connectivity are the plumbing under it.
 

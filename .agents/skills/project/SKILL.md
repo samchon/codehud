@@ -1,13 +1,13 @@
 ---
 name: project
-description: Defines the glasses product contract, what the product deliberately does not do, the two adapter axes, workspace layout, and canonical commands. Use when orienting in the repository, working inside any package, choosing a build, test, format, or evidence command, or judging whether a proposed capability is in scope.
+description: Defines the CodeHUD product contract, what the product deliberately does not do, the two adapter axes, workspace layout, and canonical commands. Use when orienting in the repository, working inside any package, choosing a build, test, format, or evidence command, or judging whether a proposed capability is in scope.
 ---
 
 # Project Outline
 
 ## Product Contract
 
-`glasses` lets a developer keep driving the coding agent already running in their own repository after they have walked away from the keyboard. The wearer reads progress, answers approval requests, issues new instructions, and stops turns in flight, using the glasses alone.
+`CodeHUD` lets a developer keep driving the coding agent already running in their own repository after they have walked away from the keyboard. The wearer reads progress, answers approval requests, issues new instructions, and stops turns in flight, using the glasses alone.
 
 Instruction is speech. Reading and review are the eyes. No surface in this product accepts typed characters from the wearer, and the display is never operated.
 
@@ -68,8 +68,8 @@ The harness axis lives in `packages/agent` and the device axis in the device ada
 | Format | `pnpm run format` |
 | Check formatting without writing | `pnpm run format:check` |
 | Evidence graph | `pnpm run evidence` |
-| One package's build | `pnpm --filter @samchon/glasses-<name> build` |
+| One package's build | `pnpm --filter @codehud/<name> build` |
 
-Package scope is `@samchon/glasses-*`, with the bridge publishing unscoped as `glasses-bridge` so a user reaches it with one `npx` command. The unscoped `glasses` name and the `@glasses` scope are both taken on npm; check the registry before proposing any new published name.
+Package scope is `@codehud/*`, with the bridge publishing unscoped as `codehud-bridge` so a user reaches it with one `npx` command. The unscoped `glasses` name and the `@glasses` scope are both taken on npm; check the registry before proposing any new published name.
 
 Node is pinned to 22.23.2 through `useNodeVersion`. Dependencies resolve through the `pnpm-workspace.yaml` catalogs rather than per-package version strings.

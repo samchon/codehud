@@ -1,6 +1,6 @@
 ---
 name: documentation
-description: Defines the .wiki/ working knowledge base, package READMEs, source JSDoc, agent-instruction conventions, and the repository writing voice for glasses. Use before writing or modifying any document, AGENTS.md, or a SKILL.md, and revise the wiki as the work proceeds rather than at the end.
+description: Defines the .wiki/ working knowledge base, package READMEs, source JSDoc, agent-instruction conventions, and the repository writing voice for CodeHUD. Use before writing or modifying any document, AGENTS.md, or a SKILL.md, and revise the wiki as the work proceeds rather than at the end.
 ---
 
 # Documentation

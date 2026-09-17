@@ -1,4 +1,4 @@
-# Glasses System Specifications
+# CodeHUD System Specifications
 
 This directory refines the product's observable requirements into system contracts that are independent of implementation technology, transport, and package layout.
 

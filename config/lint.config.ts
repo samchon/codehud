@@ -1,7 +1,7 @@
 import type { ITtscLintConfig } from "@ttsc/lint";
 
 /**
- * Shared `@ttsc/lint` configuration for the glasses workspace. Each package's
+ * Shared `@ttsc/lint` configuration for the CodeHUD workspace. Each package's
  * `lint.config.ts` re-exports this default; `ttsc` (and `ttsc --noEmit`)
  * discovers it per package and applies the rules during the type-aware build.
  *
