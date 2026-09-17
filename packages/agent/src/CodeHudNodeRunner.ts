@@ -40,7 +40,7 @@ export class CodeHudNodeRunner implements ICodeHudHarnessRunner {
         ? [...(process.env["PATHEXT"] ?? ".EXE;.CMD;.BAT").split(";"), ""]
         : [""];
 
-    for (const directory of path.split(delimiter).filter((d) => d.length !== 0))
+    for (const directory of CodeHudNodeRunner.directories(path))
       for (const extension of extensions) {
         const candidate: string = join(directory, command + extension);
         const reachable: boolean = await access(candidate, constants.X_OK)
@@ -85,6 +85,33 @@ export class CodeHudNodeRunner implements ICodeHudHarnessRunner {
   }
 }
 export namespace CodeHudNodeRunner {
+  /**
+   * Splits a path variable into directories worth looking in.
+   *
+   * Windows admits quoted entries, and a great many machines have at least one,
+   * because an installer that wrote a path containing a space quoted it. Joining
+   * a quoted entry produces a path that cannot exist, so the harness inside it
+   * would be reported absent: the same wrong answer as a missing install, for a
+   * reason the wearer could do nothing about.
+   *
+   * Empty entries are dropped rather than treated as the working directory.
+   * A trailing separator is common and resolving a command against wherever the
+   * bridge happens to have been started is not something to do by accident.
+   *
+   * The separator is a parameter for the same reason the platform is on
+   * {@link invocation}: it differs between operating systems, and a rule only
+   * one of them can exercise is a rule the other one's continuous integration
+   * silently stops checking.
+   */
+  export const directories = (
+    path: string,
+    separator: string = delimiter,
+  ): string[] =>
+    path
+      .split(separator)
+      .map((entry) => entry.trim().replace(/^"(.*)"$/u, "$1"))
+      .filter((entry) => entry.length !== 0);
+
   /**
    * Rewrites a launch so that a Windows shim can actually be started.
    *
