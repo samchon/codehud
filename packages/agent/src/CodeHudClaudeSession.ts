@@ -5,7 +5,7 @@ import type {
 } from "@codehud/interface";
 
 import { CodeHudClaudeNormalizer } from "./CodeHudClaudeNormalizer";
-import type { ICodeHudClaudeChannel } from "./ICodeHudClaudeChannel";
+import type { ICodeHudHarnessChannel } from "./ICodeHudHarnessChannel";
 
 /**
  * One conversation with a running Claude Code process.
@@ -41,7 +41,7 @@ export class CodeHudClaudeSession implements ICodeHudAgentSession {
      * names itself.
      */
     public readonly id: string,
-    private readonly channel: ICodeHudClaudeChannel,
+    private readonly channel: ICodeHudHarnessChannel,
     props: CodeHudClaudeSession.IProps = {},
   ) {
     this.normalizer = new CodeHudClaudeNormalizer(id, props.now);

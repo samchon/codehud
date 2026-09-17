@@ -6,6 +6,12 @@
  * of that is a pipe, which is what lets the approval pairing, the instruction
  * translation, and the termination rules be exercised in memory.
  *
+ * Named for harnesses rather than for one of them, because both speak line-
+ * delimited JSON over stdio and neither needs anything else from a process.
+ * It was Claude-specific until the Codex adapter arrived and wanted the same
+ * three operations; a seam with two users is the point at which its name
+ * should stop naming the first one.
+ *
  * The same shape as the runner seam the harness probe uses, and for the same
  * reason: a test that depended on a real process would be measuring the
  * machine's install rather than this repository's logic.
@@ -14,7 +20,7 @@
  * @evidence specifications/agent-harness/normalized-stream.md#spec-agent-session-open Types the transport a session's observation stream, instruction delivery, and termination are expressed over.
  * @author Samchon
  */
-export interface ICodeHudClaudeChannel {
+export interface ICodeHudHarnessChannel {
   /**
    * Lines the harness printed, already parsed.
    *
