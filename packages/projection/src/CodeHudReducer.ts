@@ -159,11 +159,15 @@ export class CodeHudReducer {
     if (move === "latest")
       return { ...state, review: { active: false, offset: 0 } };
     if (state.history.length === 0) return state;
+    // Moving toward newer content while already following it does nothing.
+    // Entering review here would pin the display at the newest entry and stop
+    // it tracking what arrives next, which is a freeze the wearer did not ask
+    // for and cannot tell from the agent having gone quiet.
+    if (state.review.active === false && move === "forward") return state;
 
-    const delta: number = move === "back" ? 1 : -1;
     const offset: number = state.review.active
-      ? state.review.offset + delta
-      : Math.max(0, delta);
+      ? state.review.offset + (move === "back" ? 1 : -1)
+      : 1;
     return {
       ...state,
       review: {

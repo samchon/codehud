@@ -19,7 +19,11 @@ import { Stream } from "../internal/stream";
  * 3. Moving back walks toward older entries and clamps at the oldest rather
  *    than failing, since a wearer saying "back" at the end should stop.
  * 4. Moving forward walks toward newer entries and clamps at the newest.
- * 5. Saying latest leaves review entirely and returns to following.
+ * 5. Moving toward newer content while already following does nothing, rather
+ *    than entering review and pinning the display at the newest entry. That
+ *    freeze is one the wearer did not ask for and cannot tell from the agent
+ *    having gone quiet.
+ * 6. Saying latest leaves review entirely and returns to following.
  * 6. A new entry arriving during review increments the offset, so the cursor
  *    still points at the same entry. This is the scenario the whole test exists
  *    for.
@@ -70,6 +74,12 @@ export async function test_hud_review_cursor(): Promise<void> {
   );
   TestValidator.equals("clamps at the newest", clampedForward.review.offset, 0);
   TestValidator.equals("still reviewing", clampedForward.review.active, true);
+
+  TestValidator.equals(
+    "forward while following does not freeze the display",
+    reducer.review(state, "forward"),
+    state,
+  );
 
   const left: ICodeHudState = reducer.review(back2, "latest");
   TestValidator.equals("latest leaves review", left.review.active, false);
