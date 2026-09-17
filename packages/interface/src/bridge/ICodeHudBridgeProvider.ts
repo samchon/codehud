@@ -168,6 +168,14 @@ export namespace ICodeHudBridgeProvider {
      *
      * What a terminal on the host passes to resume the same work. Absent for a
      * harness that reports none, which makes that session bridge-only.
+     *
+     * The citation sits here rather than on the shape around it because this
+     * one field is the whole of what makes handoff possible. A terminal has
+     * never heard of this bridge, so every other field in this structure is
+     * ours and useless to it; only this one is the harness's own.
+     *
+     * @evidence requirements/session-continuity/reconnect-and-replay.md#session-handoff Carries the harness's own identifier, which is the only thing a terminal can use to resume what the glasses started.
+     * @evidence specifications/session-lifecycle/attach-and-replay.md#spec-session-handoff-identity Types the shared identity that removes any reconciliation step, on the one field that holds it.
      */
     native?: string;
 
