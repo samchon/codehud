@@ -1,4 +1,5 @@
 import {
+  CodeHudClaudeAdapter,
   CodeHudHarnessProbe,
   CodeHudNodeRunner,
   type ICodeHudHarnessRunner,
@@ -44,14 +45,20 @@ export class CodeHudBridgeCommand {
     const runner: ICodeHudHarnessRunner =
       this.props.runner ?? new CodeHudNodeRunner();
     const probe: CodeHudHarnessProbe = new CodeHudHarnessProbe(runner);
+    const found: ICodeHudAgentAdapter.IProbe[] = await probe.probe();
+    const adapters: ReadonlyMap<
+      ICodeHudBridgeProvider.IOpen["kind"],
+      ICodeHudAgentAdapter
+    > = this.props.adapters ?? CodeHudBridgeCommand.adapters(found);
+
     const bridge: CodeHudBridgeServer = new CodeHudBridgeServer({
-      adapters: this.props.adapters,
+      adapters,
       probe: () => probe.probe(),
       ...(this.props.token === undefined ? {} : { token: this.props.token }),
     });
 
     await bridge.open(this.props.port);
-    this.announce(bridge);
+    this.announce(bridge, found, adapters);
     await this.until(bridge);
   }
 
@@ -62,18 +69,34 @@ export class CodeHudBridgeCommand {
    * paired successfully and then could not start anything would have no way to
    * tell a missing install from a broken bridge.
    */
-  private announce(bridge: CodeHudBridgeServer): void {
+  private announce(
+    bridge: CodeHudBridgeServer,
+    found: ICodeHudAgentAdapter.IProbe[],
+    adapters: ReadonlyMap<
+      ICodeHudBridgeProvider.IOpen["kind"],
+      ICodeHudAgentAdapter
+    >,
+  ): void {
     for (const host of this.props.hosts ?? CodeHudBridgeCommand.addresses()) {
       const payload: string = bridge.pairing(host, this.props.port);
-      console.log(`\n${payload}`);
+      console.log(`
+${payload}`);
       qr.generate(payload, { small: true }, (code: string) => {
         console.log(code);
       });
     }
-    if (this.props.adapters.size === 0)
+    for (const entry of found)
       console.log(
-        "No harness adapter is wired into this build yet, so a device can pair" +
-          " and list sessions but opening one will be refused.",
+        entry.descriptor === undefined
+          ? `  ${entry.kind}: ${entry.reason ?? "unavailable"}`
+          : adapters.has(entry.kind) === true
+            ? `  ${entry.kind}: ${entry.descriptor.executable}`
+            : `  ${entry.kind}: installed, but this build cannot drive it yet`,
+      );
+    if (adapters.size === 0)
+      console.log(
+        "Nothing here can be driven, so a device can pair and list sessions" +
+          " but opening one will be refused.",
       );
   }
 
@@ -94,8 +117,14 @@ export namespace CodeHudBridgeCommand {
     /** Port to listen on. */
     port: number;
 
-    /** Harness adapters to offer, by family. */
-    adapters: ReadonlyMap<
+    /**
+     * Harness adapters to offer, instead of the ones discovery finds.
+     *
+     * Absent is the ordinary case: the command builds them from what the host
+     * machine actually has. Present overrides that entirely, which is how a
+     * test drives the command without either binary installed.
+     */
+    adapters?: ReadonlyMap<
       ICodeHudBridgeProvider.IOpen["kind"],
       ICodeHudAgentAdapter
     >;
@@ -138,6 +167,31 @@ export namespace CodeHudBridgeCommand {
   };
 
   /**
+   * Builds an adapter for every harness this build can actually drive.
+   *
+   * Taken from discovery rather than declared, so a family that is installed
+   * but unadapted and a family that is adapted but missing are different
+   * answers. A harness installed after the bridge started is not picked up:
+   * discovery runs once, and a wearer who installs one mid-session restarts a
+   * command that takes a second.
+   */
+  export const adapters = (
+    found: ICodeHudAgentAdapter.IProbe[],
+  ): ReadonlyMap<
+    ICodeHudBridgeProvider.IOpen["kind"],
+    ICodeHudAgentAdapter
+  > => {
+    const built: Map<
+      ICodeHudBridgeProvider.IOpen["kind"],
+      ICodeHudAgentAdapter
+    > = new Map();
+    for (const entry of found)
+      if (entry.descriptor !== undefined && entry.kind === "claude-code")
+        built.set(entry.kind, new CodeHudClaudeAdapter(entry.descriptor));
+    return built;
+  };
+
+  /**
    * Reads the arguments a terminal passed and runs a bridge from them.
    *
    * Parsed by hand rather than with an argument library, because there are three
@@ -155,7 +209,6 @@ export namespace CodeHudBridgeCommand {
 
     await new CodeHudBridgeCommand({
       port: port === undefined ? PORT : Number.parseInt(port, 10),
-      adapters: new Map(),
       ...(token === undefined ? {} : { token }),
       ...(host === undefined ? {} : { hosts: [host] }),
     }).run();

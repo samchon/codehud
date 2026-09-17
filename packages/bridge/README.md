@@ -28,6 +28,17 @@ console.log(bridge.pairing("192.168.0.14", 37219));
 // ws://192.168.0.14:37219/?token=…
 ```
 
+The command line builds its own adapters from what discovery finds, and says which families it can drive:
+
+```text
+ws://10.0.0.5:37311/?token=…
+  [scannable code]
+  claude-code: C:\…\claude.CMD
+  codex: installed, but this build cannot drive it yet
+```
+
+Installed-but-unadapted and adapted-but-missing are different answers, because a wearer acts on them differently. Discovery runs once at startup, so a harness installed mid-session needs a restart of a command that takes a second.
+
 ## Detaching is not closing
 
 The rule the product rests on. A wearer walks out of range in the middle of a turn; the harness on their machine has no idea and must not be told. A session's lifetime is bound to the bridge process and to an explicit close instruction, never to a connection.
