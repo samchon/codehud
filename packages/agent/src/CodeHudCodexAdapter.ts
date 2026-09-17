@@ -28,6 +28,7 @@ import type { ICodeHudHarnessChannel } from "./ICodeHudHarnessChannel";
  * @evidence requirements/agent-control/harness-abstraction.md#agent-session-lifetime Opens a harness session against a stated working directory, optionally resuming, and reports a launch failure as a failure of the open.
  * @evidence requirements/agent-control/turn-and-approval.md#agent-permission-blocking Starts the thread so that a gated action stops and asks the wearer, rather than being decided by anything else.
  * @evidence specifications/agent-harness/normalized-stream.md#spec-agent-session-open Implements the opening contract: a mandatory absolute working directory, optional resume and model, and launch failures raised by the open.
+ * @evidence specifications/session-lifecycle/attach-and-replay.md#spec-session-resume-identity Resumes the harness's own prior conversation by its identifier rather than starting a new one under that name, and carries the session's stated overrides into it.
  * @author Samchon
  */
 export class CodeHudCodexAdapter implements ICodeHudAgentAdapter {
@@ -44,12 +45,30 @@ export class CodeHudCodexAdapter implements ICodeHudAgentAdapter {
   ) {}
 
   /**
-   * Starts a conversation, or fails trying.
+   * Starts a conversation, or resumes one, or fails trying.
    *
    * The thread is started with `approvalsReviewer: "user"` even though that is
    * already the default. The alternatives route approvals to a subagent that
    * decides on the wearer's behalf, and a default is the vendor's to change
    * while the promise that a wearer decides is not.
+   *
+   * ## Resuming is a different method, not a parameter
+   *
+   * A resume sends `thread/resume` with the harness's own thread identifier.
+   * This adapter used to send `thread/start` either way and keep the identifier
+   * it had been handed only as a fallback, which produced a *new* thread
+   * reported as resumed — a copy of the work rather than the work, which is the
+   * one thing handoff must not be.
+   *
+   * Turns are excluded from the reply. What the wearer sees is built from the
+   * observation stream, so hydrating the whole prior conversation into the
+   * opening response would buy nothing and the vendor deprecates it for
+   * paginated threads; reconstructing history is `thread/items/list`, and a
+   * separate question.
+   *
+   * The overrides travel with both. A resumed thread takes the policy of the
+   * session resuming it rather than the one it was started under, because the
+   * wearer stated the policy for the work they are doing now.
    */
   public async open(
     props: ICodeHudAgentAdapter.IOpenProps,
@@ -96,8 +115,11 @@ export class CodeHudCodexAdapter implements ICodeHudAgentAdapter {
       await channel.write({
         jsonrpc: "2.0",
         id: 2,
-        method: "thread/start",
+        method: props.resume === undefined ? "thread/start" : "thread/resume",
         params: {
+          ...(props.resume === undefined
+            ? {}
+            : { threadId: props.resume, excludeTurns: true }),
           cwd: props.directory,
           approvalPolicy: CodeHudAgentPolicy.approval(props.policy),
           sandbox: CodeHudAgentPolicy.sandbox(props.policy),

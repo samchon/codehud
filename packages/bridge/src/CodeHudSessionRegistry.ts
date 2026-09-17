@@ -25,6 +25,7 @@ import type { ICodeHudSessionSubscriber } from "./ICodeHudSessionSubscriber";
  * @evidence requirements/session-continuity/reconnect-and-replay.md#session-outlives-socket Binds a session's lifetime to the bridge and to explicit closure rather than to any connection.
  * @evidence specifications/session-lifecycle/attach-and-replay.md#spec-session-detach-semantics Implements detachment as removal from the fan-out, with retention from the first observation and several simultaneous clients served independently.
  * @evidence specifications/session-lifecycle/attach-and-replay.md#spec-session-replay-convergence Resends from the counter a client names, in ascending order and without a gap, which is what makes the client's monotonic guard safe rather than lossy.
+ * @evidence specifications/session-lifecycle/attach-and-replay.md#spec-session-advertised-population Advertises the sessions this bridge holds and nothing else, so no wearer is offered an attachment to a conversation no observation can be delivered for.
  * @author Samchon
  */
 export class CodeHudSessionRegistry {
