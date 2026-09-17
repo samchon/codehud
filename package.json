@@ -8,7 +8,8 @@
     "build": "pnpm --filter=./packages/** -r build",
     "test": "pnpm --filter @samchon/glasses-test build && pnpm --filter @samchon/glasses-test start",
     "format": "prettier --write \"**/*.{ts,cts,mts}\"",
-    "format:check": "prettier --check \"**/*.{ts,cts,mts}\""
+    "format:check": "prettier --check \"**/*.{ts,cts,mts}\"",
+    "evidence": "evidence"
   },
   "keywords": [
     "smart-glasses",
@@ -29,6 +30,7 @@
     "@ttsc/evidence": "catalog:typescript",
     "@ttsc/lint": "catalog:typescript",
     "@types/node": "catalog:utils",
+    "@wrtnlabs/evidence": "catalog:typescript",
     "prettier": "catalog:typescript",
     "rimraf": "catalog:utils",
     "ttsc": "catalog:typescript",
