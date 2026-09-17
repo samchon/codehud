@@ -1,0 +1,27 @@
+.claude/*
+!.claude/settings.json
+.wiki/
+# cloned external SDK documentation and vendor samples, read but never shipped
+.references/
+
+node_modules/
+lib/
+dist/
+
+.DS_Store
+*.tsbuildinfo
+.env
+.env.*
+
+# local pairing state produced by the bridge at runtime
+.glasses/
+
+# transpiled output that lands beside a source rather than in `lib/`
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+# the suite runs straight through `ttsx`, so anything emitted beside a case is
+# transpiler spill rather than a source file.
+test/src/**/*.js
+test/src/**/*.js.map
+test/src/**/*.d.ts
