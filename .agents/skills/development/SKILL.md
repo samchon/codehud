@@ -51,7 +51,9 @@ A namespace is for things that take nothing and hold nothing. A class is for eve
 
 A class being a class does not license mutable state. The reducer and the composer hold their configuration and nothing else; their methods stay pure functions of what they are handed, which is what keeps a recorded stream replayable.
 
-**Configuration belongs in a context, not in literals.** Every string the system originates rather than reports, every cap, and every threshold goes in `ICodeHudContext` and is read from there. A literal in a source file is a product decision the wearer cannot see, the translator cannot reach, and the test cannot vary.
+**Configuration belongs in a context, not in literals.** Every string the system originates rather than reports, every cap, and every threshold is stated where its layer can read it, never inlined. A literal in a source file is a product decision the wearer cannot see, the translator cannot reach, and the test cannot vary.
+
+`ICodeHudContext` is that place for the pure layers, and it says so: it holds what the fold and the projection need. A value belonging to a layer that is not pure goes on that component's own props, which is a context in the same sense. The bridge's refusal length bounds what crosses a connection, not what fits a display, and putting it in the pure-layer context would have widened that type past what it claims to be.
 
 Watch the binding when a method is passed as a value. `array.reduce(instance.method, seed)` loses `this` and fails at the first private call; write `array.reduce((acc, x) => instance.method(acc, x), seed)`.
 
