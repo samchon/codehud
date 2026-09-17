@@ -244,6 +244,16 @@ export namespace Claude {
   ): { type: string; text?: string; is_error?: boolean }[] =>
     Array.isArray(line.message?.content) === true ? line.message.content : [];
 
+  /**
+   * Lines the harness emitted, dropping the host's own half.
+   *
+   * The same helper the Codex fixture has, for the same reason: two of these
+   * captures are bidirectional, and a walk over "what the harness said" should
+   * not have to remember which ones.
+   */
+  export const sent = (stream: IEnvelope[]): IEnvelope[] =>
+    stream.filter((line) => line.__direction !== "host->harness");
+
   /** The kind of one line, as {@link KINDS} spells it. */
   export const kind = (line: IEnvelope): string =>
     line.subtype === undefined ? line.type : `${line.type}/${line.subtype}`;

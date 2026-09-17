@@ -216,6 +216,12 @@ export class CodeHudSessionRegistry {
           session: record.session.id,
           sequence: record.sequence++,
         };
+        // The harness names itself in its own first observation, after the
+        // session is already addressable. Recording it here is what lets the
+        // advertisement carry it: the field existed and nothing ever set it, so
+        // a session opened from the glasses could not be resumed at a terminal.
+        if (event.type === "session" && event.native !== undefined)
+          record.metadata = { ...record.metadata, native: event.native };
         record.events.push(event);
         for (const [, queue] of record.subscribers)
           this.push(record, queue, event);
@@ -252,7 +258,12 @@ export namespace CodeHudSessionRegistry {
     /** The harness handle this record drives. */
     session: ICodeHudAgentSession;
 
-    /** What the session is, for advertisement to a connecting device. */
+    /**
+     * What the session is, for advertisement to a connecting device.
+     *
+     * Not readonly: the harness's own identifier arrives after the session has
+     * been adopted, in its first observation.
+     */
     metadata: IMetadata;
 
     /** Every observation produced, retained from the first for replay. */

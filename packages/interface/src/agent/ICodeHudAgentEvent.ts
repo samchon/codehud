@@ -95,6 +95,20 @@ export namespace ICodeHudAgentEvent {
      * see, which changes how much a terse prompt will do.
      */
     resumed: boolean;
+
+    /**
+     * Identifier the harness itself uses for this conversation.
+     *
+     * What a terminal on the host machine passes to resume the same work, which
+     * is the whole of what makes a session reachable from either surface. It
+     * arrives here rather than on the session object because a harness does not
+     * know it at the moment it is launched: it says so a moment later, in its
+     * own first observation.
+     *
+     * Absent for a harness that reports none, which makes that session
+     * bridge-only and unresumable at a terminal.
+     */
+    native?: string;
   }
 
   /**
