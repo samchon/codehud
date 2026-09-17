@@ -13,6 +13,7 @@
   "dependencies": {
     "@codehud/agent": "workspace:^",
     "@codehud/bridge": "workspace:^",
+    "@codehud/client": "workspace:^",
     "@codehud/interface": "workspace:^",
     "@codehud/projection": "workspace:^",
     "@nestia/e2e": "catalog:samchon"

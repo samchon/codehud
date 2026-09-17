@@ -155,6 +155,37 @@ importers:
         specifier: catalog:typescript
         version: 7.0.2
 
+  packages/client:
+    dependencies:
+      '@codehud/interface':
+        specifier: workspace:^
+        version: link:../interface
+      '@codehud/projection':
+        specifier: workspace:^
+        version: link:../projection
+      tgrid:
+        specifier: catalog:net
+        version: 1.2.1
+    devDependencies:
+      '@ttsc/evidence':
+        specifier: catalog:typescript
+        version: 0.30.2(@ttsc/lint@0.30.2)
+      '@ttsc/lint':
+        specifier: catalog:typescript
+        version: 0.30.2
+      '@types/node':
+        specifier: catalog:utils
+        version: 22.20.3
+      rimraf:
+        specifier: catalog:utils
+        version: 6.1.3
+      ttsc:
+        specifier: catalog:typescript
+        version: 0.30.2
+      typescript:
+        specifier: catalog:typescript
+        version: 7.0.2
+
   packages/codex-protocol:
     devDependencies:
       '@ttsc/lint':
@@ -224,6 +255,9 @@ importers:
       '@codehud/bridge':
         specifier: workspace:^
         version: link:../packages/bridge
+      '@codehud/client':
+        specifier: workspace:^
+        version: link:../packages/client
       '@codehud/interface':
         specifier: workspace:^
         version: link:../packages/interface

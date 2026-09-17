@@ -57,7 +57,20 @@ export namespace Harness {
       };
     }
 
+    /**
+     * Whether the next instruction fails to arrive.
+     *
+     * A delivery that does not land is the case that separates settling an
+     * answer on delivery from settling it on hope: the wearer still owes the
+     * answer, and the question has to stay in front of them.
+     */
+    public refuseNext: boolean = false;
+
     public async send(command: ICodeHudAgentCommand): Promise<void> {
+      if (this.refuseNext === true) {
+        this.refuseNext = false;
+        throw new Error("the instruction did not reach the harness");
+      }
       this.received.push(command);
     }
 
@@ -81,6 +94,31 @@ export namespace Harness {
         at: 0,
         delta,
         complete: false,
+      });
+      this.wake?.();
+      this.wake = null;
+    }
+
+    /**
+     * Produces an approval request the wearer has to answer.
+     *
+     * Carries the two options a harness of this family offers, stated rather
+     * than inferred, because the projection boundary assigns spoken inputs from
+     * the declared properties and never from the label text.
+     */
+    public ask(request: string, title: string, detail?: string): void {
+      this.pending.push({
+        type: "permission",
+        session: "adapter-said-this",
+        sequence: -1,
+        at: 0,
+        request,
+        title,
+        ...(detail === undefined ? {} : { detail }),
+        options: [
+          { id: "yes", label: "Allow", affirmative: true, persistent: false },
+          { id: "no", label: "Deny", affirmative: false, persistent: false },
+        ],
       });
       this.wake?.();
       this.wake = null;
