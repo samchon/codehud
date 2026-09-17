@@ -55,6 +55,10 @@ export async function test_hud_compose_permission(): Promise<void> {
   TestValidator.equals("grade", narrow.urgency, "demand");
   TestValidator.equals("alert tone", narrow.lines[0]!.tone, "alert");
   TestValidator.equals("one content row", narrow.lines.length, 1);
+  TestValidator.predicate(
+    "which still says which session is asking",
+    narrow.lines[0]!.text.includes("codehud"),
+  );
   TestValidator.equals(
     "hint names both answers",
     narrow.hint,
@@ -67,8 +71,17 @@ export async function test_hud_compose_permission(): Promise<void> {
   );
 
   const wide: ICodeHudFrame = composer.compose(asked, Stream.WIDE);
-  TestValidator.equals("detail survives with room", wide.lines.length, 2);
-  TestValidator.equals("detail tone", wide.lines[1]!.tone, "secondary");
+  TestValidator.equals(
+    "the question, the session, and the detail, in that order",
+    wide.lines.length,
+    3,
+  );
+  TestValidator.equals("the session is named", wide.lines[1]!.tone, "muted");
+  TestValidator.predicate(
+    "by the trailing part of its directory",
+    wide.lines[1]!.text.includes("codehud"),
+  );
+  TestValidator.equals("detail tone", wide.lines[2]!.tone, "secondary");
   TestValidator.equals(
     "hint still present",
     wide.hint,

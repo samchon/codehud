@@ -50,9 +50,11 @@ export class CodeHudComposer {
     state: ICodeHudState,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
   ): ICodeHudFrame {
-    if (state.fault !== undefined) return this.fault(state.fault, geometry);
+    const where: string | undefined = state.session?.directory;
+    if (state.fault !== undefined)
+      return this.fault(state.fault, where, geometry);
     if (state.pending !== undefined)
-      return this.permission(state.pending, geometry);
+      return this.permission(state.pending, where, geometry);
     if (state.review.active === true) return this.review(state, geometry);
     switch (state.activity) {
       case "connecting":
@@ -71,18 +73,47 @@ export class CodeHudComposer {
     }
   }
 
+  /**
+   * Builds the frame for an approval the wearer has to answer.
+   *
+   * The session's directory is on it, always. An approval whose target
+   * repository is unknown is not answerable: a wearer running an agent against
+   * two checkouts cannot tell which one is about to be written to, and the only
+   * safe answer to a question they cannot place is no.
+   *
+   * Where there is room for one line the identity shares it with the question,
+   * rather than either being dropped. Where there is more, the question leads
+   * and the identity follows it, ahead of the detail, because the detail is the
+   * one part a wearer can answer without.
+   */
   private permission(
     pending: NonNullable<ICodeHudState["pending"]>,
+    where: string | undefined,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
   ): ICodeHudFrame {
     const { hint, room } = this.layout(
       geometry,
       this.utterances(pending.options, geometry),
     );
+    if (room <= 1)
+      return this.finish(
+        "permission",
+        "demand",
+        [
+          this.line(
+            this.addressed(pending.title, where, geometry),
+            "alert",
+            geometry,
+          ),
+        ],
+        hint,
+      );
+
     const lines: ICodeHudFrame.ILine[] = [
       this.line(pending.title, "alert", geometry),
     ];
-    if (room >= 2 && pending.detail !== undefined)
+    if (where !== undefined) lines.push(this.directory(where, geometry));
+    if (pending.detail !== undefined)
       lines.push(this.line(pending.detail, "secondary", geometry));
     return this.finish("permission", "demand", lines.slice(0, room), hint);
   }
@@ -98,10 +129,14 @@ export class CodeHudComposer {
         : undefined,
     );
 
+    // Ambient, not notice. Progress within a turn belongs to the grade that
+    // wakes nothing: an agent writing a paragraph would otherwise light the
+    // display once per sentence, which is the behaviour the three grades exist
+    // to prevent. A finished turn is the notice; this is not finished.
     if (state.message.trim().length !== 0)
       return this.finish(
         "stream",
-        "notice",
+        "ambient",
         CodeHudText.tail(state.message, geometry.columns, room).map((text) => ({
           text,
           tone: "primary" as const,
@@ -189,13 +224,44 @@ export class CodeHudComposer {
     return this.finish("idle", "ambient", lines.slice(0, geometry.rows));
   }
 
+  /**
+   * Builds the frame for a fault that ended a session.
+   *
+   * Addressed for the same reason an approval is: a wearer with two sessions
+   * attached learns nothing from being told that one of them died.
+   */
   private fault(
     message: string,
+    where: string | undefined,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
   ): ICodeHudFrame {
-    return this.finish("fault", "demand", [
+    if (geometry.rows <= 1)
+      return this.finish("fault", "demand", [
+        this.line(this.addressed(message, where, geometry), "alert", geometry),
+      ]);
+    const lines: ICodeHudFrame.ILine[] = [
       this.line(message, "alert", geometry),
-    ]);
+    ];
+    if (where !== undefined) lines.push(this.directory(where, geometry));
+    return this.finish("fault", "demand", lines.slice(0, geometry.rows));
+  }
+
+  /**
+   * Puts an identity and a subject on one line.
+   *
+   * For the narrowest displays, where the specification still requires the
+   * identity and there is only one line to hold it. The directory is given a
+   * third of the columns, which leaves the subject the room it needs to be
+   * recognizable while keeping the identity from being the whole line.
+   */
+  private addressed(
+    subject: string,
+    where: string | undefined,
+    geometry: ICodeHudGlassesDescriptor.IGeometry,
+  ): string {
+    if (where === undefined) return subject;
+    const share: number = Math.max(1, Math.floor(geometry.columns / 3));
+    return `${CodeHudText.path(where, share)} ${subject}`;
   }
 
   /**
