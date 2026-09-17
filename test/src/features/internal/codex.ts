@@ -2,6 +2,7 @@ import answers from "./fixtures/codex/answers.json";
 import approve from "./fixtures/codex/approve.json";
 import plain from "./fixtures/codex/plain.json";
 import refuse from "./fixtures/codex/refuse.json";
+import threads from "./fixtures/codex/threads.json";
 
 /**
  * What `codex app-server` actually sends, captured from runs.
@@ -183,12 +184,26 @@ export namespace Codex {
   export const ANSWERS: Readonly<Record<string, ISchemas>> =
     answers as unknown as Readonly<Record<string, ISchemas>>;
 
-  /** The two halves of one approval exchange, as the server describes them. */
-  export interface ISchemas {
-    /** What the server sends. */
-    params: ISchema;
+  /**
+   * What opening a thread must look like, per the same generator.
+   *
+   * The two methods that begin a conversation, with their parameter schemas and
+   * the definitions those reach. Kept apart from {@link ANSWERS} because they
+   * answer a different question: not what a wearer may say, but whether the
+   * request an adapter opens with is one the server would accept at all.
+   */
+  export const THREADS: Readonly<Record<string, IRequest>> =
+    threads as unknown as Readonly<Record<string, IRequest>>;
 
-    /** What it expects back. */
+  /** The two halves of one approval exchange, as the server describes them. */
+  export interface IRequest {
+    /** What is sent. */
+    params: ISchema;
+  }
+
+  /** One exchange whose two halves are both described. */
+  export interface ISchemas extends IRequest {
+    /** What comes back. */
     result: ISchema;
   }
 

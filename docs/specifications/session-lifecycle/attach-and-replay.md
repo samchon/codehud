@@ -31,3 +31,19 @@ A session opened by the wearable is identified in the harness's own terms, so th
 Neither surface owns the session. Whichever attaches sees the same history, the same pending approval, and the same working directory, and no reconciliation, export, or merge step exists for the wearer to perform.
 
 A surface that attaches while another holds a pending approval sees that approval and may answer it. The answer is paired by request identifier, so exactly one answer takes effect regardless of which surface produced it.
+
+### Resuming opens the prior conversation, not a new one {#spec-session-resume-identity}
+
+<!-- @evidence requirements/session-continuity/reconnect-and-replay.md#session-handoff Refines handoff into a requirement on what an adapter does with a prior conversation's identifier, since a copy carrying that identifier would satisfy every other rule here. -->
+
+An adapter handed a prior conversation's identifier opens that conversation in the harness's own terms. Starting a new conversation and reporting it under the identifier that was asked for is a violation, not an approximation: every other property here holds for the copy, and the wearer learns otherwise only from work that is missing.
+
+The overrides a session states — working directory, permission policy, model — travel with a resume as with a fresh open. A resumed conversation runs under the policy stated by the session resuming it.
+
+### The bridge advertises what it holds {#spec-session-advertised-population}
+
+<!-- @evidence requirements/session-continuity/reconnect-and-replay.md#session-outlives-socket Refines session survival into a rule about which sessions a bridge advertises, distinguishing a live session from a resumable record of one. -->
+
+A bridge advertises the live sessions it holds and no others. A harness family may keep its own registry of conversations, live or persisted, and that registry is not merged into the advertisement: the bridge cannot deliver observations for a conversation it does not hold, and advertising one would offer a wearer an attachment that cannot be honoured.
+
+A persisted conversation is not a session. It is reachable by resuming it under its harness identifier, which is the path handoff already uses, and remains reachable whether or not any bridge is running.
