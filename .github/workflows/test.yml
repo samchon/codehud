@@ -1,4 +1,4 @@
-name: verify
+name: test
 on:
   pull_request:
   push:
@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  verify:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -53,12 +53,31 @@ jobs:
       # this repository has shipped that defect twice.
       - run: pnpm install --frozen-lockfile
 
-      # Formatting first. It is the cheaper of the two and the likelier to be
-      # what is wrong, so a run that is going to fail on it says so sooner.
-      - run: pnpm run format:check
+      # After the install, because the path lives under node_modules and an
+      # install would write over a restored cache.
+      #
+      # The suite deliberately does not build the packages first. `ttsx`
+      # resolves each workspace dependency to its own source and transpiles on
+      # the way through, so a built `lib/` would be a second copy of what the
+      # suite already reads. The cache is still wanted here because the suite's
+      # own type-check loads the same plugin.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: node_modules/.cache/ttsc/plugins
+          key: ttsc-plugins-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
-      # The evidence graph is its own command rather than a compiler plugin,
-      # because Kotlin enters this repository later and a TypeScript compiler
-      # cannot read it. It fails on an uncovered unit, a citation naming an
-      # anchor that does not exist, and a requirement nothing implements.
-      - run: pnpm run evidence
+      - run: pnpm run test
+
+      # A dirty tree afterwards means a build wrote somewhere it should not, or
+      # a generated file was committed stale. Untracked files count: one that
+      # nothing ignores is the same defect wearing a different hat, and
+      # `git diff` alone does not see it.
+      - name: Verify the suite left the checkout clean
+        run: |
+          git diff --check HEAD --
+          git diff --exit-code HEAD --
+          untracked="$(git ls-files --others --exclude-standard)"
+          if [ -n "$untracked" ]; then
+            printf '%s\n' "$untracked"
+            exit 1
+          fi

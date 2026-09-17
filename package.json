@@ -8,8 +8,8 @@
     "node": "22.23.2"
   },
   "scripts": {
-    "build": "pnpm --filter=./packages/** -r build",
-    "test": "pnpm --filter @codehud/test build && pnpm --filter @codehud/test start",
+    "build": "pnpm --filter=./packages/** -r build && pnpm --filter @codehud/test build",
+    "test": "pnpm --filter @codehud/test start",
     "format": "prettier --write \"**/*.{ts,cts,mts}\"",
     "format:check": "prettier --check \"**/*.{ts,cts,mts}\"",
     "evidence": "evidence"
