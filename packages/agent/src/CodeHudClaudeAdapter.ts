@@ -6,6 +6,7 @@ import type {
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
+import { CodeHudAgentPolicy } from "./CodeHudAgentPolicy";
 import { CodeHudClaudeSession } from "./CodeHudClaudeSession";
 import { CodeHudNodeChannel } from "./CodeHudNodeChannel";
 import { CodeHudNodeRunner } from "./CodeHudNodeRunner";
@@ -137,9 +138,10 @@ export namespace CodeHudClaudeAdapter {
    * other flags are documented as working only with that pair. `--verbose` is
    * required for the stream to carry anything beyond the final result.
    *
-   * `--permission-mode manual` means nothing is pre-approved, which is the
-   * point: every gated action becomes a question the wearer answers. It is the
-   * companion to `--permission-prompt-tool stdio`, which says who answers.
+   * `--permission-mode manual` means the harness settles nothing by itself, at
+   * every policy. What a wearer said needs no asking arrives as an allowance
+   * list instead, because a mode that pre-approved edits would make the list
+   * meaningless and the policy unenforceable.
    *
    * `--include-partial-messages` is what lets prose reach the display while it
    * is still being written rather than in one block at the end. The normalizer
@@ -155,9 +157,14 @@ export namespace CodeHudClaudeAdapter {
     "--include-partial-messages",
     "--verbose",
     "--permission-mode",
-    "manual",
+    CodeHudAgentPolicy.mode(),
     "--permission-prompt-tool",
     "stdio",
+    ...(CodeHudAgentPolicy.allowed(props.policy).length === 0
+      ? []
+      : [
+          `--allowedTools=${CodeHudAgentPolicy.allowed(props.policy).join(",")}`,
+        ]),
     ...(props.resume === undefined ? [] : ["--resume", props.resume]),
     ...(props.model === undefined ? [] : ["--model", props.model]),
   ];

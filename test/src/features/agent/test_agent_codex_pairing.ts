@@ -1,4 +1,5 @@
 import {
+  CodeHudAgentPolicy,
   CodeHudCodexAdapter,
   CodeHudCodexSession,
   type ICodeHudHarnessChannel,
@@ -271,7 +272,7 @@ export async function test_agent_codex_pairing(): Promise<void> {
   );
   TestValidator.equals(
     "which opens only for an unattended write",
-    CodeHudCodexAdapter.sandbox({ actions: { write: "unattended" } }),
+    CodeHudAgentPolicy.sandbox({ actions: { write: "unattended" } }),
     "workspace-write",
   );
 }
