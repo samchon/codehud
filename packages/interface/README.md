@@ -12,6 +12,7 @@ Constraints live in field documentation rather than in validator tags. A field's
 
 | Directory | Owns |
 | --- | --- |
+| `ICodeHudContext.ts` | The configuration the pure layers take: the history cap, the consent vocabulary, and every word the display originates rather than reports. At the root because it belongs to no single axis |
 | `agent/` | The harness axis: normalized observations, the instruction set, session lifetime, discovery, and the approval policy |
 | `glasses/` | The device axis: declared geometry, negotiated capability, the input vocabulary, and the bound on adapter authority |
 | `hud/` | The projection boundary: the frame a device renders and the state the reducer folds |

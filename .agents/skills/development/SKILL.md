@@ -39,12 +39,26 @@ These four are never acceptable; choosing any one means the approach is already 
 
 Formatting and whitespace checks are commit behavior; the [pull-request skill](../pull-request/SKILL.md#commit-logical-units) owns when each runs.
 
+## Classes And Namespaces
+
+A namespace is for things that take nothing and hold nothing. A class is for everything else, and a facade controller is always a class.
+
+- **Namespace** when every member is a pure function of its arguments with no configuration and no collaborator: string fitting, parsing, a defaults factory. `CodeHudText` and `CodeHudContext` are the shape.
+- **Class** when the thing carries configuration, a collaborator, a connection, a process, or a lifetime. `CodeHudReducer` and `CodeHudComposer` are classes despite being pure, because they read a context: how much history to keep and what the display calls a stopped turn are choices a wearer can change, and a namespace would make them literals nobody can see.
+- **Always a class** for a facade controller: the bridge, the session client, a harness adapter, a device adapter. Those own a lifetime and a collaborator, and a namespace holding module-level mutable state is a singleton with no constructor and no way to run two of them.
+
+A class being a class does not license mutable state. The reducer and the composer hold their configuration and nothing else; their methods stay pure functions of what they are handed, which is what keeps a recorded stream replayable.
+
+**Configuration belongs in a context, not in literals.** Every string the system originates rather than reports, every cap, and every threshold goes in `ICodeHudContext` and is read from there. A literal in a source file is a product decision the wearer cannot see, the translator cannot reach, and the test cannot vary.
+
+Watch the binding when a method is passed as a value. `array.reduce(instance.method, seed)` loses `this` and fails at the first private call; write `array.reduce((acc, x) => instance.method(acc, x), seed)`.
+
 ## Package Boundaries
 
 No test enforces these, so they are read in review.
 
 - `packages/interface` is **pure types with no runtime dependency**. It is the shared vocabulary both axes speak; constraints live in field JSDoc, not in validator tags.
-- `packages/hud` is the projection boundary. It imports `packages/interface` and nothing else, and its exported functions are pure: no clock, no random source, no input, no output, no mutable global.
+- `packages/projection` is the projection boundary. It imports `packages/interface` and nothing else, and its exported functions are pure: no clock, no random source, no input, no output, no mutable global.
 - **The two adapter axes never import each other.** The harness axis (`packages/agent`) references no display geometry, input gesture, or manufacturer. The device axis references no harness family, observation kind, or instruction kind. A change that adds a member to one axis and requires editing the other is rejected.
 - `packages/bridge` runs on the repository machine and owns process spawning, pairing, and session retention. It may import `agent` and `interface`; it must not import `hud`, because composition belongs to the device that has a geometry.
 - `packages/client` runs on the device host and owns transport, folding, and routing. It imports `hud` and `interface`.

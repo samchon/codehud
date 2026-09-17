@@ -1,4 +1,4 @@
-import type { IHudFrame } from "../hud/IHudFrame";
+import type { ICodeHudFrame } from "../hud/ICodeHudFrame";
 
 /**
  * One request to spend the wearer's attention.
@@ -8,7 +8,7 @@ import type { IHudFrame } from "../hud/IHudFrame";
  * doing. A product that spends that carelessly gets taken off and left on a
  * desk.
  *
- * The grade is read from {@link IHudFrame.urgency} on the carried frame, so
+ * The grade is read from {@link ICodeHudFrame.urgency} on the carried frame, so
  * composition and attention cannot disagree about whether the wearer is
  * interrupted.
  *
@@ -18,7 +18,7 @@ import type { IHudFrame } from "../hud/IHudFrame";
  * @evidence specifications/notification/attention-contract.md#spec-notification-session-addressing Types the addressing the specification makes mandatory at demand grade.
  * @author Samchon
  */
-export interface INotification {
+export interface ICodeHudNotification {
   /**
    * What the wearer is being told, already fitted for the display.
    *
@@ -26,7 +26,7 @@ export interface INotification {
    * could disagree with the one composition produced, and whichever the
    * delivery path happened to read would decide whether a wearer was woken.
    */
-  frame: IHudFrame;
+  frame: ICodeHudFrame;
 
   /**
    * Session this concerns, as a working directory shortened from the left.
@@ -47,7 +47,7 @@ export interface INotification {
    */
   pending: boolean;
 }
-export namespace INotification {
+export namespace ICodeHudNotification {
   /**
    * What each grade is permitted to do, and how suppression changes it.
    *
@@ -74,7 +74,7 @@ export namespace INotification {
      * dropped, coalesced away, or resolved by the system: an agent that was
      * waiting is still waiting.
      */
-    deferred: INotification[];
+    deferred: ICodeHudNotification[];
   }
 
   /**
@@ -97,7 +97,7 @@ export namespace INotification {
     reason: IFallback.Reason;
 
     /** The notification that could not be presented on the device. */
-    notification: INotification;
+    notification: ICodeHudNotification;
   }
   export namespace IFallback {
     /**

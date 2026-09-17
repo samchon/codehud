@@ -10,7 +10,7 @@
  * @evidence specifications/display-projection/frame-and-state.md#spec-projection-frame-fits Types the lines and optional footer the geometry invariant is stated over.
  * @author Samchon
  */
-export interface IHudFrame {
+export interface ICodeHudFrame {
   /**
    * Digest of the frame's visible content.
    *
@@ -21,7 +21,7 @@ export interface IHudFrame {
   key: string;
 
   /** What the wearer is being shown. */
-  kind: IHudFrame.Kind;
+  kind: ICodeHudFrame.Kind;
 
   /**
    * Lines to draw, already truncated to the device's column count.
@@ -30,7 +30,7 @@ export interface IHudFrame {
    * for. The composer decides what to drop rather than leaving an adapter to
    * clip arbitrarily.
    */
-  lines: IHudFrame.ILine[];
+  lines: ICodeHudFrame.ILine[];
 
   /**
    * What the wearer can say right now, for the bottom of the display.
@@ -44,9 +44,9 @@ export interface IHudFrame {
   hint?: string;
 
   /** How hard the frame should compete for the wearer's attention. */
-  urgency: IHudFrame.Urgency;
+  urgency: ICodeHudFrame.Urgency;
 }
-export namespace IHudFrame {
+export namespace ICodeHudFrame {
   /**
    * The situations the display distinguishes.
    *

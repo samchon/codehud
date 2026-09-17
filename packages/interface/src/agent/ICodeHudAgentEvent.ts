@@ -1,4 +1,4 @@
-import type { IAgentPermission } from "./IAgentPermission";
+import type { ICodeHudAgentPermission } from "./ICodeHudAgentPermission";
 
 /**
  * One normalized observation from a running coding agent.
@@ -14,15 +14,15 @@ import type { IAgentPermission } from "./IAgentPermission";
  * @evidence specifications/product-boundary/charter-refinement.md#spec-product-judgement-locus Types the only origin of displayed content, so the system cannot originate a tool call or an option.
  * @author Samchon
  */
-export type IAgentEvent =
-  | IAgentEvent.ISession
-  | IAgentEvent.IReasoning
-  | IAgentEvent.IMessage
-  | IAgentEvent.ITool
-  | IAgentEvent.IPermission
-  | IAgentEvent.IResult
-  | IAgentEvent.IError;
-export namespace IAgentEvent {
+export type ICodeHudAgentEvent =
+  | ICodeHudAgentEvent.ISession
+  | ICodeHudAgentEvent.IReasoning
+  | ICodeHudAgentEvent.IMessage
+  | ICodeHudAgentEvent.ITool
+  | ICodeHudAgentEvent.IPermission
+  | ICodeHudAgentEvent.IResult
+  | ICodeHudAgentEvent.IError;
+export namespace ICodeHudAgentEvent {
   /**
    * Fields every observation carries regardless of its kind.
    *
@@ -252,9 +252,9 @@ export namespace IAgentEvent {
      * Answers the harness will accept, in the order it offered them.
      *
      * Order is preserved for devices that can list them; the reducer reorders
-     * by {@link IAgentPermission.affirmative} when binding them to gestures.
+     * by {@link ICodeHudAgentPermission.affirmative} when binding them to gestures.
      */
-    options: IAgentPermission[];
+    options: ICodeHudAgentPermission[];
   }
 
   /**

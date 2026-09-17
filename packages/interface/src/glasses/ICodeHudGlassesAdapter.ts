@@ -1,6 +1,6 @@
-import type { IHudFrame } from "../hud/IHudFrame";
-import type { IGlassesDescriptor } from "./IGlassesDescriptor";
-import type { IGlassesInput } from "./IGlassesInput";
+import type { ICodeHudFrame } from "../hud/ICodeHudFrame";
+import type { ICodeHudGlassesDescriptor } from "./ICodeHudGlassesDescriptor";
+import type { ICodeHudGlassesInput } from "./ICodeHudGlassesInput";
 
 /**
  * Everything the project needs to know about one pair of glasses.
@@ -19,9 +19,9 @@ import type { IGlassesInput } from "./IGlassesInput";
  * @evidence specifications/device-surface/capability-and-input.md#spec-device-adapter-authority Types the upper bound on the adapter operation set the specification fixes.
  * @author Samchon
  */
-export interface IGlassesAdapter {
+export interface ICodeHudGlassesAdapter {
   /** What this device is and what it can do. */
-  readonly descriptor: IGlassesDescriptor;
+  readonly descriptor: ICodeHudGlassesDescriptor;
 
   /**
    * Input as the wearer produces it, speech and gestures on one stream.
@@ -29,7 +29,7 @@ export interface IGlassesAdapter {
    * A single stream rather than per-modality streams, because the client acts
    * on whichever answer arrives first and must not race two subscriptions.
    */
-  readonly inputs: AsyncIterable<IGlassesInput>;
+  readonly inputs: AsyncIterable<ICodeHudGlassesInput>;
 
   /**
    * Establishes the vendor transport and readies the display.
@@ -54,11 +54,11 @@ export interface IGlassesAdapter {
   /**
    * Draws one frame, replacing whatever was shown.
    *
-   * Implementations compare {@link IHudFrame.key} against the frame already on
+   * Implementations compare {@link ICodeHudFrame.key} against the frame already on
    * screen and skip the draw when they match. That comparison is the only
    * adapter-side optimization permitted, and it never alters the frame.
    */
-  render(frame: IHudFrame): Promise<void>;
+  render(frame: ICodeHudFrame): Promise<void>;
 
   /**
    * Puts the display to sleep without dropping the transport.

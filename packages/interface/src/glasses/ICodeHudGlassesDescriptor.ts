@@ -9,7 +9,7 @@
  * @evidence specifications/device-surface/capability-and-input.md#spec-device-character-geometry Types the declaration the specification requires, in characters rather than pixels.
  * @author Samchon
  */
-export interface IGlassesDescriptor {
+export interface ICodeHudGlassesDescriptor {
   /**
    * Manufacturer key, such as `rokid`.
    *
@@ -27,12 +27,12 @@ export interface IGlassesDescriptor {
   model: string;
 
   /** Shape of the surface frames are rendered onto. */
-  geometry: IGlassesDescriptor.IGeometry;
+  geometry: ICodeHudGlassesDescriptor.IGeometry;
 
   /** Input and output channels the device actually offers. */
-  capability: IGlassesDescriptor.ICapability;
+  capability: ICodeHudGlassesDescriptor.ICapability;
 }
-export namespace IGlassesDescriptor {
+export namespace ICodeHudGlassesDescriptor {
   /**
    * Usable extent of the head-up display, in characters.
    *

@@ -1,7 +1,7 @@
-import type { IAgentAdapter } from "../agent/IAgentAdapter";
-import type { IAgentCommand } from "../agent/IAgentCommand";
-import type { IAgentDescriptor } from "../agent/IAgentDescriptor";
-import type { IGlassesDescriptor } from "../glasses/IGlassesDescriptor";
+import type { ICodeHudAgentAdapter } from "../agent/ICodeHudAgentAdapter";
+import type { ICodeHudAgentCommand } from "../agent/ICodeHudAgentCommand";
+import type { ICodeHudAgentDescriptor } from "../agent/ICodeHudAgentDescriptor";
+import type { ICodeHudGlassesDescriptor } from "../glasses/ICodeHudGlassesDescriptor";
 
 /**
  * What the bridge exposes to a connected device.
@@ -21,17 +21,19 @@ import type { IGlassesDescriptor } from "../glasses/IGlassesDescriptor";
  * @evidence specifications/product-boundary/charter-refinement.md#spec-product-local-completeness Types the whole transport contract without a remote endpoint appearing anywhere in it.
  * @author Samchon
  */
-export interface IBridgeProvider {
+export interface ICodeHudBridgeProvider {
   /**
    * Presents the pairing token and the device identity, and opens the session.
    *
    * Called once per connection, before anything else succeeds. The geometry
    * arrives here because no content can be composed without it.
    *
-   * Rejects with {@link IBridgeProvider.IFailure} when the token is wrong or
+   * Rejects with {@link ICodeHudBridgeProvider.IFailure} when the token is wrong or
    * the protocol revisions do not agree.
    */
-  hello(props: IBridgeProvider.IHello): Promise<IBridgeProvider.IWelcome>;
+  hello(
+    props: ICodeHudBridgeProvider.IHello,
+  ): Promise<ICodeHudBridgeProvider.IWelcome>;
 
   /**
    * Reports every harness family the host machine was probed for.
@@ -39,7 +41,7 @@ export interface IBridgeProvider {
    * Includes the unavailable ones with their reasons, so a device can explain
    * an absence rather than silently offering a shorter list.
    */
-  probe(): Promise<IAgentAdapter.IProbe[]>;
+  probe(): Promise<ICodeHudAgentAdapter.IProbe[]>;
 
   /**
    * Starts or resumes a harness session and returns its identifier.
@@ -47,7 +49,7 @@ export interface IBridgeProvider {
    * The caller is subscribed to the new session's observations on return; no
    * separate attach is needed for a session it opened itself.
    */
-  open(props: IBridgeProvider.IOpen): Promise<string>;
+  open(props: ICodeHudBridgeProvider.IOpen): Promise<string>;
 
   /**
    * Subscribes to a session that is already running, from a stated counter.
@@ -64,7 +66,7 @@ export interface IBridgeProvider {
    * The only operation that can change what the agent does, which is why every
    * other operation here is cheap to get wrong and this one is not.
    */
-  send(session: string, command: IAgentCommand): Promise<void>;
+  send(session: string, command: ICodeHudAgentCommand): Promise<void>;
 
   /**
    * Ends a session and releases its harness process.
@@ -74,7 +76,7 @@ export interface IBridgeProvider {
    */
   close(session: string): Promise<void>;
 }
-export namespace IBridgeProvider {
+export namespace ICodeHudBridgeProvider {
   /**
    * Protocol revision both ends must agree on.
    *
@@ -89,7 +91,7 @@ export namespace IBridgeProvider {
    * Extends the harness-agnostic open properties with the one fact only the
    * bridge needs: which harness family to spawn.
    */
-  export interface IOpen extends IAgentAdapter.IOpenProps {
+  export interface IOpen extends ICodeHudAgentAdapter.IOpenProps {
     /**
      * Harness family to launch.
      *
@@ -97,7 +99,7 @@ export namespace IBridgeProvider {
      * wearer routinely runs both harnesses against one repository and the
      * choice is theirs rather than the bridge's to make.
      */
-    kind: IAgentDescriptor.Kind;
+    kind: ICodeHudAgentDescriptor.Kind;
   }
 
   /**
@@ -119,7 +121,7 @@ export namespace IBridgeProvider {
     token: string;
 
     /** What the connecting device is and what it can do. */
-    descriptor: IGlassesDescriptor;
+    descriptor: ICodeHudGlassesDescriptor;
   }
 
   /**
@@ -170,7 +172,7 @@ export namespace IBridgeProvider {
     native?: string;
 
     /** Harness family driving the session. */
-    kind: IAgentDescriptor.Kind;
+    kind: ICodeHudAgentDescriptor.Kind;
 
     /** Absolute working directory the session is operating in. */
     directory: string;

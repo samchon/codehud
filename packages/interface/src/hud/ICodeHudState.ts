@@ -1,4 +1,4 @@
-import type { IAgentEvent } from "../agent/IAgentEvent";
+import type { ICodeHudAgentEvent } from "../agent/ICodeHudAgentEvent";
 
 /**
  * Everything the reducer remembers between observations.
@@ -13,7 +13,7 @@ import type { IAgentEvent } from "../agent/IAgentEvent";
  * @evidence specifications/display-projection/frame-and-state.md#spec-projection-state-purity Types the geometry-blind state the purity conditions are stated over.
  * @author Samchon
  */
-export interface IHudState {
+export interface ICodeHudState {
   /**
    * Highest observation counter already folded in, or `-1` before the first.
    *
@@ -29,10 +29,10 @@ export interface IHudState {
    * Absent only in the window between opening a session and the harness
    * acknowledging it, which the display renders as connecting.
    */
-  session?: IHudState.ISession;
+  session?: ICodeHudState.ISession;
 
   /** What the agent is doing as far as the wearer is concerned. */
-  activity: IHudState.Activity;
+  activity: ICodeHudState.Activity;
 
   /**
    * Assistant prose accumulated for the message currently streaming.
@@ -49,10 +49,10 @@ export interface IHudState {
    * shows one; retained at all because a wearer who looks up after ten minutes
    * has to be able to move back through what happened.
    */
-  history: IHudState.IEntry[];
+  history: ICodeHudState.IEntry[];
 
   /** Where the wearer is looking within {@link history}. */
-  review: IHudState.IReview;
+  review: ICodeHudState.IReview;
 
   /**
    * Approval request blocking the agent, when one is.
@@ -60,7 +60,7 @@ export interface IHudState {
    * At most one at a time. A wearer answering a queue of consent prompts on a
    * two-line display is a failure of design, so the client serializes them.
    */
-  pending?: IAgentEvent.IPermission;
+  pending?: ICodeHudAgentEvent.IPermission;
 
   /**
    * Outcome of the last finished turn, once one has finished.
@@ -68,7 +68,7 @@ export interface IHudState {
    * What the idle display falls back to, so a wearer who looks up after ten
    * minutes sees what happened rather than an empty screen.
    */
-  last?: IAgentEvent.IResult;
+  last?: ICodeHudAgentEvent.IResult;
 
   /**
    * Fatal error that ended the session, if one did.
@@ -78,7 +78,7 @@ export interface IHudState {
    */
   fault?: string;
 }
-export namespace IHudState {
+export namespace ICodeHudState {
   /**
    * Coarse activity states the display distinguishes.
    *
@@ -181,7 +181,7 @@ export namespace IHudState {
     active: boolean;
 
     /**
-     * Index into {@link IHudState.history}, newest first.
+     * Index into {@link ICodeHudState.history}, newest first.
      *
      * Zero is the newest entry. Out-of-range values are clamped by the
      * composer rather than rejected, because a wearer saying "back" at the end

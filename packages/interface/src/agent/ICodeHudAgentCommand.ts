@@ -1,7 +1,7 @@
 /**
  * One instruction travelling from the wearer to a running coding agent.
  *
- * The inverse of {@link IAgentEvent}: a closed set of things a head-up display
+ * The inverse of {@link ICodeHudAgentEvent}: a closed set of things a head-up display
  * and a touchpad can actually express, which is far smaller than what a
  * terminal can. Anything a wearer cannot do in one gesture or one sentence is
  * deliberately absent.
@@ -10,9 +10,11 @@
  * @evidence specifications/agent-harness/control-and-approval.md#spec-agent-command-vocabulary Types the three-member instruction union the specification fixes.
  * @author Samchon
  */
-export type IAgentCommand =
-  IAgentCommand.IPrompt | IAgentCommand.IDecision | IAgentCommand.IInterrupt;
-export namespace IAgentCommand {
+export type ICodeHudAgentCommand =
+  | ICodeHudAgentCommand.IPrompt
+  | ICodeHudAgentCommand.IDecision
+  | ICodeHudAgentCommand.IInterrupt;
+export namespace ICodeHudAgentCommand {
   /**
    * Text, and optionally a photograph, submitted as a new turn.
    *
@@ -53,10 +55,10 @@ export namespace IAgentCommand {
     /** Discriminant of this command kind. */
     type: "decision";
 
-    /** Identifier quoted from {@link IAgentEvent.IPermission.request}. */
+    /** Identifier quoted from {@link ICodeHudAgentEvent.IPermission.request}. */
     request: string;
 
-    /** Identifier of the chosen {@link IAgentPermission}. */
+    /** Identifier of the chosen {@link ICodeHudAgentPermission}. */
     option: string;
   }
 

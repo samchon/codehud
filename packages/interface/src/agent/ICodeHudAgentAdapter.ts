@@ -1,5 +1,5 @@
-import type { IAgentDescriptor } from "./IAgentDescriptor";
-import type { IAgentSession } from "./IAgentSession";
+import type { ICodeHudAgentDescriptor } from "./ICodeHudAgentDescriptor";
+import type { ICodeHudAgentSession } from "./ICodeHudAgentSession";
 
 /**
  * Everything the project needs to know about one coding agent harness.
@@ -13,9 +13,9 @@ import type { IAgentSession } from "./IAgentSession";
  * @evidence specifications/product-boundary/charter-refinement.md#spec-product-axis-independence Types the harness axis with no reference to any device fact, which is the constraint the specification makes checkable.
  * @author Samchon
  */
-export interface IAgentAdapter {
+export interface ICodeHudAgentAdapter {
   /** Identity of the harness this adapter drives. */
-  readonly descriptor: IAgentDescriptor;
+  readonly descriptor: ICodeHudAgentDescriptor;
 
   /**
    * Starts or resumes a conversation with the harness.
@@ -23,9 +23,9 @@ export interface IAgentAdapter {
    * Spawning the process is part of opening, so a failure to launch surfaces
    * here rather than as a fatal observation on a session that never began.
    */
-  open(props: IAgentAdapter.IOpenProps): Promise<IAgentSession>;
+  open(props: ICodeHudAgentAdapter.IOpenProps): Promise<ICodeHudAgentSession>;
 }
-export namespace IAgentAdapter {
+export namespace ICodeHudAgentAdapter {
   /**
    * How a caller wants the harness launched.
    *
@@ -139,14 +139,14 @@ export namespace IAgentAdapter {
    */
   export interface IProbe {
     /** Harness family that was probed. */
-    kind: IAgentDescriptor.Kind;
+    kind: ICodeHudAgentDescriptor.Kind;
 
     /**
      * Descriptor of the harness, when it was found and answered.
      *
      * Absent exactly when {@link reason} explains why it could not be used.
      */
-    descriptor?: IAgentDescriptor;
+    descriptor?: ICodeHudAgentDescriptor;
 
     /**
      * Why the harness is unavailable, when it is.

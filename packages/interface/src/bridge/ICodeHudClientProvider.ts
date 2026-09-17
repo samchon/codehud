@@ -1,4 +1,4 @@
-import type { IAgentEvent } from "../agent/IAgentEvent";
+import type { ICodeHudAgentEvent } from "../agent/ICodeHudAgentEvent";
 
 /**
  * What a connected device exposes back to the bridge.
@@ -12,7 +12,7 @@ import type { IAgentEvent } from "../agent/IAgentEvent";
  * @evidence specifications/local-bridge/rpc-protocol.md#spec-bridge-duplex-surface Types the client half of the duplex remote-call surface the specification fixes.
  * @author Samchon
  */
-export interface IClientProvider {
+export interface ICodeHudClientProvider {
   /**
    * Delivers one normalized observation to the device.
    *
@@ -20,7 +20,7 @@ export interface IClientProvider {
    * under the replay guard, so redelivering an observation it already holds is
    * safe and is what an attach from an older counter produces.
    */
-  event(event: IAgentEvent): Promise<void>;
+  event(event: ICodeHudAgentEvent): Promise<void>;
 
   /**
    * Reports whether the client can currently be relied on to stay connected.
@@ -28,9 +28,9 @@ export interface IClientProvider {
    * Asked by the bridge rather than volunteered, so a client that has stopped
    * answering is distinguishable from one reporting that it is impaired.
    */
-  liveness(): Promise<IClientProvider.ILiveness>;
+  liveness(): Promise<ICodeHudClientProvider.ILiveness>;
 }
-export namespace IClientProvider {
+export namespace ICodeHudClientProvider {
   /**
    * Whether the client will survive being put in the background.
    *
