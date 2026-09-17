@@ -17,7 +17,10 @@ This is one of the product's two adapter axes. It absorbs the difference between
 | `CodeHudClaudeSession` | class | One conversation, and the approvals it is waiting on |
 | `CodeHudClaudeNormalizer` | class | Harness output to observations, and what to drop |
 | `CodeHudNodeChannel` | class | One running process, reassembled into lines |
-| `ICodeHudClaudeChannel` | interface | The seam between a session and a process |
+| `CodeHudCodexAdapter` | class | Opens a `codex app-server` thread the wearer decides on |
+| `CodeHudCodexSession` | class | One thread, its approvals, and JSON-RPC correlation |
+| `CodeHudCodexNormalizer` | class | Server notifications to observations, and what to drop |
+| `ICodeHudHarnessChannel` | interface | The seam between a session and a process |
 
 `CodeHudHarnessProbe.version` and `CodeHudHarnessProbe.reason` are pure and public: one reads a version out of whatever a harness printed, the other turns whatever was thrown into a line short enough for a display. `CodeHudNodeRunner.directories` and `CodeHudNodeRunner.invocation` are the two platform rules, taking the separator and the platform as parameters so that both operating systems' behaviour is reachable from either.
 
@@ -80,6 +83,37 @@ The harness discards an answer it is not waiting on without complaint. A session
 ## Streaming without saying it twice
 
 With partial messages on, the harness reports the same prose twice, once as deltas and once as the completed message. The fold appends whatever it is handed, so passing both through would show every sentence written out twice. The completed block is therefore emitted as a terminator carrying nothing. With partial messages off there are no deltas and the same terminator carries the whole text, and both routes land on the same state.
+
+## Two harnesses, one observation vocabulary
+
+Claude Code streams NDJSON with a control round-trip bolted alongside; Codex is JSON-RPC in both directions. Downstream of the adapters neither difference exists.
+
+What differs most is where the truth comes from. Claude Code ships no protocol generator, so its adapter is written against captured fixtures. Codex generates its own types, so shape is a compile error — but generation says nothing about **which** messages arrive: `ThreadItem` declares nineteen variants and an ordinary turn emits four. Both adapters are therefore written against captures, for different reasons.
+
+## Answering in the server's own words
+
+Codex has **two decision vocabularies**:
+
+| Method | Response type | Values |
+| --- | --- | --- |
+| `execCommandApproval` (legacy) | `ReviewDecision` | `approved`, `denied`, `timed_out`, `abort` |
+| `item/commandExecution/requestApproval` | `CommandExecutionApprovalDecision` | `accept`, `decline`, `cancel` |
+
+Answering the modern request in the legacy words is **refused silently**: the command does not run, the turn continues, nothing says why. This repository produced a fixture named `approve` that approved nothing for exactly that reason.
+
+So the adapter's options carry the server's own identifiers and the session sends them straight back. There is no translation table, because a translation table is where that mistake lives.
+
+## The default that is not ours to rely on
+
+`thread/start` takes `approvalsReviewer`, which admits `auto_review` and `guardian_subagent` besides `user`. Those route approvals to a subagent that decides on the wearer's behalf.
+
+`user` is already the default. The adapter states it anyway: a default is the vendor's to change, and the promise that a wearer decides is not.
+
+## Measured: Codex does not time an approval out
+
+A pending approval left unanswered stayed pending for **190 seconds** with nothing resolving it, and the thread reported `waitingOnApproval` throughout. That matters because the contract forbids any approval being settled by elapsed time, and no adapter rule could fix a harness that did it anyway.
+
+Corroborating: the protocol has no approval timeout field at all. Every timeout in the bindings is a *command execution* timeout.
 
 ## Contract traceability
 

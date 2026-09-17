@@ -61,6 +61,9 @@ export namespace Codex {
 
     /** Whatever the method carries. */
     params?: {
+      /** The thread, on `thread/started`. */
+      thread?: { id?: string };
+
       item?: {
         type?: string;
         id?: string;
