@@ -1,7 +1,9 @@
+import approve from "./fixtures/claude-code/approve.json";
 import denied from "./fixtures/claude-code/denied.json";
 import hosted from "./fixtures/claude-code/hosted.json";
 import partial from "./fixtures/claude-code/partial.json";
 import plain from "./fixtures/claude-code/plain.json";
+import refuse from "./fixtures/claude-code/refuse.json";
 import tool from "./fixtures/claude-code/tool.json";
 
 /**
@@ -25,16 +27,39 @@ import tool from "./fixtures/claude-code/tool.json";
  * hosted   --print --output-format stream-json --verbose --permission-mode manual
  *          (no --permission-prompts at all, so the default "host"),
  *          "Create a file called host.txt containing the word hello."
+ * approve  --print --input-format stream-json --output-format stream-json
+ *          --verbose --permission-mode manual --permission-prompt-tool stdio,
+ *          driven by a host that answers can_use_tool with allow
+ * refuse   ... the same, answered with deny
  * ```
  *
- * `hosted` is the one that changed a design assumption. With `--permission-prompts`
- * left at its default, the harness is supposed to ask whoever is hosting it. A
- * bridge that spawns the binary as an ordinary subprocess is not an SDK host, and
- * what happens then was measured rather than guessed: the write was **denied
- * automatically**, exactly as under `--permission-prompts none`. It did not hang
- * and it did not error. So an approval a wearer could answer cannot be obtained
- * from the plain command line as it stands, and the help text points at
- * `--permission-prompt-tool`, which 2.1.274 does not list among its options.
+ * `hosted` is the one that settled the product's central question, and it took
+ * two attempts to read correctly. With `--permission-prompts` left at its
+ * default of `host`, a bridge that spawns the binary as an ordinary subprocess
+ * is not recognized as a host, and the gated write is denied automatically: no
+ * hang, no error, nobody asked. Read alone, that says an approval a wearer could
+ * answer is unobtainable from the command line, which is what this file said at
+ * first and what was published on the strength of it.
+ *
+ * It is wrong. Three things together make the harness ask, and the missing one
+ * was a flag value that `--help` does not list:
+ *
+ * ```text
+ * --input-format stream-json          so the host can answer at all
+ * --permission-prompt-tool stdio      the sentinel meaning "the host answers over stdio"
+ * a control_request/initialize        sent before the first user message
+ * ```
+ *
+ * The value came from the shipped binary, which passes exactly
+ * `--permission-prompt-tool stdio` when an SDK caller supplies a `canUseTool`
+ * callback. With all three, the harness sends `control_request/can_use_tool`
+ * naming the tool and its input, waits, and honours the answer: `approve` ends
+ * with the file written and no denials, `refuse` with an errored `tool_result`
+ * and the tool listed on the terminal line.
+ *
+ * `hosted` is kept anyway. It is what a bridge that gets this wrong actually
+ * sees, and the difference between it and `refuse` is the evidence that the
+ * rest of this is not a guess.
  *
  * A fifth run used `--allowedTools=Read` instead of `--permission-prompts none`
  * for the same reading prompt, and produced an identical envelope sequence, so
@@ -61,6 +86,14 @@ export namespace Claude {
    * the shape needed to inventory and walk them.
    */
   export interface IEnvelope {
+    /**
+     * Which way this line travelled, on the two bidirectional captures.
+     *
+     * Recorded by the capture rather than sent by either side: a control
+     * exchange is only legible if you can tell the question from the answer.
+     */
+    __direction?: "harness->host" | "host->harness";
+
     /** Line kind: `system`, `assistant`, `user`, `result`, and the rest. */
     type: string;
 
@@ -70,9 +103,16 @@ export namespace Claude {
     /** Conversation the line belongs to. */
     session_id?: string;
 
-    /** The Anthropic message, on `assistant` and `user` lines. */
+    /**
+     * The Anthropic message, on `assistant` and `user` lines.
+     *
+     * The content is an array of blocks on everything the harness emits, and
+     * may be a plain string on what a host sends in: the input format accepts
+     * the shorthand even though the output never uses it. Anything walking
+     * blocks has to check which it has.
+     */
     message?: {
-      content?: { type: string; text?: string; is_error?: boolean }[];
+      content?: string | { type: string; text?: string; is_error?: boolean }[];
     };
 
     /** The raw streaming event, on `stream_event` lines. */
@@ -86,6 +126,23 @@ export namespace Claude {
 
     /** What the session refused to do, on a `result` line. */
     permission_denials?: { tool_name: string; tool_use_id: string }[];
+
+    /** Correlates a control exchange, on `control_request` lines. */
+    request_id?: string;
+
+    /** What the harness is asking its host, on `control_request` lines. */
+    request?: {
+      subtype: string;
+      tool_name?: string;
+      input?: Record<string, unknown>;
+    };
+
+    /** What either side answered, on `control_response` lines. */
+    response?: {
+      subtype: string;
+      request_id?: string;
+      response?: { behavior?: string };
+    };
   }
 
   /** A turn with no tool call: the shortest stream the harness produces. */
@@ -109,6 +166,24 @@ export namespace Claude {
    */
   export const HOSTED: IEnvelope[] = hosted as unknown as IEnvelope[];
 
+  /**
+   * A gated write the host allowed, over the control protocol.
+   *
+   * The file was created. This is the interaction the product exists for, and
+   * the proof that it is reachable from an ordinary subprocess.
+   */
+  export const APPROVE: IEnvelope[] = approve as unknown as IEnvelope[];
+
+  /**
+   * The same gated write, refused by the host.
+   *
+   * Carries no `system/permission_denied` line, unlike {@link HOSTED} and
+   * {@link DENIED}: that line reports a local rule deciding, and here the
+   * decision came from the host instead. An adapter reading only that line
+   * would miss every refusal a wearer actually made.
+   */
+  export const REFUSE: IEnvelope[] = refuse as unknown as IEnvelope[];
+
   /** Every capture, for the rules that hold across all of them. */
   export const ALL: readonly { name: string; stream: IEnvelope[] }[] =
     Object.freeze([
@@ -117,6 +192,8 @@ export namespace Claude {
       { name: "denied", stream: DENIED },
       { name: "partial", stream: PARTIAL },
       { name: "hosted", stream: HOSTED },
+      { name: "approve", stream: APPROVE },
+      { name: "refuse", stream: REFUSE },
     ]);
 
   /**
@@ -130,6 +207,8 @@ export namespace Claude {
    */
   export const KINDS: readonly string[] = Object.freeze([
     "assistant",
+    "control_request",
+    "control_response",
     "rate_limit_event",
     "result/success",
     "stream_event",
@@ -153,6 +232,17 @@ export namespace Claude {
     "tool_result",
     "tool_use",
   ]);
+
+  /**
+   * The content blocks of one line, or none.
+   *
+   * Guards the string shorthand a host may send in, so a walk over blocks does
+   * not have to know which side produced the line it is looking at.
+   */
+  export const blocks = (
+    line: IEnvelope,
+  ): { type: string; text?: string; is_error?: boolean }[] =>
+    Array.isArray(line.message?.content) === true ? line.message.content : [];
 
   /** The kind of one line, as {@link KINDS} spells it. */
   export const kind = (line: IEnvelope): string =>

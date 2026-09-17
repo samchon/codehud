@@ -27,8 +27,22 @@ import { Claude } from "../internal/claude";
  *    the list could name anything at all and still pass scenario 1.
  * 3. Every capture ends with exactly one terminal `result`, which is the only
  *    thing that tells a bridge the turn is over.
- * 4. Every line names its session, and one capture is one session, which is what
- *    the bridge multiplexes on.
+ * 4. Every conversation line names its session, and one capture is one session,
+ *    which is what the bridge multiplexes on. Control lines name none, so a
+ *    permission request cannot be routed by session: the only thing that says
+ *    which conversation is being asked about is which harness process it came
+ *    from, which is why one control channel per session is a requirement rather
+ *    than a convenience.
+ * 8. The approval gate is reachable from an ordinary subprocess. Three things
+ *    together make the harness ask, and one of them is a flag value `--help`
+ *    does not list: streaming input, `--permission-prompt-tool stdio`, and an
+ *    `initialize` control request ahead of the first message. Answered `allow`
+ *    the tool runs; answered `deny` it does not. A bridge missing any of the
+ *    three is never asked and the tool is refused for it, which is what
+ *    `hosted` records.
+ * 9. A locally denied tool announces itself with `system/permission_denied`; a
+ *    refusal the host gave does not. An adapter watching only that line would
+ *    miss every refusal a wearer actually made.
  * 5. A refused tool is reported three times over: a `system/permission_denied`
  *    line, a `tool_result` marked as an error, and an entry in the terminal
  *    line's denial list naming the tool. An adapter may read whichever it likes,
@@ -46,7 +60,14 @@ export async function test_agent_claude_envelope(): Promise<void> {
     TestValidator.predicate(`${name} is not empty`, stream.length > 0);
     for (const line of stream) observed.add(Claude.kind(line));
 
-    const terminal: Claude.IEnvelope[] = stream.filter(
+    // Only what the harness emitted. The two bidirectional captures also hold
+    // the host's own lines, which carry no session and are correlated by
+    // request identifier instead.
+    const emitted: Claude.IEnvelope[] = stream.filter(
+      (line) => line.__direction !== "host->harness",
+    );
+
+    const terminal: Claude.IEnvelope[] = emitted.filter(
       (line) => line.type === "result",
     );
     TestValidator.equals(
@@ -56,20 +77,36 @@ export async function test_agent_claude_envelope(): Promise<void> {
     );
     TestValidator.equals(
       `${name} ends with that line`,
-      Claude.kind(stream[stream.length - 1]!),
+      Claude.kind(emitted[emitted.length - 1]!),
       "result/success",
     );
 
+    // Conversation lines only. Control lines carry no session at all, which is
+    // a constraint rather than an omission and is asserted on its own below.
     const sessions: Set<string | undefined> = new Set(
-      stream.map((line) => line.session_id),
+      emitted
+        .filter((line) => line.type.startsWith("control_") === false)
+        .map((line) => line.session_id),
     );
     TestValidator.equals(`${name} is one session`, sessions.size, 1);
     TestValidator.equals(
-      `${name} names it on every line`,
+      `${name} names it on every conversation line`,
       sessions.has(undefined),
       false,
     );
   }
+
+  // The constraint this puts on the bridge. A permission request names no
+  // session, so it cannot be routed by one: the only thing that says which
+  // conversation is being asked about is which harness process it arrived
+  // from. One control channel per session is therefore not a convenience.
+  for (const line of [...Claude.APPROVE, ...Claude.REFUSE])
+    if (line.type.startsWith("control_") === true)
+      TestValidator.equals(
+        `a ${line.type} names no session`,
+        line.session_id,
+        undefined,
+      );
 
   for (const seen of observed)
     TestValidator.predicate(
@@ -82,11 +119,11 @@ export async function test_agent_claude_envelope(): Promise<void> {
       observed.has(declared),
     );
 
+  // The shorthand a host may send in is a plain string, and the harness never
+  // uses it, so only what the harness emitted contributes block kinds.
   const blocks: Set<string> = new Set(
     Claude.ALL.flatMap(({ stream }) =>
-      stream.flatMap((line) =>
-        (line.message?.content ?? []).map((block) => block.type),
-      ),
+      stream.flatMap((line) => Claude.blocks(line).map((block) => block.type)),
     ),
   );
   for (const seen of blocks)
@@ -100,16 +137,114 @@ export async function test_agent_claude_envelope(): Promise<void> {
       blocks.has(declared),
     );
 
-  // Measured, and it decided a design question: with nobody hosting the prompt,
-  // the harness denies rather than asking, so an approval a wearer could answer
-  // is not obtainable from the plain command line as it stands.
+  // The three captures that together settle whether a wearer can be asked.
+  //
+  // `hosted` is a bridge getting it wrong: spawned as an ordinary subprocess
+  // with the flag at its default, it is never recognized as a host and the
+  // write is denied without anyone being asked. The other two are the same
+  // request with the control protocol in place, answered both ways.
   TestValidator.equals(
-    "an unhosted approval is refused rather than asked about",
+    "an unrecognized host is never asked, and the write is refused",
     (
       Claude.HOSTED.find((line) => line.type === "result")
         ?.permission_denials ?? []
     ).map((entry) => entry.tool_name),
     ["Write"],
+  );
+  TestValidator.equals(
+    "and nothing was asked of it",
+    Claude.HOSTED.filter((line) => line.request?.subtype === "can_use_tool")
+      .length,
+    0,
+  );
+
+  for (const { name, stream, behavior } of [
+    { name: "approve", stream: Claude.APPROVE, behavior: "allow" },
+    { name: "refuse", stream: Claude.REFUSE, behavior: "deny" },
+  ]) {
+    const asked: Claude.IEnvelope[] = stream.filter(
+      (line) => line.request?.subtype === "can_use_tool",
+    );
+    TestValidator.equals(`${name} is asked exactly once`, asked.length, 1);
+    TestValidator.equals(
+      `${name} is asked about the tool by name`,
+      asked[0]?.request?.tool_name,
+      "Write",
+    );
+    TestValidator.predicate(
+      `${name} is asked with the input the tool would run`,
+      asked[0]?.request?.input !== undefined,
+    );
+    TestValidator.predicate(
+      `${name} carries the identifier its answer is paired by`,
+      typeof asked[0]?.request_id === "string",
+    );
+
+    const answer: Claude.IEnvelope | undefined = stream.find(
+      (line) =>
+        line.__direction === "host->harness" &&
+        line.response?.response?.behavior !== undefined,
+    );
+    TestValidator.equals(
+      `${name} was answered ${behavior}`,
+      answer?.response?.response?.behavior,
+      behavior,
+    );
+    TestValidator.equals(
+      `${name} answered the question it was asked`,
+      answer?.response?.request_id,
+      asked[0]?.request_id,
+    );
+  }
+
+  const failed = (stream: Claude.IEnvelope[]): boolean =>
+    stream.some((line) =>
+      Claude.blocks(line).some(
+        (block) => block.type === "tool_result" && block.is_error === true,
+      ),
+    );
+
+  TestValidator.equals(
+    "an allowed tool runs, and nothing is listed as refused",
+    Claude.APPROVE.find((line) => line.type === "result")?.permission_denials,
+    [],
+  );
+  TestValidator.equals(
+    "and its result is not an error",
+    failed(Claude.APPROVE),
+    false,
+  );
+
+  TestValidator.equals(
+    "a refused tool is listed on the terminal line",
+    (
+      Claude.REFUSE.find((line) => line.type === "result")
+        ?.permission_denials ?? []
+    ).map((entry) => entry.tool_name),
+    ["Write"],
+  );
+  TestValidator.equals(
+    "and its result is an error",
+    failed(Claude.REFUSE),
+    true,
+  );
+
+  // The distinction an adapter has to respect. `system/permission_denied`
+  // reports a local rule deciding; a refusal the wearer made arrives only as
+  // the errored result and the terminal list, with no such line at all.
+  TestValidator.equals(
+    "a locally denied write announces itself on its own line",
+    Claude.HOSTED.some(
+      (line) => Claude.kind(line) === "system/permission_denied",
+    ),
+    true,
+  );
+  TestValidator.equals(
+    "a host-refused write does not",
+    Claude.REFUSE.some(
+      (line) => Claude.kind(line) === "system/permission_denied",
+    ),
+    false,
   );
 
   TestValidator.predicate(
@@ -121,7 +256,7 @@ export async function test_agent_claude_envelope(): Promise<void> {
   TestValidator.predicate(
     "and comes back as a failed tool result",
     Claude.DENIED.some((line) =>
-      (line.message?.content ?? []).some(
+      Claude.blocks(line).some(
         (block) => block.type === "tool_result" && block.is_error === true,
       ),
     ),
@@ -148,7 +283,7 @@ export async function test_agent_claude_envelope(): Promise<void> {
   const message: string = Claude.PARTIAL.filter(
     (line) => line.type === "assistant",
   )
-    .flatMap((line) => line.message?.content ?? [])
+    .flatMap((line) => Claude.blocks(line))
     .filter((block) => block.type === "text")
     .map((block) => block.text ?? "")
     .join("");
