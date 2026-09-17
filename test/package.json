@@ -16,6 +16,7 @@
     "@codehud/client": "workspace:^",
     "@codehud/interface": "workspace:^",
     "@codehud/projection": "workspace:^",
+    "@codehud/simulator": "workspace:^",
     "@nestia/e2e": "catalog:samchon",
     "tgrid": "catalog:net"
   },
