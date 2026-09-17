@@ -33,6 +33,11 @@ import { Codex } from "../internal/codex";
  *    own, so that confirmation only ever follows an answer.
  * 7. A refused command still completes its item and still ends the turn. The
  *    wearer's refusal is a decision, not a failure of the session.
+ * 8. Answering changes what happens. The allowed run ran the command and the
+ *    output is there; the declined run did not and it is not. This is the
+ *    assertion the first version of this case was missing, and its absence let
+ *    a fixture named `approve` hold a second refusal: every other rule here
+ *    holds whether the command ran or not.
  */
 export async function test_agent_codex_envelope(): Promise<void> {
   // Explicit, because the default coerces to strings and the rule that forbids
@@ -160,6 +165,28 @@ export async function test_agent_codex_envelope(): Promise<void> {
       asked.every((line) => typeof line.id === "number"),
     );
   }
+
+  // The distinction the fixtures are named for, and the one that has to be
+  // checked explicitly because nothing else here would notice its absence.
+  TestValidator.equals(
+    "an allowed command ran",
+    Codex.command(Codex.APPROVE)?.status,
+    "completed",
+  );
+  TestValidator.predicate(
+    "and its output came back",
+    (Codex.command(Codex.APPROVE)?.aggregatedOutput ?? "").includes("hello"),
+  );
+  TestValidator.equals(
+    "a declined command did not run",
+    Codex.command(Codex.REFUSE)?.status,
+    "declined",
+  );
+  TestValidator.equals(
+    "and produced no output",
+    Codex.command(Codex.REFUSE)?.aggregatedOutput,
+    null,
+  );
 
   TestValidator.predicate(
     "a refused command still completes its item",
