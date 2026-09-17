@@ -18,9 +18,18 @@ import refuse from "./fixtures/codex/refuse.json";
  * thread/start   cwd, approvalPolicy "untrusted", sandbox "read-only",
  *                approvalsReviewer "user"
  * turn/start     plain    "Reply with exactly the word: pong."
- *                approve  "Run the shell command `echo hello` …", answered approved
- *                refuse   the same, answered { denied: { rejection } }
+ *                approve  "Run the shell command `echo hello` …", answered "accept"
+ *                refuse   the same, answered "decline"
  * ```
+ *
+ * The answers matter, and the first capture got them wrong. There are two
+ * decision vocabularies: the legacy `execCommandApproval` takes a
+ * `ReviewDecision` (`approved`, `denied`, `timed_out`), and
+ * `item/commandExecution/requestApproval` takes a
+ * `CommandExecutionApprovalDecision` (`accept`, `decline`, `cancel`, and no
+ * timeout at all). Answering the modern method in the legacy vocabulary got
+ * both runs refused by the server, so a fixture named `approve` contained a
+ * second refusal. The request says which it wants, in `availableDecisions`.
  *
  * **Scrubbed.** Field names and types as captured; identifiers renumbered,
  * durations and token counts zeroed, and the values that were this machine's or
@@ -52,7 +61,13 @@ export namespace Codex {
 
     /** Whatever the method carries. */
     params?: {
-      item?: { type?: string; id?: string; text?: string };
+      item?: {
+        type?: string;
+        id?: string;
+        text?: string;
+        status?: string;
+        aggregatedOutput?: string | null;
+      };
       delta?: string;
       threadId?: string;
       turn?: { status?: string; durationMs?: number; error?: unknown };
@@ -66,10 +81,16 @@ export namespace Codex {
   /** A turn with no tool call: the shortest exchange the server produces. */
   export const PLAIN: IMessage[] = plain as unknown as IMessage[];
 
-  /** A command execution the wearer allowed. */
+  /**
+   * A command execution the wearer allowed, which then ran.
+   *
+   * The command's output is in the completed item. That is the fact worth
+   * having: a capture that merely reached an approval proves nothing about
+   * what answering it does.
+   */
   export const APPROVE: IMessage[] = approve as unknown as IMessage[];
 
-  /** The same command execution, refused. */
+  /** The same command execution, declined, which then did not run. */
   export const REFUSE: IMessage[] = refuse as unknown as IMessage[];
 
   /** Every capture, for the rules that hold across all of them. */
@@ -83,16 +104,20 @@ export namespace Codex {
   /**
    * Every notification the server sent across these captures.
    *
-   * Fourteen, of which two carry the conversation and the rest are bookkeeping
-   * a wearer would do nothing differently for. Written out rather than derived,
-   * because an adapter has to decide about each one and a recapture that
-   * introduces a fifteenth is the event this list exists to surface.
+   * Written out rather than derived, because an adapter has to decide about
+   * each one and a recapture that introduces another is the event this list
+   * exists to surface. It already has: `item/commandExecution/outputDelta`
+   * appeared only once the captures were redone with the right decision
+   * vocabulary, because a command that is never allowed to run never streams
+   * any output. The first capture set was structurally complete and missing a
+   * notification for exactly that reason.
    */
   export const NOTIFICATIONS: readonly string[] = Object.freeze([
     "account/rateLimits/updated",
     "hook/completed",
     "hook/started",
     "item/agentMessage/delta",
+    "item/commandExecution/outputDelta",
     "item/completed",
     "item/started",
     "mcpServer/startupStatus/updated",
@@ -138,4 +163,27 @@ export namespace Codex {
   /** The item kind a line carries, if it carries one. */
   export const item = (line: IMessage): string | undefined =>
     line.params?.item?.type;
+
+  /**
+   * The completed command execution of a capture, if it has one.
+   *
+   * Exists so a case can ask what answering an approval actually did, rather
+   * than only that the exchange was well formed.
+   */
+  export const command = (
+    stream: IMessage[],
+  ): { status?: string; aggregatedOutput?: string | null } | undefined =>
+    sent(stream)
+      .filter(
+        (line) =>
+          line.method === "item/completed" && item(line) === "commandExecution",
+      )
+      .map(
+        (line) =>
+          line.params?.item as {
+            status?: string;
+            aggregatedOutput?: string | null;
+          },
+      )
+      .at(-1);
 }

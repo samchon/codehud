@@ -62,7 +62,7 @@
           }
         ],
         "extra": null,
-        "sessionId": "01a0b01f-43ba-71f0-a087-48cbd6505e8a",
+        "sessionId": "01a0b02c-d409-7ca0-96a6-3db790fb15d7",
         "forkedFromId": null,
         "parentThreadId": null,
         "preview": "",
@@ -74,13 +74,13 @@
         "modelProvider": "openai",
         "model": "gpt-5.6-sol",
         "reasoningEffort": "high",
-        "createdAt": 1789661234,
-        "updatedAt": 1789661234,
-        "recencyAt": 1789661234,
+        "createdAt": 1789662123,
+        "updatedAt": 1789662123,
+        "recencyAt": 1789662123,
         "status": {
           "type": "idle"
         },
-        "path": "/home/dev/.codex/sessions/2026/09/18/rollout-2026-09-18T01-07-14-01a0b01f-43ba-71f0-a087-48cbd6505e8a.jsonl",
+        "path": "/home/dev/.codex/sessions/2026/09/18/rollout-2026-09-18T01-22-03-01a0b02c-d409-7ca0-96a6-3db790fb15d7.jsonl",
         "cwd": "/repo",
         "cliVersion": "0.154.0",
         "originator": "codehud",
@@ -145,7 +145,7 @@
           }
         ],
         "extra": null,
-        "sessionId": "01a0b01f-43ba-71f0-a087-48cbd6505e8a",
+        "sessionId": "01a0b02c-d409-7ca0-96a6-3db790fb15d7",
         "forkedFromId": null,
         "parentThreadId": null,
         "preview": "",
@@ -157,13 +157,13 @@
         "modelProvider": "openai",
         "model": "gpt-5.6-sol",
         "reasoningEffort": "high",
-        "createdAt": 1789661234,
-        "updatedAt": 1789661234,
-        "recencyAt": 1789661234,
+        "createdAt": 1789662123,
+        "updatedAt": 1789662123,
+        "recencyAt": 1789662123,
         "status": {
           "type": "idle"
         },
-        "path": "/home/dev/.codex/sessions/2026/09/18/rollout-2026-09-18T01-07-14-01a0b01f-43ba-71f0-a087-48cbd6505e8a.jsonl",
+        "path": "/home/dev/.codex/sessions/2026/09/18/rollout-2026-09-18T01-22-03-01a0b02c-d409-7ca0-96a6-3db790fb15d7.jsonl",
         "cwd": "/repo",
         "cliVersion": "0.154.0",
         "originator": "codehud",
@@ -185,7 +185,7 @@
     "method": "mcpServer/startupStatus/updated",
     "params": {
       "threadId": "thread-01",
-      "name": "node_repl",
+      "name": "codex_apps",
       "status": "starting",
       "error": null,
       "failureReason": null
@@ -197,7 +197,7 @@
     "method": "mcpServer/startupStatus/updated",
     "params": {
       "threadId": "thread-01",
-      "name": "codex_apps",
+      "name": "node_repl",
       "status": "starting",
       "error": null,
       "failureReason": null
@@ -256,6 +256,18 @@
     "params": {
       "threadId": "thread-01",
       "name": "node_repl",
+      "status": "ready",
+      "error": null,
+      "failureReason": null
+    },
+    "emittedAtMs": 0
+  },
+  {
+    "__direction": "server->client",
+    "method": "mcpServer/startupStatus/updated",
+    "params": {
+      "threadId": "thread-01",
+      "name": "codex_apps",
       "status": "ready",
       "error": null,
       "failureReason": null
@@ -433,7 +445,7 @@
       "threadId": "thread-01",
       "turnId": "turn-01",
       "itemId": "item-01",
-      "delta": " its"
+      "delta": " the"
     },
     "emittedAtMs": 0
   },
@@ -477,7 +489,7 @@
       "item": {
         "type": "agentMessage",
         "id": "msg_0001",
-        "text": "I’ll run that command and report its exact output.",
+        "text": "I’ll run that command and report the exact output.",
         "phase": "commentary",
         "memoryCitation": null,
         "delivery": null,
@@ -575,11 +587,7 @@
     "jsonrpc": "2.0",
     "id": 0,
     "result": {
-      "decision": {
-        "denied": {
-          "rejection": "the wearer declined"
-        }
-      }
+      "decision": "decline"
     }
   },
   {
@@ -604,7 +612,7 @@
         "cwd": "/repo",
         "processId": null,
         "source": "agent",
-        "status": "failed",
+        "status": "declined",
         "commandActions": [
           {
             "type": "unknown",
@@ -675,7 +683,7 @@
     "params": {
       "item": {
         "type": "reasoning",
-        "id": "rs_02cd99cc3f313341016aac1038751c87d0a97349b3ffaef87e",
+        "id": "rs_027a647d19d2c7f1016aac13b1f7cc87d09a5f75540071889c",
         "summary": [],
         "content": []
       },
@@ -691,7 +699,7 @@
     "params": {
       "item": {
         "type": "reasoning",
-        "id": "rs_02cd99cc3f313341016aac1038751c87d0a97349b3ffaef87e",
+        "id": "rs_027a647d19d2c7f1016aac13b1f7cc87d09a5f75540071889c",
         "summary": [],
         "content": []
       },
@@ -709,7 +717,7 @@
         "type": "agentMessage",
         "id": "msg_0002",
         "text": "",
-        "phase": "commentary",
+        "phase": "final_answer",
         "memoryCitation": null,
         "delivery": null,
         "questions": null
@@ -738,7 +746,7 @@
       "threadId": "thread-01",
       "turnId": "turn-01",
       "itemId": "item-03",
-      "delta": " first"
+      "delta": " command"
     },
     "emittedAtMs": 0
   },
@@ -749,7 +757,62 @@
       "threadId": "thread-01",
       "turnId": "turn-01",
       "itemId": "item-03",
-      "delta": " launch"
+      "delta": " didn"
+    },
+    "emittedAtMs": 0
+  },
+  {
+    "__direction": "server->client",
+    "method": "item/agentMessage/delta",
+    "params": {
+      "threadId": "thread-01",
+      "turnId": "turn-01",
+      "itemId": "item-03",
+      "delta": "’t"
+    },
+    "emittedAtMs": 0
+  },
+  {
+    "__direction": "server->client",
+    "method": "item/agentMessage/delta",
+    "params": {
+      "threadId": "thread-01",
+      "turnId": "turn-01",
+      "itemId": "item-03",
+      "delta": " run"
+    },
+    "emittedAtMs": 0
+  },
+  {
+    "__direction": "server->client",
+    "method": "item/agentMessage/delta",
+    "params": {
+      "threadId": "thread-01",
+      "turnId": "turn-01",
+      "itemId": "item-03",
+      "delta": " because"
+    },
+    "emittedAtMs": 0
+  },
+  {
+    "__direction": "server->client",
+    "method": "item/agentMessage/delta",
+    "params": {
+      "threadId": "thread-01",
+      "turnId": "turn-01",
+      "itemId": "item-03",
+      "delta": " execution"
+    },
+    "emittedAtMs": 0
+  },
+  {
+    "__direction": "server->client",
+    "method": "item/agentMessage/delta",
+    "params": {
+      "threadId": "thread-01",
+      "turnId": "turn-01",
+      "itemId": "item-03",
+      "delta": " permission"
     },
     "emittedAtMs": 0
   },
@@ -771,95 +834,7 @@
       "threadId": "thread-01",
       "turnId": "turn-01",
       "itemId": "item-03",
-      "delta": " blocked"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": " by"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": " the"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": " environment"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": "’s"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": " command"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": "-"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": "approval"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": " gate"
+      "delta": " denied"
     },
     "emittedAtMs": 0
   },
@@ -892,7 +867,7 @@
       "threadId": "thread-01",
       "turnId": "turn-01",
       "itemId": "item-03",
-      "delta": " I"
+      "delta": " it"
     },
     "emittedAtMs": 0
   },
@@ -903,7 +878,7 @@
       "threadId": "thread-01",
       "turnId": "turn-01",
       "itemId": "item-03",
-      "delta": "’ll"
+      "delta": " produced"
     },
     "emittedAtMs": 0
   },
@@ -914,7 +889,7 @@
       "threadId": "thread-01",
       "turnId": "turn-01",
       "itemId": "item-03",
-      "delta": " retry"
+      "delta": " no"
     },
     "emittedAtMs": 0
   },
@@ -925,40 +900,7 @@
       "threadId": "thread-01",
       "turnId": "turn-01",
       "itemId": "item-03",
-      "delta": " with"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": " explicit"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": " authorization"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-03",
-      "delta": " metadata"
+      "delta": " output"
     },
     "emittedAtMs": 0
   },
@@ -980,597 +922,7 @@
       "item": {
         "type": "agentMessage",
         "id": "msg_0002",
-        "text": "The first launch was blocked by the environment’s command-approval gate, so I’ll retry with explicit authorization metadata.",
-        "phase": "commentary",
-        "memoryCitation": null,
-        "delivery": null,
-        "questions": null
-      },
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "completedAtMs": 0
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "thread/status/changed",
-    "params": {
-      "threadId": "thread-01",
-      "status": {
-        "type": "active",
-        "activeFlags": [
-          "waitingOnApproval"
-        ]
-      }
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/started",
-    "params": {
-      "item": {
-        "type": "commandExecution",
-        "id": "item-04",
-        "pluginId": null,
-        "scriptPath": null,
-        "command": "\"C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'echo hello'",
-        "cwd": "/repo",
-        "processId": null,
-        "source": "agent",
-        "status": "inProgress",
-        "commandActions": [
-          {
-            "type": "unknown",
-            "command": "echo hello"
-          }
-        ],
-        "aggregatedOutput": null,
-        "exitCode": null,
-        "durationMs": null
-      },
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "startedAtMs": 0
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/commandExecution/requestApproval",
-    "id": 1,
-    "params": {
-      "kind": "command",
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-04",
-      "startedAtMs": 0,
-      "environmentId": "local",
-      "reason": "May I run the harmless command `echo hello` requested by the user?",
-      "command": "\"C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'echo hello'",
-      "cwd": "/repo",
-      "commandActions": [
-        {
-          "type": "unknown",
-          "command": "echo hello"
-        }
-      ],
-      "proposedExecpolicyAmendment": [
-        "echo"
-      ],
-      "availableDecisions": [
-        "accept",
-        {
-          "acceptWithExecpolicyAmendment": {
-            "execpolicy_amendment": [
-              "echo"
-            ]
-          }
-        },
-        "cancel"
-      ]
-    }
-  },
-  {
-    "__direction": "client->server",
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": {
-      "decision": {
-        "denied": {
-          "rejection": "the wearer declined"
-        }
-      }
-    }
-  },
-  {
-    "__direction": "server->client",
-    "method": "serverRequest/resolved",
-    "params": {
-      "threadId": "thread-01",
-      "requestId": 1
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/completed",
-    "params": {
-      "item": {
-        "type": "commandExecution",
-        "id": "item-04",
-        "pluginId": null,
-        "scriptPath": null,
-        "command": "\"C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'echo hello'",
-        "cwd": "/repo",
-        "processId": null,
-        "source": "agent",
-        "status": "failed",
-        "commandActions": [
-          {
-            "type": "unknown",
-            "command": "echo hello"
-          }
-        ],
-        "aggregatedOutput": null,
-        "exitCode": null,
-        "durationMs": null
-      },
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "completedAtMs": 0
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "thread/status/changed",
-    "params": {
-      "threadId": "thread-01",
-      "status": {
-        "type": "active",
-        "activeFlags": []
-      }
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "thread/tokenUsage/updated",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "tokenUsage": {
-        "total": {
-          "totalTokens": 0,
-          "inputTokens": 0,
-          "cachedInputTokens": 0,
-          "cacheWriteInputTokens": 0,
-          "outputTokens": 0,
-          "reasoningOutputTokens": 0
-        },
-        "last": {
-          "totalTokens": 0,
-          "inputTokens": 0,
-          "cachedInputTokens": 0,
-          "cacheWriteInputTokens": 0,
-          "outputTokens": 0,
-          "reasoningOutputTokens": 0
-        },
-        "modelContextWindow": 258400
-      }
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "account/rateLimits/updated",
-    "params": {
-      "rateLimits": null
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/started",
-    "params": {
-      "item": {
-        "type": "reasoning",
-        "id": "rs_02cd99cc3f313341016aac103ff19887d09a0a2c49298e8c02",
-        "summary": [],
-        "content": []
-      },
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "startedAtMs": 0
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/completed",
-    "params": {
-      "item": {
-        "type": "reasoning",
-        "id": "rs_02cd99cc3f313341016aac103ff19887d09a0a2c49298e8c02",
-        "summary": [],
-        "content": []
-      },
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "completedAtMs": 0
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/started",
-    "params": {
-      "item": {
-        "type": "agentMessage",
-        "id": "msg_0003",
-        "text": "",
-        "phase": "final_answer",
-        "memoryCitation": null,
-        "delivery": null,
-        "questions": null
-      },
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "startedAtMs": 0
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": "The"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " environment"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " blocked"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " command"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " execution"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " at"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " its"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " approval"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " gate"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": ","
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " so"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " `"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": "echo"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " hello"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": "`"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " did"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " not"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " run"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " and"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " produced"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " no"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " output"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": "."
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " Normally"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": ","
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " it"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " would"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " print"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": " `"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": "hello"
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/agentMessage/delta",
-    "params": {
-      "threadId": "thread-01",
-      "turnId": "turn-01",
-      "itemId": "item-05",
-      "delta": "`."
-    },
-    "emittedAtMs": 0
-  },
-  {
-    "__direction": "server->client",
-    "method": "item/completed",
-    "params": {
-      "item": {
-        "type": "agentMessage",
-        "id": "msg_0003",
-        "text": "The environment blocked command execution at its approval gate, so `echo hello` did not run and produced no output. Normally, it would print `hello`.",
+        "text": "The command didn’t run because execution permission was denied, so it produced no output.",
         "phase": "final_answer",
         "memoryCitation": null,
         "delivery": null,
@@ -1689,8 +1041,8 @@
         "items": [
           {
             "type": "agentMessage",
-            "id": "msg_0003",
-            "text": "The environment blocked command execution at its approval gate, so `echo hello` did not run and produced no output. Normally, it would print `hello`.",
+            "id": "msg_0002",
+            "text": "The command didn’t run because execution permission was denied, so it produced no output.",
             "phase": "final_answer",
             "memoryCitation": null,
             "delivery": null,
