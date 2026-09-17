@@ -1,6 +1,6 @@
 ---
 name: evidence-graph
-description: Defines the committed trace from product requirements through system specifications to public source exports for glasses, its @wrtnlabs/evidence populations, citations, exclusions, stable anchors, and the review of the required triangle. Use before adding, moving, or reviewing a contract document, changing a public export's evidence JSDoc, or reshaping evidence.config.ts.
+description: Defines the committed trace from product requirements through system specifications to public source exports for CodeHUD, its @wrtnlabs/evidence populations, citations, exclusions, stable anchors, and the review of the required triangle. Use before adding, moving, or reviewing a contract document, changing a public export's evidence JSDoc, or reshaping evidence.config.ts.
 ---
 
 # Evidence Graph

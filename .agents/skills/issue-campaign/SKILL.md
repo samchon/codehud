@@ -1,6 +1,6 @@
 ---
 name: issue-campaign
-description: Defines the solo issue campaign for glasses: exhaustive discovery, wiki-backed adjudication, issue publication, then one issue at a time through implementation, Self-Review, CI, and merge, followed by renewed discovery. Use for broad audits, many issue candidates, or for working the published issue list; do not use for an ordinary one-off pull request.
+description: Defines the solo issue campaign for CodeHUD: exhaustive discovery, wiki-backed adjudication, issue publication, then one issue at a time through implementation, Self-Review, CI, and merge, followed by renewed discovery. Use for broad audits, many issue candidates, or for working the published issue list; do not use for an ordinary one-off pull request.
 ---
 
 # Issue Campaign

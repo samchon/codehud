@@ -1,6 +1,6 @@
 ---
 name: pull-request
-description: Defines glasses branch, commit, pull-request, check-reading, and merge workflows. Use when shipping a topic-unit PR under the standing instruction, when the user asks to open, update, or merge a pull request, or when the standing autonomous mandate authorizes end-to-end delivery.
+description: Defines CodeHUD branch, commit, pull-request, check-reading, and merge workflows. Use when shipping a topic-unit PR under the standing instruction, when the user asks to open, update, or merge a pull request, or when the standing autonomous mandate authorizes end-to-end delivery.
 ---
 
 # Pull Request Submission

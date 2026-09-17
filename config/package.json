@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@samchon/glasses-config",
+  "name": "@codehud/config",
   "version": "0.1.0",
   "devDependencies": {
     "@ttsc/lint": "catalog:typescript",

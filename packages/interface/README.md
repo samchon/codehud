@@ -1,4 +1,4 @@
-# `@samchon/glasses-interface`
+# `@codehud/interface`
 
 Type contracts shared by every part of the product. Pure types with no runtime dependency: nothing here imports anything, and nothing here executes.
 

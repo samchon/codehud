@@ -1,5 +1,5 @@
 {
-  "name": "@samchon/glasses-interface",
+  "name": "@codehud/interface",
   "version": "0.1.0",
   "description": "Type contracts shared by every glasses adapter, agent adapter, HUD reducer, and bridge endpoint.",
   "main": "src/index.ts",
@@ -16,7 +16,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/samchon/glasses"
+    "url": "https://github.com/samchon/codehud"
   },
   "files": ["lib", "src", "package.json", "LICENSE", "README.md"],
   "publishConfig": {

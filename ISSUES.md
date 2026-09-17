@@ -1,6 +1,6 @@
 # Issue Register
 
-Staging list for `samchon/glasses` GitHub issues. Every item here is an open agenda item produced by the design pass that settled the local-harness, voice-only architecture. Nothing in this file is a decision. Decisions live in `docs/requirements/` and `docs/specifications/`.
+Staging list for `samchon/codehud` GitHub issues. Every item here is an open agenda item produced by the design pass that settled the local-harness, voice-only architecture. Nothing in this file is a decision. Decisions live in `docs/requirements/` and `docs/specifications/`.
 
 Labels used below: `hardware` (needs the physical device), `decision` (a fork nobody has settled), `core` (pure TypeScript), `native` (Kotlin / React Native), `infra`, `risk` (an unverified assumption that could invalidate design).
 

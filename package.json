@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@samchon/glasses-station",
+  "name": "@codehud/station",
   "version": "0.1.0",
   "description": "Drive Claude Code and Codex from smart glasses: one app, no hosted server, one adapter per device.",
   "packageManager": "pnpm@10.6.4",
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "pnpm --filter=./packages/** -r build",
-    "test": "pnpm --filter @samchon/glasses-test build && pnpm --filter @samchon/glasses-test start",
+    "test": "pnpm --filter @codehud/test build && pnpm --filter @codehud/test start",
     "format": "prettier --write \"**/*.{ts,cts,mts}\"",
     "format:check": "prettier --check \"**/*.{ts,cts,mts}\"",
     "evidence": "evidence"
@@ -26,7 +26,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/samchon/glasses"
+    "url": "https://github.com/samchon/codehud"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "catalog:typescript",
