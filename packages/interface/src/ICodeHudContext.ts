@@ -142,12 +142,24 @@ export namespace ICodeHudContext {
     unoffered: string;
 
     /**
-     * What a host says when asked to move between sessions it does not have.
+     * What a host says when asked for a session that is not there.
      *
-     * A host running one session still answers, because words that did nothing
-     * are indistinguishable from words that were not heard.
+     * A wearer selects a session by its ordinal, and a misheard number names
+     * one that does not exist. Saying so is what separates a number nobody
+     * heard from a number that moved the display somewhere unexpected.
      */
-    single: string;
+    nosuch: string;
+
+    /**
+     * How the list of sessions introduces itself.
+     *
+     * The list that follows is what a wearer selects from by number, so it is
+     * the one place a session's identity has to be readable rather than short.
+     */
+    listing: string;
+
+    /** How the session currently on the display is marked in that list. */
+    showing: string;
 
     /**
      * What a request waiting on its second answer is prefixed with.

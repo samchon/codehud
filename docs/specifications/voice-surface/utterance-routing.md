@@ -38,6 +38,8 @@ No command in the grammar takes a filesystem path, a branch name, a commit ident
 
 Prompts are carried to the agent verbatim; locating the subject of an instruction is the agent's work, not the recognizer's.
 
+A session is named to the wearer by the trailing segments of its working directory and selected by its ordinal in the list the system states when asked. The wearer therefore never pronounces a path to reach a session, and the identifier they do produce — a small number — is one a recognizer cannot mishear into a different session without the wearer seeing a different directory on the display.
+
 ### Consent requires acoustic distance and a confidence floor {#spec-voice-consent-integrity}
 
 <!-- @evidence requirements/voice-interaction/spoken-control.md#voice-consent-integrity Refines consent integrity into vocabulary selection, a confidence threshold, and a second differently-worded confirmation. -->

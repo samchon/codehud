@@ -36,6 +36,23 @@ In the second, paste that address. It is the same string a phone would scan:
 pnpm run desk -- "ws://192.168.0.14:37219/?token=…" --cd /path/to/repo
 ```
 
+Name `--cd` more than once for more than one repository. Ask what is running and
+pick by number, because no contract in this product requires a wearer to
+pronounce a path:
+
+```text
+> sessions
+Sessions
+1. …/projects/codehud (showing)
+2. …/projects/other
+
+> switch 2
+```
+
+An approval in either one takes the display whichever you are watching — it
+blocks its own session, and it says which directory it belongs to — and where
+you were reading is where you return.
+
 Then type. What you type stands in for what you would say — the terminal is a
 recognizer's front end, not a keyboard the product admits — and what comes back
 is what a wearer would see, at the geometry you asked for:

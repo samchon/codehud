@@ -38,7 +38,8 @@ import { Stream } from "../internal/stream";
  *    the live case: it offers only a refusal.
  * 6. A persisting option is never the one an answer picks, because a consent
  *    whose scope a display cannot state must not be the easiest thing to say.
- * 7. Navigation, interruption, repetition, help, and silence each map to one
+ * 7. Navigation, interruption, repetition, help, silence, and session
+ *    selection each map to one
  *    effect. Silence carries the state the wearer named rather than a toggle:
  *    saying the word for quiet twice must not be the opposite of saying it
  *    once, on a surface where the display that would show the state is the one
@@ -165,8 +166,8 @@ export async function test_device_desk_action(): Promise<void> {
     ["help", { type: "say", reason: "help" }],
     ["mute", { type: "silence", active: true }],
     ["unmute", { type: "silence", active: false }],
-    ["sessions", { type: "say", reason: "single" }],
-    ["switch", { type: "say", reason: "single" }],
+    ["sessions", { type: "list" }],
+    ["switch", { type: "list" }],
   ] as [ICodeHudVoiceRouting.ICommand.Kind, CodeHudDeskAction.IAction][])
     TestValidator.equals(
       `${command} has exactly one effect`,
@@ -192,6 +193,21 @@ export async function test_device_desk_action(): Promise<void> {
     "or nothing, when the recognizer reported nothing",
     CodeHudDeskAction.decide({ type: "unheard" }, idle),
     { type: "say", reason: "unheard" },
+  );
+
+  // Selection is by ordinal, never by pronouncing a path.
+  TestValidator.equals(
+    "a number selects a session",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "switch", ordinal: 2 },
+      idle,
+    ),
+    { type: "focus", ordinal: 2 },
+  );
+  TestValidator.equals(
+    "and the word without a number states what there is to select from",
+    CodeHudDeskAction.decide({ type: "command", command: "switch" }, idle),
+    { type: "list" },
   );
 
   // The second confirmation, which is the product's strongest promise about
