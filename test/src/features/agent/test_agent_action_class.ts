@@ -37,7 +37,9 @@ import { Codex } from "../internal/codex";
  * 1. A tool name alone reaches the four classes that have tools, and no
  *    further.
  * 2. A command reaches the four that do not: deletion, history rewriting,
- *    publication, credential exposure.
+ *    publication, credential exposure — including the shapes added after the
+ *    table was first written, and excluding the truncating redirect it states
+ *    as a known miss rather than hiding.
  * 3. A forced push is history rather than publication, because the first match
  *    in a stated order is the reported one and losing commits is the worse of
  *    the two.
@@ -91,6 +93,36 @@ export async function test_agent_action_class(): Promise<void> {
       CodeHudActionClass.of({ tool: "Bash", command }),
       expected,
     );
+
+  // 2b. The shapes added after the table was first written, each of them
+  // something an agent runs and a wearer would not want to lose on one word.
+  for (const [command, expected] of [
+    ["git checkout . ", "history"],
+    ["git restore --staged --worktree .", "history"],
+    ["git stash drop", "history"],
+    ["git branch -d feature", "history"],
+    ["docker volume rm data", "delete"],
+    ["kubectl delete pod api", "delete"],
+    ["ri -Recurse build", "delete"],
+  ] as const)
+    TestValidator.equals(
+      `${command.trim()} is ${expected}`,
+      CodeHudActionClass.of({ tool: "Bash", command }),
+      expected,
+    );
+
+  // And the hole this table states rather than hides: a truncating redirect
+  // destroys a file and names no program, and is deliberately not matched
+  // because most redirects are harmless and a second word in front of every
+  // one of them is the fatigue the policy exists to prevent.
+  TestValidator.equals(
+    "a truncating redirect is a known miss, not an oversight",
+    CodeHudActionClass.of({
+      tool: "Bash",
+      command: "echo x > important.txt",
+    }),
+    "execute",
+  );
 
   // 3. Two classes, one command, and the worse one reported.
   TestValidator.equals(
