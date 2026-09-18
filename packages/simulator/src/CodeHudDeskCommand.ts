@@ -16,7 +16,7 @@ import {
   CodeHudVoiceRouter,
 } from "@codehud/projection";
 import { type Interface, createInterface } from "node:readline";
-import { WebSocketConnector } from "tgrid";
+import { type Driver, WebSocketConnector } from "tgrid";
 
 import { CodeHudDeskAction } from "./CodeHudDeskAction";
 import { CodeHudDeskFocus } from "./CodeHudDeskFocus";
@@ -101,6 +101,29 @@ export class CodeHudDeskCommand {
   private focus: number = 0;
   private shown: string = "";
 
+  /**
+   * The connection of the moment, or none while there is not one.
+   *
+   * Replaced wholesale on a reconnection rather than reopened, because a
+   * connector that has closed does not open again.
+   */
+  private driver: WebSocketConnector<
+    null,
+    ICodeHudClientProvider,
+    ICodeHudBridgeProvider
+  > | null = null;
+
+  /**
+   * Whether this host is shutting down.
+   *
+   * A closing connection ends the same way a dropped one does, and without this
+   * the teardown would reconnect to the bridge it was in the middle of leaving.
+   */
+  private closing: boolean = false;
+
+  /** Whether a reconnection is already in flight, so two do not race. */
+  private recovering: boolean = false;
+
   /** Constructs a desk host bound to one set of options. */
   public constructor(private readonly props: CodeHudDeskCommand.IProps) {
     this.context = props.context ?? CodeHudContext.DEFAULT;
@@ -119,10 +142,58 @@ export class CodeHudDeskCommand {
    * The sessions are opened here rather than waited for, because a wearer
    * running this has repositories in mind and the bridge has no way to guess
    * which. They are opened in the order they were named, and that order is the
-   * one the wearer selects by. Resolves when the wearer stops typing or the
-   * connection goes.
+   * one the wearer selects by.
+   *
+   * A dropped connection is not the end of the run. The wearer walks out of
+   * range and back, and the sessions belong to the bridge rather than to the
+   * socket, so this reconnects and reattaches each session from the counter its
+   * own fold reached — which is the whole reason the client remembers one.
+   * Resolves when the wearer stops typing, or when the bridge has stopped
+   * answering for long enough that reconnecting is no longer plausible.
    */
   public async run(): Promise<void> {
+    const client: CodeHudSessionClient = new CodeHudSessionClient({
+      // A stable stand-in for whichever connection is current. The client is
+      // built to talk to the bridge as an interface rather than as a transport,
+      // and this is what lets a reconnection be invisible to it: the folds and
+      // the counters it holds are exactly what must survive one.
+      bridge: this.bridge(),
+      token: this.props.token,
+      descriptor: this.descriptor,
+      context: this.context,
+    });
+    this.client = client;
+
+    try {
+      await this.glasses.connect();
+      await this.dial();
+      await client.connect();
+      for (const directory of this.props.directories) {
+        const id: string = await client.open({
+          kind: this.props.kind,
+          directory,
+          policy: this.props.policy,
+        });
+        this.sessions.push({ id, directory });
+      }
+      await this.glasses.listen();
+      await this.draw();
+      await this.consume(client);
+    } finally {
+      this.closing = true;
+      this.lines.end();
+      await this.driver?.close().catch(() => undefined);
+      await this.glasses.disconnect();
+    }
+  }
+
+  /**
+   * Opens a connection and remembers it, replacing whatever was there.
+   *
+   * Every call is a fresh socket. The client is untouched: it holds the folds
+   * and the counters, and it reaches whatever this leaves behind.
+   */
+  private async dial(): Promise<void> {
     const connector = new WebSocketConnector<
       null,
       ICodeHudClientProvider,
@@ -140,34 +211,77 @@ export class CodeHudDeskCommand {
       }),
     });
     await connector.connect(this.props.address);
-
-    const client: CodeHudSessionClient = new CodeHudSessionClient({
-      bridge: connector.getDriver(),
-      token: this.props.token,
-      descriptor: this.descriptor,
-      context: this.context,
+    this.driver = connector;
+    // The connection ending is the signal to reconnect. It ends for two
+    // reasons and only one of them is a reason to come back.
+    void connector.join().then(async (): Promise<void> => {
+      if (this.closing === true || this.recovering === true) return;
+      this.say(this.context.vocabulary.dropped);
+      this.recovering = true;
+      await this.recover();
+      this.recovering = false;
     });
-    this.client = client;
+  }
 
-    try {
-      await this.glasses.connect();
-      await client.connect();
-      for (const directory of this.props.directories) {
-        const id: string = await client.open({
-          kind: this.props.kind,
-          directory,
-          policy: this.props.policy,
-        });
-        this.sessions.push({ id, directory });
+  /**
+   * Reconnects and reattaches, or reports that it could not.
+   *
+   * Reattachment is `connect()` on the client: it says hello again and attaches
+   * every session the bridge still advertises, each from the counter that
+   * session's fold reached. Nothing is replayed that was already folded, and
+   * nothing that arrived while the socket was gone is missed — that convergence
+   * is the property the whole counter exists for.
+   *
+   * Bounded. A wearer out of range comes back; a bridge that has stopped does
+   * not, and a host retrying a dead machine forever is a display that lies
+   * about being connected.
+   */
+  private async recover(): Promise<boolean> {
+    for (
+      let attempt: number = 0;
+      attempt < CodeHudDeskCommand.ATTEMPTS;
+      ++attempt
+    ) {
+      await CodeHudDeskCommand.pause(CodeHudDeskCommand.PAUSE);
+      const reached: boolean = await this.dial()
+        .then(() => true)
+        .catch(() => false);
+      if (reached === false) continue;
+      const welcomed: boolean = await (this.client as CodeHudSessionClient)
+        .connect()
+        .then(() => true)
+        .catch(() => false);
+      if (welcomed === true) {
+        this.shown = "";
+        await this.draw();
+        return true;
       }
-      await this.glasses.listen();
-      await this.draw();
-      await this.consume(client);
-    } finally {
-      this.lines.end();
-      await connector.close().catch(() => undefined);
-      await this.glasses.disconnect();
     }
+    this.say(this.context.vocabulary.unreachable);
+    return false;
+  }
+
+  /**
+   * The bridge as the client sees it: one object, whichever socket is current.
+   *
+   * Every call is forwarded to the connection of the moment. A call made while
+   * there is none is an error the caller sees, which is the truth: an
+   * instruction cannot be delivered to a bridge this host cannot reach.
+   */
+  private bridge(): ICodeHudBridgeProvider {
+    const driver = (): Driver<ICodeHudBridgeProvider> => {
+      const held = this.driver;
+      if (held === null) throw new Error("the bridge is not connected");
+      return held.getDriver();
+    };
+    return {
+      hello: (props) => driver().hello(props),
+      probe: () => driver().probe(),
+      open: (props) => driver().open(props),
+      attach: (session, from) => driver().attach(session, from),
+      send: (session, command) => driver().send(session, command),
+      close: (session) => driver().close(session),
+    };
   }
 
   /** Feeds one typed line in, as a device would feed in recognized speech. */
@@ -177,6 +291,7 @@ export class CodeHudDeskCommand {
 
   /** Stops reading, which ends {@link run}. */
   public stop(): void {
+    this.closing = true;
     this.lines.end();
   }
 
@@ -404,6 +519,24 @@ export class CodeHudDeskCommand {
   }
 }
 export namespace CodeHudDeskCommand {
+  /**
+   * How many times a dropped connection is retried before giving up.
+   *
+   * Bounded because a wearer out of range comes back and a stopped bridge does
+   * not, and a host that retried forever would be a display quietly claiming to
+   * be connected to something that is gone.
+   */
+  export const ATTEMPTS: number = 5;
+
+  /** How long to wait between those attempts, in milliseconds. */
+  export const PAUSE: number = 1_000;
+
+  /** Waits, for the one place that has to. */
+  export const pause = (ms: number): Promise<undefined> =>
+    new Promise<undefined>((resolve) => {
+      setTimeout(() => resolve(undefined), ms);
+    });
+
   /**
    * The policy a desk session runs under when the wearer states none.
    *

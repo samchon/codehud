@@ -51,6 +51,8 @@ export namespace CodeHudContext {
       ambiguous: "That could be",
       unheard: "Not heard clearly, still waiting",
       unoffered: "Not an answer this one offers",
+      dropped: "Connection lost, reaching for the bridge",
+      unreachable: "The bridge is not answering",
       nosuch: "No session by that number",
       listing: "Sessions",
       showing: "showing",
