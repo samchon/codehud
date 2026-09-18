@@ -47,9 +47,11 @@ import { Stream } from "../internal/stream";
  * 8. Ambiguity and a recognition below the floor are reported, never resolved.
  * 9. A request whose class the session's policy marks doubly-confirmed is not
  *    answered by the affirmative: it moves to waiting for the differently
- *    worded token, repeating the affirmative does not satisfy it, any other
- *    word leaves that state rather than sitting in it, and refusing or stopping
- *    still takes one word because both are the wearer taking something back.
+ *    worded token. Repeating the affirmative neither satisfies it nor undoes
+ *    it — a word that cannot advance the request must not send the wearer back
+ *    to the first question either — while any other word leaves the state, and
+ *    refusing or stopping still takes one word because both are the wearer
+ *    taking something back.
  * 10. A request the adapter could not classify is asked twice wherever the
  *    wearer's policy asks twice about anything, which is the cautious reading
  *    of an adapter saying it does not know.
@@ -58,6 +60,10 @@ import { Stream } from "../internal/stream";
  */
 export async function test_device_desk_action(): Promise<void> {
   Stream.reset();
+  // The policy every decision is read against. Stated once because the table
+  // requires one: what is doubly-confirmed is the wearer's statement, and a
+  // decision made without it would be a decision made against nobody's.
+  const policy: ICodeHudAgentAdapter.IPolicy = CodeHudDeskCommand.POLICY;
   const idle: ICodeHudState = {
     sequence: 0,
     activity: "idle",
@@ -73,25 +79,34 @@ export async function test_device_desk_action(): Promise<void> {
     pending: {
       ...Stream.permission("r1", "Write src/index.ts"),
       options: options.map((option) => ({ ...option, label: option.id })),
+      // Classified, like every request a real adapter produces: both harness
+      // families report a class from the tool they named or the command they
+      // would run. An unclassified one is its own scenario below, because it
+      // is treated differently on purpose.
+      action: "write" as const,
     },
   });
 
   // 1. Words for the agent.
   TestValidator.equals(
     "free words are carried to the agent unchanged",
-    CodeHudDeskAction.decide({ type: "prompt", text: "run the suite" }, idle),
+    CodeHudDeskAction.decide(
+      { type: "prompt", text: "run the suite" },
+      idle,
+      policy,
+    ),
     { type: "prompt", text: "run the suite" },
   );
   TestValidator.equals(
     "and an empty one is addressed to nothing",
-    CodeHudDeskAction.decide({ type: "prompt", text: "" }, idle),
+    CodeHudDeskAction.decide({ type: "prompt", text: "" }, idle, policy),
     { type: "none" },
   );
 
   // 2. Questions this device answers itself.
   TestValidator.equals(
     "a local question costs no turn",
-    CodeHudDeskAction.decide({ type: "query", query: "elapsed" }, idle),
+    CodeHudDeskAction.decide({ type: "query", query: "elapsed" }, idle, policy),
     { type: "answer", query: "elapsed" },
   );
 
@@ -102,12 +117,20 @@ export async function test_device_desk_action(): Promise<void> {
   );
   TestValidator.equals(
     "an approval names the harness's own affirmative",
-    CodeHudDeskAction.decide({ type: "command", command: "allow" }, offered),
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      offered,
+      policy,
+    ),
     { type: "decision", request: "r1", option: "accept" },
   );
   TestValidator.equals(
     "and a refusal its own negative",
-    CodeHudDeskAction.decide({ type: "command", command: "deny" }, offered),
+    CodeHudDeskAction.decide(
+      { type: "command", command: "deny" },
+      offered,
+      policy,
+    ),
     { type: "decision", request: "r1", option: "decline" },
   );
 
@@ -117,13 +140,21 @@ export async function test_device_desk_action(): Promise<void> {
   );
   TestValidator.equals(
     "the other harness's spelling is found the same way",
-    CodeHudDeskAction.decide({ type: "command", command: "allow" }, legacy),
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      legacy,
+      policy,
+    ),
     { type: "decision", request: "r1", option: "approved" },
   );
 
   TestValidator.equals(
     "answering nothing does nothing",
-    CodeHudDeskAction.decide({ type: "command", command: "allow" }, idle),
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      idle,
+      policy,
+    ),
     { type: "none" },
   );
 
@@ -137,12 +168,17 @@ export async function test_device_desk_action(): Promise<void> {
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
       withholding,
+      policy,
     ),
     { type: "say", reason: "unoffered" },
   );
   TestValidator.equals(
     "though it can still be refused",
-    CodeHudDeskAction.decide({ type: "command", command: "deny" }, withholding),
+    CodeHudDeskAction.decide(
+      { type: "command", command: "deny" },
+      withholding,
+      policy,
+    ),
     { type: "decision", request: "r1", option: "withhold" },
   );
 
@@ -152,7 +188,11 @@ export async function test_device_desk_action(): Promise<void> {
   );
   TestValidator.equals(
     "a persisting option is never what an answer picks",
-    CodeHudDeskAction.decide({ type: "command", command: "allow" }, persisting),
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      persisting,
+      policy,
+    ),
     { type: "say", reason: "unoffered" },
   );
 
@@ -171,7 +211,7 @@ export async function test_device_desk_action(): Promise<void> {
   ] as [ICodeHudVoiceRouting.ICommand.Kind, CodeHudDeskAction.IAction][])
     TestValidator.equals(
       `${command} has exactly one effect`,
-      CodeHudDeskAction.decide({ type: "command", command }, idle),
+      CodeHudDeskAction.decide({ type: "command", command }, idle, policy),
       expected,
     );
 
@@ -181,17 +221,22 @@ export async function test_device_desk_action(): Promise<void> {
     CodeHudDeskAction.decide(
       { type: "ambiguous", candidates: ["back", "stop"] },
       idle,
+      policy,
     ),
     { type: "say", reason: "ambiguous", candidates: ["back", "stop"] },
   );
   TestValidator.equals(
     "and one below the floor says so, carrying what was reported",
-    CodeHudDeskAction.decide({ type: "unheard", confidence: 0.2 }, idle),
+    CodeHudDeskAction.decide(
+      { type: "unheard", confidence: 0.2 },
+      idle,
+      policy,
+    ),
     { type: "say", reason: "unheard", confidence: 0.2 },
   );
   TestValidator.equals(
     "or nothing, when the recognizer reported nothing",
-    CodeHudDeskAction.decide({ type: "unheard" }, idle),
+    CodeHudDeskAction.decide({ type: "unheard" }, idle, policy),
     { type: "say", reason: "unheard" },
   );
 
@@ -201,12 +246,17 @@ export async function test_device_desk_action(): Promise<void> {
     CodeHudDeskAction.decide(
       { type: "command", command: "switch", ordinal: 2 },
       idle,
+      policy,
     ),
     { type: "focus", ordinal: 2 },
   );
   TestValidator.equals(
     "and the word without a number states what there is to select from",
-    CodeHudDeskAction.decide({ type: "command", command: "switch" }, idle),
+    CodeHudDeskAction.decide(
+      { type: "command", command: "switch" },
+      idle,
+      policy,
+    ),
     { type: "list" },
   );
 
@@ -219,7 +269,6 @@ export async function test_device_desk_action(): Promise<void> {
     ),
   };
   irreversible.pending = { ...irreversible.pending!, action: "delete" };
-  const policy: ICodeHudAgentAdapter.IPolicy = CodeHudDeskCommand.POLICY;
 
   TestValidator.equals(
     "the affirmative does not answer a doubly-confirmed request",
@@ -254,13 +303,13 @@ export async function test_device_desk_action(): Promise<void> {
     { type: "decision", request: "r1", option: "accept" },
   );
   TestValidator.equals(
-    "repeating the affirmative does not, and does not keep waiting for one",
+    "repeating the affirmative answers nothing and undoes nothing",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
       confirming,
       policy,
     ),
-    { type: "confirm", request: "r1", confirming: false },
+    { type: "none" },
   );
   TestValidator.equals(
     "nor does a prompt, which leaves the request waiting for a first answer",

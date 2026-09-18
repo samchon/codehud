@@ -32,12 +32,15 @@ export namespace CodeHudDeskAction {
    * Decides what one routed utterance does.
    *
    * Takes the fold rather than the client, so the same routing against the same
-   * state always yields the same action and the decision can be read.
+   * state always yields the same action and the decision can be read. The policy
+   * is required rather than defaulted: its absence would mean nothing is
+   * doubly-confirmed, and a default that quietly chooses the least cautious
+   * reading is the one kind of default this table must not have.
    */
   export const decide = (
     routing: ICodeHudVoiceRouting,
     state: ICodeHudState,
-    policy: ICodeHudAgentAdapter.IPolicy = { actions: {} },
+    policy: ICodeHudAgentAdapter.IPolicy,
   ): IAction => {
     // A request waiting on its second answer takes exactly one word, and every
     // other word leaves that state rather than sitting in it. Repeating the
@@ -72,6 +75,13 @@ export namespace CodeHudDeskAction {
             ? {}
             : { confidence: routing.confidence }),
         };
+      // The affirmative again is the one utterance that changes nothing at all.
+      // It cannot advance the request — that is what the second word is for —
+      // and undoing the first ask would punish a habit: a wearer who says the
+      // word twice out of reflex would find themselves back at the first
+      // question with no sign that anything had happened.
+      if (routing.type === "command" && routing.command === "allow")
+        return { type: "none" };
       return { type: "confirm", request, confirming: false };
     }
 
