@@ -172,6 +172,30 @@ export class CodeHudCodexNormalizer {
         ];
       }
 
+      case "fileChange": {
+        // Absorbed until now, which cost a wearer two different things. The
+        // work never appeared — a Codex write left no line in the history and
+        // nothing to review afterwards — and the approval that follows names
+        // no path of its own, only this item's identifier, so it had nothing
+        // to be titled from either.
+        const title: string =
+          this.titles.get(item.id) ??
+          CodeHudCodexNormalizer.changed(item.changes ?? []);
+        this.titles.set(item.id, title);
+        return [
+          this.base<ICodeHudAgentEvent.ITool>({
+            type: "tool",
+            call: item.id,
+            name: "file",
+            phase: complete === true ? "finish" : "start",
+            title,
+            ...(complete === true && item.status !== "completed"
+              ? { failed: true }
+              : {}),
+          }),
+        ];
+      }
+
       case undefined:
       default:
         // userMessage among them: the wearer's own words, handed back.
@@ -225,6 +249,27 @@ export class CodeHudCodexNormalizer {
           ? undefined
           : "write"
         : CodeHudActionClass.of({ tool: "Bash", command });
+    // What the request is about, when the request does not say it. A file
+    // change names neither a command nor a path: it names the item it belongs
+    // to, and that item arrived first. Without this the wearer was asked to
+    // authorize a write and told only that something wanted wider access —
+    // the phrase this adapter reserves for the request that really is about
+    // access, on the one surface where a follow-up question cannot be asked.
+    const remembered: string | undefined =
+      message.params?.itemId === undefined
+        ? undefined
+        : this.titles.get(message.params.itemId);
+    // The reason moves rather than disappearing. It becomes the title whenever
+    // nothing else can be shown, so once the item supplies something better,
+    // prose the server wrote about this particular request would otherwise be
+    // dropped. A file-change request carries no working directory, which is
+    // the field it takes over.
+    const stated: string = (message.params?.reason ?? "")
+      .replace(/\s+/gu, " ")
+      .trim();
+    const detail: string | undefined =
+      message.params?.cwd ??
+      (remembered !== undefined && stated.length !== 0 ? stated : undefined);
     return [
       this.base<ICodeHudAgentEvent.IPermission>({
         type: "permission",
@@ -233,10 +278,9 @@ export class CodeHudCodexNormalizer {
         title:
           command !== undefined
             ? CodeHudCodexNormalizer.title(command)
-            : CodeHudCodexNormalizer.asked(message.params?.reason),
-        ...(message.params?.cwd === undefined
-          ? {}
-          : { detail: message.params.cwd }),
+            : (remembered ??
+              CodeHudCodexNormalizer.asked(message.params?.reason)),
+        ...(detail === undefined ? {} : { detail }),
         options: [...CodeHudCodexNormalizer.OPTIONS[vocabulary]],
       }),
     ];
@@ -553,6 +597,17 @@ export namespace CodeHudCodexNormalizer {
       cwd?: string;
 
       /**
+       * Which item is being asked about, on an approval request.
+       *
+       * The whole of what a file-change request says about its subject. That
+       * request carries no command and no path — `threadId`, `turnId`,
+       * `itemId`, `startedAtMs`, an optional reason and an optional grant root
+       * — so the item it names is the only place the paths exist, and it
+       * arrived before the question did.
+       */
+      itemId?: string;
+
+      /**
        * Why the server is asking, when it said.
        *
        * Optional on every approval request and the only prose a permissions
@@ -587,8 +642,37 @@ export namespace CodeHudCodexNormalizer {
     /** What was run, on a command execution. */
     command?: string;
 
+    /** What would be written, on a file change. */
+    changes?: IChange[];
+
     /** How it ended: `completed`, `declined`, `failed`, `inProgress`. */
     status?: string;
+  }
+
+  /**
+   * One file a change would touch.
+   *
+   * Read from the bindings the installed binary generates, where
+   * `FileUpdateChange` is `{ path, kind, diff }` and `PatchChangeKind` is
+   * `{ type: "add" } | { type: "delete" } | { type: "update", move_path }`.
+   * The diff is carried in the shape and deliberately not shown: a display
+   * with two lines cannot hold one, and a truncated diff is worse than none.
+   */
+  export interface IChange {
+    /** Absolute path of the file. */
+    path?: string;
+
+    /** What would happen to it. */
+    kind?: {
+      /** `add`, `delete` or `update`. */
+      type?: string;
+
+      /** Where an update would move the file, when it would move it. */
+      move_path?: string | null;
+    };
+
+    /** The patch itself, which this surface does not show. */
+    diff?: string;
   }
 
   /** One turn, as its start and completion report it. */
@@ -625,6 +709,52 @@ export namespace CodeHudCodexNormalizer {
         ? inner
         : flat;
     return shown.startsWith("command") === true ? shown : `command ${shown}`;
+  };
+
+  /**
+   * Describes a file change in one line, for a display that has two.
+   *
+   * The verb is the server's own word for the kind — `add`, `delete`,
+   * `update` — rather than one invented here, so a wearer reading the display
+   * and a developer reading the transcript are told the same thing. A change
+   * that moves a file says so, because a rename that reads as an edit is the
+   * one a wearer would want back.
+   *
+   * A change touching several files names the first and counts the rest. The
+   * alternative is a list that a two-line display truncates, which says less
+   * than the count does and looks like the whole of it.
+   *
+   * Not fitted to a width: how many columns exist is the device's business.
+   */
+  export const changed = (changes: readonly IChange[]): string => {
+    const first: IChange | undefined = changes[0];
+    if (first === undefined) return "file change";
+    const kind: string =
+      first.kind?.type === undefined || first.kind.type.length === 0
+        ? "change"
+        : first.kind.type;
+    const moved: string | null | undefined = first.kind?.move_path;
+    const subject: string =
+      moved === undefined || moved === null || moved.length === 0
+        ? tail(first.path ?? "")
+        : `${tail(first.path ?? "")} to ${tail(moved)}`;
+    const one: string = subject.length === 0 ? kind : `${kind} ${subject}`;
+    return changes.length <= 1 ? one : `${one} and ${changes.length - 1} more`;
+  };
+
+  /**
+   * The last two segments of a path.
+   *
+   * Two rather than one because a bare `index.ts` names nothing a wearer can
+   * place, and the directory above it usually does.
+   *
+   * Written here rather than shared with the other harness adapter. The two do
+   * not import each other, and a shared helper would make a change to one
+   * harness's display a change to the other's.
+   */
+  export const tail = (path: string): string => {
+    const parts: string[] = path.split(/[\\/]+/u).filter((p) => p.length !== 0);
+    return parts.slice(-2).join("/");
   };
 
   /**

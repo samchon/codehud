@@ -88,7 +88,7 @@ With partial messages on, the harness reports the same prose twice, once as delt
 
 Claude Code streams NDJSON with a control round-trip bolted alongside; Codex is JSON-RPC in both directions. Downstream of the adapters neither difference exists.
 
-What differs most is where the truth comes from. Claude Code ships no protocol generator, so its adapter is written against captured fixtures. Codex generates its own types, so shape is a compile error — but generation says nothing about **which** messages arrive: `ThreadItem` declares nineteen variants and an ordinary turn emits four. Both adapters are therefore written against captures, for different reasons.
+What differs most is where the truth comes from. Claude Code ships no protocol generator, so its adapter is written against captured fixtures. Codex generates its own types, so shape is a compile error — but generation says nothing about **which** messages arrive: `ThreadItem` declares nineteen variants and an ordinary turn emits four, or five when it writes a file. Both adapters are therefore written against captures, for different reasons.
 
 ## Answering in the server's own words
 
@@ -102,6 +102,14 @@ Codex has **two decision vocabularies**:
 Answering the modern request in the legacy words is **refused silently**: the command does not run, the turn continues, nothing says why. This repository produced a fixture named `approve` that approved nothing for exactly that reason.
 
 So the adapter's options carry the server's own identifiers and the session sends them straight back. There is no translation table, because a translation table is where that mistake lives.
+
+## A file change is named by the item, because the question is not
+
+`item/fileChange/requestApproval` carries `threadId`, `turnId`, `itemId`, `startedAtMs`, an optional reason and an optional grant root. It carries no path and no command, so there is nothing in the question itself to put in front of a wearer.
+
+Until the `fileChange` item was normalized, the fallback answered instead, and the fallback is the phrase reserved for a *permissions* request: a wearer asked whether an agent could write a file was shown **Wider access requested** over the working directory. Two different questions, one box, no way to ask a follow-up.
+
+The item arrives first and carries `changes`, each a path and a kind — `add`, `delete`, `update`, the last optionally moving the file. So the item is remembered under its identifier the way a command execution already is, and the approval finds its subject there. A reason the server did give moves to the line under the title, which a file-change request leaves empty because it names no working directory.
 
 ## The default that is not ours to rely on
 

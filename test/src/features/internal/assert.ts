@@ -59,4 +59,55 @@ export namespace Assert {
     throws("a task that was supposed to refuse", task)
       .then((): boolean => false)
       .catch((): boolean => true);
+
+  /**
+   * The equality assertion this suite uses, and why it is not the obvious one.
+   *
+   * `TestValidator.equals` is asymmetric. A member the expected value declares
+   * and the actual one does not have — absent, or present and `undefined` — is
+   * accepted, at any depth:
+   *
+   * ```js
+   * TestValidator.equals("t", { a: 1 }, { a: 1, b: "y" });            // passes
+   * TestValidator.equals("t", { a: 1, b: undefined }, { a: 1, b: "y" }); // passes
+   * TestValidator.equals("t", { a: 1, b: "y" }, { a: 1 });            // throws
+   * ```
+   *
+   * That is the right default for a suite comparing a server's response
+   * against a subset of it, and the wrong one here: every case in this suite
+   * compares a pure function's whole output against what it should be, and the
+   * members most worth asserting are the optional ones — a `detail` line, a
+   * `failed` flag, an `action` class — which are exactly the ones a function
+   * that stopped producing them would still be reported as producing.
+   *
+   * Found by mutating a working assertion and watching it stay green: a
+   * normalizer changed to drop the reason it puts under an approval's title
+   * passed a case that named the reason it expected. Scalars are unaffected,
+   * so only the object and array comparisons are worth routing through here.
+   *
+   * Asserted in both directions rather than reimplemented. The second call is
+   * the one that catches a member missing from the actual value, because in
+   * that direction it is missing from the *expected* one, which is the
+   * direction `TestValidator.equals` already reports.
+   */
+  export const equals = <T>(title: string, actual: T, expected: T): void => {
+    TestValidator.equals(title, actual as never, expected as never);
+    TestValidator.equals(title, expected as never, actual as never);
+  };
+
+  /**
+   * Whether {@link equals} would itself report a value missing a member.
+   *
+   * Exists for the same reason as {@link reports}: the wrapper is armed by a
+   * case rather than trusted, and the caller cannot use the assertion to test
+   * the assertion. Returns what happened instead of asserting it.
+   */
+  export const compares = (actual: unknown, expected: unknown): boolean => {
+    try {
+      equals("a value that was supposed to differ", actual, expected);
+      return false;
+    } catch {
+      return true;
+    }
+  };
 }

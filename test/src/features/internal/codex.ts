@@ -3,6 +3,7 @@ import approve from "./fixtures/codex/approve.json";
 import plain from "./fixtures/codex/plain.json";
 import refuse from "./fixtures/codex/refuse.json";
 import threads from "./fixtures/codex/threads.json";
+import write from "./fixtures/codex/write.json";
 
 /**
  * What `codex app-server` actually sends, captured from runs.
@@ -22,6 +23,7 @@ import threads from "./fixtures/codex/threads.json";
  * turn/start     plain    "Reply with exactly the word: pong."
  *                approve  "Run the shell command `echo hello` …", answered "accept"
  *                refuse   the same, answered "decline"
+ *                write    "Create a file named note.txt …", answered "accept"
  * ```
  *
  * The answers matter, and the first capture got them wrong. There are two
@@ -72,7 +74,12 @@ export namespace Codex {
         text?: string;
         status?: string;
         aggregatedOutput?: string | null;
+        changes?: {
+          path?: string;
+          kind?: { type?: string };
+        }[];
       };
+      itemId?: string;
       delta?: string;
       threadId?: string;
       turn?: { status?: string; durationMs?: number; error?: unknown };
@@ -98,12 +105,29 @@ export namespace Codex {
   /** The same command execution, declined, which then did not run. */
   export const REFUSE: IMessage[] = refuse as unknown as IMessage[];
 
+  /**
+   * A file the agent wrote, which it had to ask about first.
+   *
+   * Captured because the other three could not answer the question. A Codex
+   * file change is a `fileChange` item and an `item/fileChange/requestApproval`
+   * that names no path of its own — only the item's identifier — and none of
+   * the earlier captures contains either, so an adapter written from them
+   * showed a wearer nothing for the work and the escalation phrase for the
+   * question.
+   *
+   * Driven the same way, in a throwaway directory, with the turn told not to
+   * verify its own work afterwards: a capture whose point is one item kind is
+   * worth less when three failed shell invocations are stacked on top of it.
+   */
+  export const WRITE: IMessage[] = write as unknown as IMessage[];
+
   /** Every capture, for the rules that hold across all of them. */
   export const ALL: readonly { name: string; stream: IMessage[] }[] =
     Object.freeze([
       { name: "plain", stream: PLAIN },
       { name: "approve", stream: APPROVE },
       { name: "refuse", stream: REFUSE },
+      { name: "write", stream: WRITE },
     ]);
 
   /**
@@ -132,31 +156,38 @@ export namespace Codex {
     "thread/status/changed",
     "thread/tokenUsage/updated",
     "turn/completed",
+    "turn/diff/updated",
     "turn/started",
   ]);
 
   /**
    * Every request the server made of its client.
    *
-   * One, in these captures. The protocol declares five approval-shaped requests
-   * and two more that ask for input; an ordinary turn produced exactly one of
-   * them. An adapter still has to answer the others, but it now knows which one
-   * it will actually meet.
+   * Two, in these captures. The protocol declares five approval-shaped requests
+   * and two more that ask for input; a turn that only runs commands produces
+   * one, and a turn that writes a file produces the other. An adapter still has
+   * to answer the remaining three, but it now knows which two it will actually
+   * meet — and the second of them is the one that names no subject, which is
+   * the whole difficulty it poses.
    */
   export const REQUESTS: readonly string[] = Object.freeze([
     "item/commandExecution/requestApproval",
+    "item/fileChange/requestApproval",
   ]);
 
   /**
    * Every thread item kind these captures contain.
    *
-   * Four. `ThreadItem` declares nineteen, and a mapping written from the type
+   * Five. `ThreadItem` declares nineteen, and a mapping written from the type
    * definitions would have spent most of its rules on kinds no ordinary turn
-   * produces. That gap is the whole reason for capturing rather than reading.
+   * produces. That gap is the whole reason for capturing rather than reading,
+   * and it is why the list grew: `fileChange` arrived only once a turn was
+   * asked to write something, and until then the adapter absorbed it.
    */
   export const ITEMS: readonly string[] = Object.freeze([
     "agentMessage",
     "commandExecution",
+    "fileChange",
     "reasoning",
     "userMessage",
   ]);
