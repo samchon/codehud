@@ -92,6 +92,11 @@ export class CodeHudClaudeSession implements ICodeHudAgentSession {
    * identifier it quotes. An answer to a request that was never asked, or that
    * has already been answered, would otherwise be written to a harness that
    * discards it, and the wearer would be told their answer went through.
+   *
+   * A refused answer applies to nothing, which includes the record of what is
+   * still pending. Consuming a request while declining to answer it would leave
+   * the harness blocked on a question this session no longer believes it
+   * asked.
    */
   public async send(command: ICodeHudAgentCommand): Promise<void> {
     if (this.ended === true)
@@ -112,13 +117,18 @@ export class CodeHudClaudeSession implements ICodeHudAgentSession {
 
     if (this.waiting.has(command.request) === false)
       throw new Error(`no approval is pending under ${command.request}`);
-    this.waiting.delete(command.request);
 
     const option = CodeHudClaudeNormalizer.OPTIONS.find(
       (candidate) => candidate.id === command.option,
     );
     if (option === undefined)
       throw new Error(`${command.option} is not an answer this harness offers`);
+    // Forgotten only once the answer is known to be one that can be sent. The
+    // order used to be the other way round, which let a refused answer consume
+    // the request it failed to answer: the harness stayed blocked, and every
+    // later answer to it — including the correct one — was refused as though
+    // nothing were pending.
+    this.waiting.delete(command.request);
 
     return this.channel.write({
       type: "control_response",
