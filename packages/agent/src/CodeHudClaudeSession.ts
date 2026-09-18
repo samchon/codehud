@@ -74,14 +74,22 @@ export class CodeHudClaudeSession implements ICodeHudAgentSession {
     return {
       [Symbol.asyncIterator]:
         async function* (): AsyncGenerator<ICodeHudAgentEvent> {
-          for await (const line of source)
-            for (const event of normalizer.normalize(
-              line as CodeHudClaudeNormalizer.ILine,
-            )) {
-              if (event.type === "permission") waiting.add(event.request);
-              if (event.type === "result") waiting.clear();
-              yield event;
-            }
+          try {
+            for await (const line of source)
+              for (const event of normalizer.normalize(
+                line as CodeHudClaudeNormalizer.ILine,
+              )) {
+                if (event.type === "permission") waiting.add(event.request);
+                if (event.type === "result") waiting.clear();
+                yield event;
+              }
+          } catch {
+            // Ending badly is still ending. A pipe can fail rather than close,
+            // and letting that propagate reaches the bridge's own catch, which
+            // says it has nothing to tell a device that the stream did not
+            // already carry — so the wearer would be told nothing by exactly
+            // the code that believes they were told.
+          }
           // The stream ended. A harness that dies writes nothing to say so,
           // and the bridge deliberately says nothing either — it is written
           // against the assumption that the adapter reports a dead harness on

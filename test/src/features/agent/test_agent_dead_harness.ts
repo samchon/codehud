@@ -59,6 +59,12 @@ import { Assert } from "../internal/assert";
  *    being asked — a question nobody is waiting on is worse than no question.
  * 5. The adapter's own counter stays contiguous across it, because the
  *    observation is stamped where every other one is.
+ * 6. A stream that *fails* rather than closing is still an ending. Letting the
+ *    failure propagate reaches the bridge's own catch, which is written
+ *    believing the stream already reported it — so the wearer would be told
+ *    nothing by exactly the code that believes they were told. Found in
+ *    Self-Review of the first draft of this fix, which handled the quiet
+ *    ending and not the loud one.
  */
 export async function test_agent_dead_harness(): Promise<void> {
   /** A channel whose output stops without ceremony, like a killed process. */
@@ -69,6 +75,22 @@ export async function test_agent_dead_harness(): Promise<void> {
       return {
         [Symbol.asyncIterator]: async function* (): AsyncGenerator<unknown> {
           for (const line of feed) yield line;
+        },
+      };
+    }
+    public async write(): Promise<void> {}
+    public async close(): Promise<void> {}
+  }
+
+  /** A channel whose output fails rather than closing, as a pipe can. */
+  class Broken implements ICodeHudHarnessChannel {
+    public constructor(private readonly feed: readonly unknown[]) {}
+    public get lines(): AsyncIterable<unknown> {
+      const feed: readonly unknown[] = this.feed;
+      return {
+        [Symbol.asyncIterator]: async function* (): AsyncGenerator<unknown> {
+          for (const line of feed) yield line;
+          throw new Error("read ECONNRESET");
         },
       };
     }
@@ -182,6 +204,37 @@ export async function test_agent_dead_harness(): Promise<void> {
     "a session ended on purpose reports nothing about it",
     ending.map((event) => event.type),
     ["session"],
+  );
+
+  // 6. A pipe can fail rather than close.
+  const failing: CodeHudClaudeSession = new CodeHudClaudeSession(
+    "s5",
+    new Broken([
+      { type: "system", subtype: "init", session_id: "abc", model: "opus" },
+    ]),
+    { now: () => 0 },
+  );
+  const thrown: ICodeHudAgentEvent[] = [];
+  for await (const event of failing.events) thrown.push(event);
+  Assert.equals(
+    "a stream that failed is reported the same as one that stopped",
+    thrown.map((event) => event.type),
+    ["session", "error"],
+  );
+
+  const codexFailing: CodeHudCodexSession = new CodeHudCodexSession(
+    "s6",
+    new Broken([
+      { method: "thread/started", params: { thread: { id: "t1" } } },
+    ]),
+    { thread: "t1", directory: "/repo", now: () => 0 },
+  );
+  const alsoThrown: ICodeHudAgentEvent[] = [];
+  for await (const event of codexFailing.events) alsoThrown.push(event);
+  Assert.equals(
+    "on the other adapter too, where the same bridge catch is waiting",
+    alsoThrown.map((event) => event.type),
+    ["error"],
   );
 
   // 5. The counter the adapter promises.
