@@ -20,10 +20,17 @@ import type { ICodeHudHarnessChannel } from "./ICodeHudHarnessChannel";
  * thread is started with the policy the wearer's session runs under, and only
  * then is there something to address instructions to.
  *
- * All three are awaited inside the open, so a caller that sends an instruction
- * the moment it returns cannot get ahead of them, and a server that refuses any
- * of them fails the open rather than becoming a session that reports a fatal
+ * All three are awaited inside the open, so a server that refuses any of them
+ * fails the open rather than becoming a session that reports a fatal
  * observation a moment later.
+ *
+ * What the open cannot promise is a thread. The default exchange writes without
+ * reading — reading a reply means consuming the stream the session is about to
+ * iterate — so the identifier the server chooses arrives later, on that stream,
+ * as a notification. An instruction sent before then has nothing to name, and
+ * {@link CodeHudCodexSession} is where that is waited for rather than guessed
+ * at. This paragraph used to claim the opposite, and the claim was the reason
+ * nobody noticed that a wearer who spoke immediately got silence.
  *
  * @evidence requirements/agent-control/harness-abstraction.md#agent-session-lifetime Opens a harness session against a stated working directory, optionally resuming, and reports a launch failure as a failure of the open.
  * @evidence requirements/agent-control/turn-and-approval.md#agent-permission-blocking Starts the thread so that a gated action stops and asks the wearer, rather than being decided by anything else.

@@ -37,7 +37,12 @@ export namespace Assert {
     task: () => unknown,
   ): Promise<void> => {
     await TestValidator.error(title, async (): Promise<void> => {
-      task();
+      // Awaited, not merely called. The first version dropped whatever the task
+      // returned, so a task that refused *asynchronously* had its rejection
+      // escape as an unhandled one — which does not fail a case, it takes the
+      // whole runner down, and it took a while to see that the crash and the
+      // silence were the same mistake.
+      await task();
     });
   };
 
@@ -46,7 +51,9 @@ export namespace Assert {
    *
    * Exists so the wrapper is armed by a case rather than trusted. It returns
    * what happened instead of asserting it, because the caller is testing the
-   * assertion and cannot use the assertion to do so.
+   * assertion and cannot use the assertion to do so. Worth passing an
+   * asynchronous task as well as a synchronous one: those are two branches of
+   * the thing being tested, and each has been wrong once.
    */
   export const reports = async (task: () => unknown): Promise<boolean> =>
     throws("a task that was supposed to refuse", task)
