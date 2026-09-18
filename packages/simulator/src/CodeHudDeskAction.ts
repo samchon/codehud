@@ -182,10 +182,21 @@ export namespace CodeHudDeskAction {
       case "stop":
         return { type: "interrupt" };
 
+      // The count the wearer said, carried through. `latest` takes none: it
+      // means the newest entry rather than a distance, and accepting a number
+      // there would be the same silent lie in the other direction.
       case "back":
-        return { type: "review", move: "back" };
+        return {
+          type: "review",
+          move: "back",
+          ...(ordinal === undefined ? {} : { count: ordinal }),
+        };
       case "forward":
-        return { type: "review", move: "forward" };
+        return {
+          type: "review",
+          move: "forward",
+          ...(ordinal === undefined ? {} : { count: ordinal }),
+        };
       case "latest":
         return { type: "review", move: "latest" };
 
@@ -312,6 +323,17 @@ export namespace CodeHudDeskAction {
 
     /** Which way. */
     move: "back" | "forward" | "latest";
+
+    /**
+     * How far, when the wearer said.
+     *
+     * Absent for a bare word, and never present on `latest`, which names the
+     * newest entry rather than a distance. The router has always parsed the
+     * count and this dropped it, so "back five" moved one and said nothing —
+     * and one step at a time over a bounded history is not a review surface,
+     * it is forty words to reach an old entry.
+     */
+    count?: number;
   }
 
   /** Draw the current frame again, for a wearer who looked away. */
