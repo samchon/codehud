@@ -70,6 +70,23 @@ Measured, not assumed. Drop any part and nothing errors, nothing hangs, and ever
 
 Two constraints follow. Control lines carry **no session identifier**, so a permission request cannot be routed by session and the only thing that says which conversation is being asked about is which process it came from: one process per session, one control channel per session. And a refusal the host gives produces **no** `system/permission_denied` line, because that line reports a local rule deciding; an adapter watching only for it would miss every refusal a wearer actually made.
 
+## The allowance has to name the shell the harness actually uses
+
+A policy that makes executions unattended becomes an `--allowedTools` list at launch. That list named `Bash` and `Task`. Claude Code on Windows runs commands through a tool called `PowerShell`, and reports a `powershell_path` in its own `system/init`.
+
+Measured on `claude 2.1.276`, one instruction that ran a test suite twice:
+
+```text
+--allowedTools=Bash,Task              the wearer is asked   2 times
+--allowedTools=Bash,Task,PowerShell   the wearer is asked   0 times
+```
+
+A wearer who said *executions are fine* was asked about every command anyway, at every policy, with nothing reporting that their statement had not taken effect.
+
+The table's own reasoning had allowed for that: a tool it has not seen is absent rather than guessed, because a guessed allowance could let something through unasked. That direction is right. What it also said — that a missing allowance "only costs a wearer an extra question" — was wrong by the size of the product's central problem. A missing allowance on an execute-class tool costs one question per command for the life of the session, which is the approval budget's stated failure and not a rounding error on it.
+
+The two directions are not symmetric and are no longer treated as such. An allowance for a tool that is gone stays and is harmless. A tool that is *seen* goes in.
+
 ## An answer reaches the harness only when it is waited on
 
 The harness discards an answer it is not waiting on without complaint. A session that forwarded one hopefully would report success to a wearer whose decision never landed, leaving the agent blocked on a question they believe they answered. So the session remembers each request identifier as the approval passes through, refuses an answer quoting one it does not hold, and refuses the same answer twice.
