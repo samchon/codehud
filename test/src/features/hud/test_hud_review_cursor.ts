@@ -156,4 +156,61 @@ export async function test_hud_review_cursor(): Promise<void> {
     evicted.review.active,
     true,
   );
+
+  // How far, because the wearer may have said so.
+  //
+  // The router has always parsed a count, in both spellings — "back 5" and
+  // "back five" — and carried it. It was dropped between the action and the
+  // reducer, so a wearer saying "back five" moved one entry and was told
+  // nothing. A command accepted and quietly meaning something else is worse
+  // than one refused: the refusal at least teaches the vocabulary, and this
+  // taught them to distrust the only surface they have.
+  //
+  // It also decides part of B7. One step at a time over a history bounded at
+  // sixty-four costs forty words to reach an old entry, which is not a review
+  // surface and was the strongest argument for a second on-glasses application.
+  // That argument was an accident rather than a finding.
+  let deep: ICodeHudState = reducer.initialize();
+  for (let i: number = 0; i < 12; ++i)
+    deep = reducer.reduce(
+      deep,
+      Stream.tool(`e${i}`, `Edit ${i}.ts`, "finish", false),
+    );
+  Assert.equals("twelve entries to move through", deep.history.length, 12);
+  Assert.equals(
+    "a count moves that far in one word",
+    reducer.review(deep, "back", 5).review,
+    { active: true, offset: 5 },
+  );
+  Assert.equals(
+    "and moving back again continues from there",
+    reducer.review(reducer.review(deep, "back", 5), "back", 3).review,
+    { active: true, offset: 8 },
+  );
+  Assert.equals(
+    "forward takes one too, once review has been entered",
+    reducer.review(reducer.review(deep, "back", 5), "forward", 4).review,
+    { active: true, offset: 1 },
+  );
+  Assert.equals(
+    "a count past the end stops at the oldest rather than refusing",
+    reducer.review(deep, "back", 500).review,
+    { active: true, offset: deep.history.length - 1 },
+  );
+  Assert.equals(
+    "and past the newest stops at the newest",
+    reducer.review(reducer.review(deep, "back", 2), "forward", 500).review,
+    { active: true, offset: 0 },
+  );
+  for (const count of [0, -3, Number.NaN, 0.4])
+    Assert.equals(
+      `a count of ${count} is the bare word, which is what it means`,
+      reducer.review(deep, "back", count).review,
+      { active: true, offset: 1 },
+    );
+  Assert.equals(
+    "latest takes no distance, because it names an entry rather than a step",
+    reducer.review(reducer.review(deep, "back", 5), "latest").review,
+    { active: false, offset: 0 },
+  );
 }

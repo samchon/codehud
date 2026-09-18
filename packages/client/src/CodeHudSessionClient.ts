@@ -246,8 +246,15 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
    * guard here: the reducer leaves an empty history where it is, and the fold
    * that results is the one an unheld session already reads as.
    */
-  public review(session: string, move: CodeHudReducer.Move): void {
-    this.folds.set(session, this.reducer.review(this.state(session), move));
+  public review(
+    session: string,
+    move: CodeHudReducer.Move,
+    count?: number,
+  ): void {
+    this.folds.set(
+      session,
+      this.reducer.review(this.state(session), move, count),
+    );
   }
 
   /**

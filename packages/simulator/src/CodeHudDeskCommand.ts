@@ -424,7 +424,7 @@ export class CodeHudDeskCommand {
         await client.send(session, { type: "interrupt" });
         break;
       case "review":
-        client.review(session, action.move);
+        client.review(session, action.move, action.count);
         break;
       case "redraw":
         this.shown = "";

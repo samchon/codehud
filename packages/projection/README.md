@@ -97,6 +97,14 @@ Two rules here were specified and not implemented until the notifier went in, an
 - **A demand frame states the session's directory**, always — shortened from the left so the distinguishing trailing segments survive. An approval whose target repository is unknown is not answerable, because "allow" means something different in each checkout. Where there is room for one line the identity shares it with the question rather than either being dropped.
 - **Streaming prose is ambient, not notice.** It had been graded notice, which permits waking a sleeping display — once per sentence, for an agent writing a paragraph. That is the behaviour the three grades exist to prevent.
 
+## Review moves as far as the wearer said
+
+The router has always parsed a count, in both spellings — *back 5* and *back five* — and `ICommand.ordinal` is documented as the only parameter a command takes. Review dropped it. A wearer saying *back five* moved one entry and was told nothing, which is worse than a refusal: a rejected command teaches the vocabulary, and an accepted one that quietly means something else teaches distrust of the only surface a wearer has.
+
+It also decided part of B7 by accident. One step at a time over a history bounded at sixty-four costs forty words to reach an old entry, and that is not a review surface — it was the strongest argument for a second on-glasses application, and it was a dropped parameter rather than a finding.
+
+A count past either end clamps rather than refusing, on the same reasoning a single step already clamped: a wearer saying *back fifty* in a session with twelve entries means the oldest one, and correcting their arithmetic spends an utterance on something they should not have been doing. Zero, negative and fractional counts are the bare word, because that is what they mean. `latest` never takes one — it names an entry rather than a distance, and accepting a number there would be the same silent lie pointed the other way.
+
 ## Quiet mode defers, and never answers
 
 Quiet removes waking and speech from every grade, demand included. It changes **presentation only**: a suppressed approval still blocks its session, stays pending, and stays the wearer's to answer.

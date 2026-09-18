@@ -189,6 +189,7 @@ export class CodeHudReducer {
   public review(
     state: ICodeHudState,
     move: CodeHudReducer.Move,
+    count: number = 1,
   ): ICodeHudState {
     if (move === "latest")
       return { ...state, review: { active: false, offset: 0 } };
@@ -199,9 +200,23 @@ export class CodeHudReducer {
     // for and cannot tell from the agent having gone quiet.
     if (state.review.active === false && move === "forward") return state;
 
+    // How far, because the wearer may have said. One step at a time over a
+    // history bounded at sixty-four costs forty words to reach an old entry,
+    // which is not a review surface; the count was already parsed, already
+    // carried, and dropped here, so a wearer saying "back five" moved one and
+    // was told nothing. A command accepted and quietly meaning something else
+    // is worse than one refused, because the refusal at least teaches the
+    // vocabulary.
+    //
+    // Not clamped to the history before it is applied. The bound below already
+    // does that, and a wearer saying "back fifty" in a session with twelve
+    // entries means the oldest one rather than an error about arithmetic they
+    // should not have been doing.
+    const steps: number =
+      Number.isFinite(count) === true ? Math.max(1, Math.floor(count)) : 1;
     const offset: number = state.review.active
-      ? state.review.offset + (move === "back" ? 1 : -1)
-      : 1;
+      ? state.review.offset + (move === "back" ? steps : -steps)
+      : steps;
     return {
       ...state,
       review: {

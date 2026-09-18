@@ -383,4 +383,47 @@ export async function test_device_desk_action(): Promise<void> {
     CodeHudDeskCommand.POLICY.actions,
     CodeHudAgentPolicy.DEFAULT.actions,
   );
+
+  // The count survives the layer that used to drop it.
+  //
+  // The router parses "back five" and carries an ordinal; this table returned
+  // `{ move: "back" }` and the wearer moved one entry believing they moved
+  // five. The reducer's own cases cover what a count does once it arrives —
+  // what this covers is that it arrives, which is where it was lost.
+  Assert.equals(
+    "a count spoken with a movement reaches the action",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "back", ordinal: 5 },
+      idle,
+      policy,
+    ),
+    { type: "review", move: "back", count: 5 },
+  );
+  Assert.equals(
+    "and forward carries it too",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "forward", ordinal: 3 },
+      idle,
+      policy,
+    ),
+    { type: "review", move: "forward", count: 3 },
+  );
+  Assert.equals(
+    "a bare movement carries none, rather than a one nobody said",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "back" },
+      idle,
+      policy,
+    ),
+    { type: "review", move: "back" },
+  );
+  Assert.equals(
+    "and latest never carries one, because it names an entry not a distance",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "latest", ordinal: 9 },
+      idle,
+      policy,
+    ),
+    { type: "review", move: "latest" },
+  );
 }
