@@ -34,6 +34,17 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
   private readonly folds: Map<string, ICodeHudState> = new Map();
   private readonly counters: Map<string, number> = new Map();
 
+  /**
+   * What the bridge says each session is, including the policy it runs under.
+   *
+   * Held because the second confirmation is this device's to apply and this
+   * device may not be the one that opened the session. Filled from the welcome
+   * for a session joined, and from what was sent for a session opened here;
+   * those are the same fact arriving from opposite directions.
+   */
+  private readonly advertised: Map<string, ICodeHudBridgeProvider.ISession> =
+    new Map();
+
   /** Constructs a client for one device. */
   public constructor(private readonly props: CodeHudSessionClient.IProps) {
     this.reducer = new CodeHudReducer(props.context);
@@ -55,6 +66,8 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
         token: this.props.token,
         descriptor: this.props.descriptor,
       });
+    for (const session of welcome.sessions)
+      this.advertised.set(session.id, session);
     for (const session of welcome.sessions) await this.attach(session.id);
     return welcome;
   }
@@ -106,7 +119,29 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
    * proved changed nothing at all.
    */
   public async open(props: ICodeHudBridgeProvider.IOpen): Promise<string> {
-    return this.props.bridge.open(props);
+    const id: string = await this.props.bridge.open(props);
+    this.advertised.set(id, {
+      id,
+      kind: props.kind,
+      directory: props.directory,
+      policy: props.policy,
+      sequence: 0,
+    });
+    return id;
+  }
+
+  /**
+   * What the bridge says about one session, if this device knows.
+   *
+   * The policy is the member worth asking for: it decides which requests a
+   * wearer answers twice, and a device that attached to work another surface
+   * started has no other way to learn it. Undefined for an identifier this
+   * device has neither opened nor been told about, which a caller must treat as
+   * "not known" rather than as "no policy" — the two are opposite answers about
+   * how careful to be.
+   */
+  public session(id: string): ICodeHudBridgeProvider.ISession | undefined {
+    return this.advertised.get(id);
   }
 
   /**

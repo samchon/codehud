@@ -80,6 +80,14 @@ The token defends against another device on a network the user already operates 
 
 It is issued once per process and lives as long as that process, so nothing has to be revoked. The pairing payload carries the address as well as the credential, because a device needs both and a wearer scanning a code can supply neither.
 
+## A session is advertised with the policy it runs under
+
+The second confirmation is this product's rather than either harness's: neither binary can express asking twice in different words, so it happens on the device, before the answer is sent. That places the strongest promise in the product on the surface a wearer is speaking to.
+
+The bridge never held the policy. It reached the adapter as launch flags at open and was gone. The advertisement carried `id`, `native`, `kind`, `directory` and `sequence`, so a device joining a session another surface started — which is what handoff exists for — had no way to learn which requests its wearer must answer twice. It either invented a stricter policy than the one in force or let a deletion through on one spoken word, and nothing here would have said so.
+
+The policy is now remembered with the session and advertised with it. It is the caller's statement and there is nothing to recompute it from: the harness was launched from it and does not report it back.
+
 ## Testing without a socket or a harness
 
 `CodeHudSessionRegistry` and `CodeHudBridgeConnection` take every collaborator through a constructor, so retention, replay, ordering, the fan-out, the gate, and all four refusals are exercised in memory. `CodeHudBridgeServer` is the only file that knows what a socket is, and it holds no rule of its own.

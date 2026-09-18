@@ -41,7 +41,11 @@ import { Harness } from "../internal/harness";
 export async function test_bridge_replay_order(): Promise<void> {
   const registry: CodeHudSessionRegistry = new CodeHudSessionRegistry();
   const session: Harness.Session = new Harness.Session("s1");
-  registry.adopt(session, { kind: "claude-code", directory: "/repo" });
+  registry.adopt(session, {
+    kind: "claude-code",
+    directory: "/repo",
+    policy: Harness.POLICY,
+  });
 
   const early: Harness.Device = new Harness.Device();
   registry.attach("s1", 0, early);

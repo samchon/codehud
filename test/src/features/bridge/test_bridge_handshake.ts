@@ -49,6 +49,7 @@ export async function test_bridge_handshake(): Promise<void> {
   registry.adopt(new Harness.Session("already"), {
     kind: "codex",
     directory: "/repo",
+    policy: Harness.POLICY,
     native: "codex-42",
   });
 

@@ -77,6 +77,7 @@ export async function test_bridge_refusal_shape(): Promise<void> {
   registry.adopt(new Harness.Session("s1"), {
     kind: "claude-code",
     directory: "/repo",
+    policy: Harness.POLICY,
   });
   // Captured rather than asserted through Assert.throws, which reports
   // that something was thrown but does not hand back what. The refusal's own

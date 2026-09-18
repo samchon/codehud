@@ -34,7 +34,11 @@ import { Harness } from "../internal/harness";
 export async function test_bridge_unreachable_device(): Promise<void> {
   const registry: CodeHudSessionRegistry = new CodeHudSessionRegistry();
   const session: Harness.Session = new Harness.Session("s1");
-  registry.adopt(session, { kind: "claude-code", directory: "/repo" });
+  registry.adopt(session, {
+    kind: "claude-code",
+    directory: "/repo",
+    policy: Harness.POLICY,
+  });
 
   const gone: Harness.Device = new Harness.Device(true);
   const healthy: Harness.Device = new Harness.Device();

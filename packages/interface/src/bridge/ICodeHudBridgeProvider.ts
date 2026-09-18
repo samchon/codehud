@@ -186,6 +186,25 @@ export namespace ICodeHudBridgeProvider {
     directory: string;
 
     /**
+     * The policy this session was opened under.
+     *
+     * Advertised because the second confirmation is the device's to apply and
+     * the device may not be the one that opened the session. A surface joining
+     * work another started — which is the whole point of handoff — has no other
+     * way to learn which requests its wearer must answer twice, and a device
+     * that guesses either invents a stricter policy than the one in force or
+     * lets a deletion through on one spoken word.
+     *
+     * The policy is already typed as a property of one session rather than of
+     * the installation. This is that sentence carried to the surface that has
+     * to act on it.
+     *
+     * @evidence requirements/agent-control/turn-and-approval.md#agent-approval-budget Carries the stated budget to the surface that enforces it, so the budget governs the session rather than whoever opened it.
+     * @evidence specifications/agent-harness/control-and-approval.md#spec-agent-second-confirmation Makes the doubly-confirmed class knowable to a device that attached rather than opened, which is the only place it can be applied.
+     */
+    policy: ICodeHudAgentAdapter.IPolicy;
+
+    /**
      * How many observations the bridge has produced for this session.
      *
      * Counters start at zero, so this is also the counter the next observation

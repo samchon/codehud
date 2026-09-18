@@ -360,7 +360,12 @@ export class CodeHudDeskCommand {
         CodeHudDeskAction.decide(
           routing,
           client.state(addressed),
-          this.props.policy,
+          // The session's own policy, not this host's. They are the same for a
+          // session this host opened, and they are not the same for one it
+          // joined — which is what handoff is for. A device deciding from its
+          // own constant either invents a stricter policy than the one in force
+          // or lets a deletion through on one spoken word.
+          client.session(addressed)?.policy ?? this.props.policy,
         ),
         addressed,
       ).catch(async (thrown: unknown): Promise<void> => {

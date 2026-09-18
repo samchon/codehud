@@ -20,6 +20,27 @@ import { setImmediate as tick } from "node:timers/promises";
  */
 export namespace Harness {
   /**
+   * The policy a case states when the policy is not what it is about.
+   *
+   * Named rather than repeated inline, because it is a required part of what a
+   * session *is* and most cases have no opinion about it. A case that does have
+   * one says so by passing its own, which is then visibly the point of that
+   * case rather than scenery.
+   */
+  export const POLICY: ICodeHudAgentAdapter.IPolicy = Object.freeze({
+    actions: Object.freeze({
+      read: "unattended",
+      write: "attended",
+      execute: "attended",
+      network: "attended",
+      delete: "confirmed",
+      history: "confirmed",
+      publish: "confirmed",
+      credential: "confirmed",
+    }),
+  });
+
+  /**
    * A session whose observations the test supplies one at a time.
    *
    * The stream stays open until {@link Session.end} is called, which is what a

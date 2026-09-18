@@ -1,4 +1,5 @@
 import type {
+  ICodeHudAgentAdapter,
   ICodeHudAgentCommand,
   ICodeHudAgentEvent,
   ICodeHudAgentSession,
@@ -124,6 +125,7 @@ export class CodeHudSessionRegistry {
         : { native: record.metadata.native }),
       kind: record.metadata.kind,
       directory: record.metadata.directory,
+      policy: record.metadata.policy,
       sequence: record.sequence,
     }));
   }
@@ -244,6 +246,16 @@ export namespace CodeHudSessionRegistry {
 
     /** Absolute working directory the session is operating in. */
     directory: string;
+
+    /**
+     * The policy the session was opened under.
+     *
+     * Remembered rather than recomputed, because it is the caller's statement
+     * and there is nothing to recompute it from: the harness was launched with
+     * flags derived from it and does not report it back. A device that attaches
+     * later needs it to know which requests its wearer must answer twice.
+     */
+    policy: ICodeHudAgentAdapter.IPolicy;
 
     /**
      * Identifier the harness itself uses for the conversation.
