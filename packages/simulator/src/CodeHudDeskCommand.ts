@@ -206,6 +206,9 @@ export class CodeHudDeskCommand {
       case "answer":
         this.say(this.router.answer(action.query, client.state(this.session)));
         break;
+      case "silence":
+        this.silence(action.active);
+        break;
       case "say":
         this.say(this.phrase(action));
         break;
@@ -246,6 +249,28 @@ export class CodeHudDeskCommand {
       permission.fallback;
     if (fallback !== undefined)
       this.say(`${this.context.vocabulary.elsewhere} (${fallback.reason})`);
+  }
+
+  /**
+   * Enters or leaves quiet mode, and presents what it held.
+   *
+   * Leaving is where the work is. What accumulated while quiet is still pending
+   * on its sessions and still answerable, so presenting it is a matter of
+   * saying what is waiting rather than replaying frames: the current one is
+   * drawn immediately afterwards, and it is the one the wearer can act on.
+   *
+   * The acknowledgement is said rather than drawn, because a wearer entering
+   * quiet mode is by definition about to stop looking.
+   */
+  private silence(active: boolean): void {
+    const held: ICodeHudNotification[] = this.notifier.silence(active);
+    const words: ICodeHudContext.IVocabulary = this.context.vocabulary;
+    this.say(active === true ? words.muted : words.unmuted);
+    for (const notification of held)
+      this.say(`${notification.frame.lines[0]?.text ?? ""}`);
+    // What was suppressed was suppressed before it could be drawn, so the
+    // display is showing something older than the wearer now expects.
+    this.shown = "";
   }
 
   /** Writes one line of the host's own, outside the box. */

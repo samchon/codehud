@@ -150,6 +150,18 @@ export namespace ICodeHudContext {
     single: string;
 
     /**
+     * What a host says when it has been asked to stop waking the wearer.
+     *
+     * Said rather than drawn: a wearer entering quiet mode is by definition
+     * about to stop looking, and a display that acknowledged it silently would
+     * leave them unsure whether they had been heard.
+     */
+    muted: string;
+
+    /** What a host says when waking and speech are permitted again. */
+    unmuted: string;
+
+    /**
      * What a host says when a demand went somewhere the wearer is not looking.
      *
      * Names the redirection rather than the content: the content already went,

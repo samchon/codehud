@@ -34,7 +34,11 @@ import { Stream } from "../internal/stream";
  *    the live case: it offers only a refusal.
  * 6. A persisting option is never the one an answer picks, because a consent
  *    whose scope a display cannot state must not be the easiest thing to say.
- * 7. Navigation, interruption, repetition, and help each map to one effect.
+ * 7. Navigation, interruption, repetition, help, and silence each map to one
+ *    effect. Silence carries the state the wearer named rather than a toggle:
+ *    saying the word for quiet twice must not be the opposite of saying it
+ *    once, on a surface where the display that would show the state is the one
+ *    quiet mode stopped waking.
  * 8. Ambiguity and a recognition below the floor are reported, never resolved.
  * 9. The default policy a desk states is the partition the harness defaults to,
  *    so the two spellings of one decision cannot drift apart.
@@ -147,6 +151,8 @@ export async function test_device_desk_action(): Promise<void> {
     ["latest", { type: "review", move: "latest" }],
     ["repeat", { type: "redraw" }],
     ["help", { type: "say", reason: "help" }],
+    ["mute", { type: "silence", active: true }],
+    ["unmute", { type: "silence", active: false }],
     ["sessions", { type: "say", reason: "single" }],
     ["switch", { type: "say", reason: "single" }],
   ] as [ICodeHudVoiceRouting.ICommand.Kind, CodeHudDeskAction.IAction][])

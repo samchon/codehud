@@ -28,6 +28,8 @@ Where several sessions are attached, the identity is required for a notice as we
 
 Quiet mode removes the waking and speaking permissions from every grade including demand. It changes presentation only: a suppressed approval request still blocks its session and remains pending and answerable.
 
+It is entered and left by spoken command, because speech is the only instruction channel and a mode a wearer cannot reach is a mode the product does not have. Entering and leaving are separate commands rather than one toggle: the display that would tell a wearer which state they are in is the one quiet mode has stopped waking.
+
 Suppressed demand-grade items accumulate in order and are presented together when quiet mode ends. None is dropped, coalesced away, or resolved by the system.
 
 What accumulates is what quiet mode suppressed, and nothing else. An item a disconnected or sleeping device missed is not added to it: the request it concerns is still pending, so a device that returns is shown it again by the ordinary path, and mixing the two populations would present one at the moment the other ended.

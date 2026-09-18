@@ -174,6 +174,12 @@ export namespace CodeHudVoiceRouter {
     sessions: Object.freeze(["sessions", "list sessions"]),
     switch: Object.freeze(["switch", "switch to"]),
     help: Object.freeze(["help", "what can i say"]),
+    // Chosen for distance from the consent tokens above all: the obvious word
+    // for leaving quiet mode is *aloud*, and a recognizer that confused it with
+    // *allow* would approve something while the wearer was asking to be spoken
+    // to again.
+    mute: Object.freeze(["mute", "quiet", "silence"]),
+    unmute: Object.freeze(["unmute", "quiet off"]),
   });
 
   /**
