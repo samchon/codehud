@@ -48,7 +48,7 @@ export async function test_client_review(): Promise<void> {
   const bridge: ICodeHudBridgeProvider = {
     hello: async () => {
       asked.push("hello");
-      return { version: 1, host: "workbench", sessions: [], harnesses: [] };
+      return { version: 1, host: "workbench", sessions: [] };
     },
     open: async () => {
       asked.push("open");

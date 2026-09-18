@@ -35,6 +35,11 @@ import { Claude } from "../internal/claude";
  *    turn ended is refused rather than written into the next one.
  * 7. Closing is idempotent and reaches the channel once; sending afterwards is
  *    refused rather than silently dropped.
+ * 8. An answer naming a word this harness does not offer is refused *and
+ *    consumes nothing*: the request stays pending and the wearer's next answer,
+ *    the correct one, still lands. The specification requires a refused answer
+ *    to apply to nothing, and the record of what is pending is part of what it
+ *    would otherwise apply to.
  */
 export async function test_agent_claude_pairing(): Promise<void> {
   class Channel implements ICodeHudHarnessChannel {
@@ -151,6 +156,33 @@ export async function test_agent_claude_pairing(): Promise<void> {
   TestValidator.equals(
     "so only the first answer was written",
     twice.channel.written.length,
+    1,
+  );
+
+  // A word this harness does not offer, and what it must leave behind.
+  const mistaken = await drain(Claude.APPROVE);
+  await TestValidator.error(
+    "a word this harness does not offer is refused",
+    () =>
+      mistaken.session.send({
+        type: "decision",
+        request: asked,
+        option: "approved",
+      }),
+  );
+  TestValidator.equals(
+    "and nothing was written",
+    mistaken.channel.written.length,
+    0,
+  );
+  await mistaken.session.send({
+    type: "decision",
+    request: asked,
+    option: "allow",
+  });
+  TestValidator.equals(
+    "the request was still pending, so the correct answer lands",
+    mistaken.channel.written.length,
     1,
   );
 
