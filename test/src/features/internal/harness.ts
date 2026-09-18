@@ -1,3 +1,4 @@
+import { CodeHudAgentPolicy } from "@codehud/agent";
 import type { ICodeHudSessionSubscriber } from "@codehud/bridge";
 import type {
   ICodeHudAgentAdapter,
@@ -19,6 +20,18 @@ import { setImmediate as tick } from "node:timers/promises";
  * every case states exactly what the harness had said by the time it asserts.
  */
 export namespace Harness {
+  /**
+   * The policy a case states when the policy is not what it is about.
+   *
+   * The stated default itself, not a copy of it. A session's policy is a
+   * required part of what a session is, and most cases here have no opinion
+   * about it; borrowing the default means there is no second copy of the
+   * eight-class table to drift, and a case that passes its own is visibly
+   * making a point rather than repeating scenery.
+   */
+  export const POLICY: ICodeHudAgentAdapter.IPolicy =
+    CodeHudAgentPolicy.DEFAULT;
+
   /**
    * A session whose observations the test supplies one at a time.
    *

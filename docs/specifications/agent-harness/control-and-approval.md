@@ -70,6 +70,8 @@ The four irreversible classes are reached by inspecting the command a request wo
 
 A request whose class the session's policy marks doubly-confirmed is not answered by the affirmative alone. The affirmative moves the request into a confirming state, and only the confirmation token — worded differently from the affirmative — answers it.
 
+A device that does not know a session's policy treats every class as doubly-confirmed. Not knowing and knowing there is nothing to be careful about are opposite answers, and only one of them is safe to guess: the strict reading costs a wearer one extra spoken word on a session that turns out to be permissive, and the lenient one costs them the question they were never asked about a session another surface opened. A device must not substitute a policy of its own for one it has not been told.
+
 A request carrying **no class** is treated as doubly-confirmed whenever the policy marks any class that way. An adapter reports no class when it cannot tell, and the classification tables are stated as floors rather than ceilings, so "unclassified" and "harmless" are different facts and the system must not confuse them. The cost of the strict reading is one extra spoken word on a request that turns out to be ordinary; the cost of the lenient one is the question the wearer was never asked.
 
 Repeating the affirmative does not answer a confirming request, and does not leave the confirming state either. Any other utterance leaves it: the request returns to waiting for a first answer, so a wearer who began confirming and changed their mind has not half-answered anything.

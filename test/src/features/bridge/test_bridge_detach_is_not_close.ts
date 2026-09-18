@@ -32,7 +32,11 @@ import { Harness } from "../internal/harness";
 export async function test_bridge_detach_is_not_close(): Promise<void> {
   const registry: CodeHudSessionRegistry = new CodeHudSessionRegistry();
   const session: Harness.Session = new Harness.Session("s1");
-  registry.adopt(session, { kind: "codex", directory: "/repo" });
+  registry.adopt(session, {
+    kind: "codex",
+    directory: "/repo",
+    policy: Harness.POLICY,
+  });
 
   const device: Harness.Device = new Harness.Device();
   registry.attach("s1", 0, device);

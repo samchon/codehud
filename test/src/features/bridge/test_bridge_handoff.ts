@@ -83,7 +83,11 @@ export async function test_bridge_handoff(): Promise<void> {
   // The bridge records it and advertises it.
   const registry: CodeHudSessionRegistry = new CodeHudSessionRegistry();
   const session: Harness.Session = new Harness.Session("s1");
-  registry.adopt(session, { kind: "claude-code", directory: "/repo" });
+  registry.adopt(session, {
+    kind: "claude-code",
+    directory: "/repo",
+    policy: Harness.POLICY,
+  });
   Assert.equals(
     "a session not yet named by its harness is advertised without one",
     registry.list()[0]?.native,

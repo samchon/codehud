@@ -122,6 +122,7 @@ export class CodeHudBridgeConnection implements ICodeHudBridgeProvider {
     this.props.registry.adopt(session, {
       kind: props.kind,
       directory: props.directory,
+      policy: props.policy,
     });
     this.props.registry.attach(session.id, 0, this.props.subscriber);
     return session.id;

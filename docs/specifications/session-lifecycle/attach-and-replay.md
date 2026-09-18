@@ -47,3 +47,5 @@ The overrides a session states â€” working directory, permission policy, model â
 A bridge advertises the live sessions it holds and no others. A harness family may keep its own registry of conversations, live or persisted, and that registry is not merged into the advertisement: the bridge cannot deliver observations for a conversation it does not hold, and advertising one would offer a wearer an attachment that cannot be honoured.
 
 A persisted conversation is not a session. It is reachable by resuming it under its harness identifier, which is the path handoff already uses, and remains reachable whether or not any bridge is running.
+
+What is advertised carries the policy each session was opened under. The second confirmation is applied by the device rather than by either harness, and the device answering a request need not be the one that opened the session; a surface that joined has no other way to learn which requests its wearer must answer twice. Advertising the policy is what makes it a property of the session rather than of whoever opened it.

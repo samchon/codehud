@@ -214,6 +214,39 @@ export namespace CodeHudDeskAction {
   };
 
   /**
+   * The policy to apply to a session whose own policy is not known.
+   *
+   * Every class confirmed. Not knowing and knowing there is nothing to be
+   * careful about are opposite answers, and only one of them is safe to guess:
+   * the cost of the cautious reading is one extra spoken word on a session that
+   * turns out to be permissive, and the cost of the other is the question the
+   * wearer was never asked about a session someone else opened.
+   *
+   * Reached when a device addresses a session it has neither opened nor been
+   * told about. A device driving only its own sessions never sees it, which is
+   * exactly why it has to be stated rather than left to whatever constant that
+   * device happens to hold.
+   *
+   * The rule is the specification's, not this simulator's —
+   * `specifications/agent-harness/control-and-approval.md`, *A doubly-confirmed
+   * request is asked twice*: "A device must not substitute a policy of its own
+   * for one it has not been told." A device adapter in another package reads it
+   * there rather than importing this constant.
+   */
+  export const CAUTIOUS: ICodeHudAgentAdapter.IPolicy = Object.freeze({
+    actions: Object.freeze({
+      read: "confirmed",
+      write: "confirmed",
+      execute: "confirmed",
+      network: "confirmed",
+      delete: "confirmed",
+      history: "confirmed",
+      publish: "confirmed",
+      credential: "confirmed",
+    }),
+  });
+
+  /**
    * Whether a pending request needs a second, differently worded answer.
    *
    * Read from the class the adapter reported and the treatment the wearer's
