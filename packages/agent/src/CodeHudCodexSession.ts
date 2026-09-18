@@ -157,13 +157,19 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
           // wearer as a session sitting idle rather than as one that is over.
           // The bridge is written against the assumption that the adapter says
           // so on this stream, so nothing else was going to.
-          // Nobody is going to name a thread now, and an instruction waiting
-          // to be addressed is waiting on exactly that. Released with an empty
+
+          // Nobody is going to name a thread now, and an instruction waiting to
+          // be addressed is waiting on exactly that. Released with an empty
           // name, which `thread` already refuses: the wait is bounded anyway,
           // but the bound covers a harness that is alive and slow, and paying
           // it out for one that is gone spends ten seconds of a display on a
           // fact this line already has.
+          //
+          // Before the check below rather than after it, and deliberately: an
+          // instruction already waiting when the wearer closed the session is
+          // owed the same prompt refusal as one waiting on a harness that died.
           names("");
+
           if (closed() === false)
             yield normalizer.broken("the harness stopped");
         },
