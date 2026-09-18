@@ -132,6 +132,74 @@ export async function test_voice_routing(): Promise<void> {
     query: "elapsed",
   });
 
+  // A recognizer that never says how sure it is.
+  //
+  // The platform makes the number optional — Android's own documentation of
+  // `CONFIDENCE_SCORES` ends "This value is optional and might not be
+  // provided" — so a device can be handed an engine that never reports one.
+  // Consent is then refused on every utterance, correctly, and identically to
+  // a noisy room. One missing number is an utterance and says nothing about
+  // the engine; a run of them is the engine, and only the second is something
+  // a wearer can act on.
+  const deaf: CodeHudVoiceRouter = new CodeHudVoiceRouter(
+    CodeHudContext.DEFAULT,
+  );
+  Assert.equals(
+    "a router that has heard nothing claims nothing",
+    deaf.confidenceless,
+    false,
+  );
+  for (let i: number = 0; i < CodeHudVoiceRouter.SAMPLE - 1; ++i)
+    deaf.route("allow");
+  Assert.equals(
+    "and one short of the sample it still claims nothing",
+    deaf.confidenceless,
+    false,
+  );
+  deaf.route("allow");
+  Assert.equals(
+    "at the sample it says the recognizer cannot measure itself",
+    deaf.confidenceless,
+    true,
+  );
+  Assert.equals(
+    "while every one of those answers was refused, which is the point",
+    deaf.route("allow").type,
+    "unheard",
+  );
+
+  // Whether the recognizer reports confidence is a fact about the recognizer,
+  // not about what was said into it, so dictation counts. A wearer mostly
+  // dictates; counting only the words that reached the consent check would make
+  // the commonest session establish nothing at all.
+  const dictating: CodeHudVoiceRouter = new CodeHudVoiceRouter(
+    CodeHudContext.DEFAULT,
+  );
+  for (let i: number = 0; i < CodeHudVoiceRouter.SAMPLE; ++i)
+    dictating.route("have a look at the failing test");
+  Assert.equals(
+    "prompts count, because the recognizer is the same recognizer",
+    dictating.confidenceless,
+    true,
+  );
+
+  const heard: CodeHudVoiceRouter = new CodeHudVoiceRouter(
+    CodeHudContext.DEFAULT,
+  );
+  for (let i: number = 0; i < CodeHudVoiceRouter.SAMPLE * 2; ++i)
+    heard.route("allow");
+  heard.route("allow", { confidence: 0.2 });
+  Assert.equals(
+    "a single confidence ever reported settles it the other way, permanently",
+    heard.confidenceless,
+    false,
+  );
+  Assert.equals(
+    "even though that one was below the floor and refused too",
+    heard.route("allow", { confidence: 0.2 }).type,
+    "unheard",
+  );
+
   // Every question the vocabulary declares is reachable from a phrase and is
   // answered. Nothing pinned this, and the consequence was a member called
   // `policy` whose phrases were *what is it asking* and *what is pending* and

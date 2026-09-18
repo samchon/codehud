@@ -73,6 +73,9 @@ import { CodeHudTerminalGlasses } from "./CodeHudTerminalGlasses";
 export class CodeHudDeskCommand {
   private readonly context: ICodeHudContext;
   private readonly router: CodeHudVoiceRouter;
+
+  /** Whether the wearer has been told their recognizer cannot measure itself. */
+  private unmeasured: boolean = false;
   private readonly notifier: CodeHudNotifier = new CodeHudNotifier();
   /**
    * The device this host drives.
@@ -345,6 +348,15 @@ export class CodeHudDeskCommand {
           ? {}
           : { confidence: input.confidence }),
       });
+      // Said once, the first time the router is sure. A recognizer that never
+      // reports confidence refuses every approval, correctly and
+      // indistinguishably from a noisy room; a wearer saying *allow* into that
+      // will say it again rather than change anything, because nothing has told
+      // them there is something to change.
+      if (this.router.confidenceless === true && this.unmeasured === false) {
+        this.unmeasured = true;
+        this.say(this.context.vocabulary.unmeasured);
+      }
       // The session the wearer is looking at, decided once and carried
       // through. A wearer answers the question in front of them, and the
       // question in front of them is not always the one in focus: a demand from

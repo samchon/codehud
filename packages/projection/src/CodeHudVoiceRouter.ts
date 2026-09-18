@@ -27,6 +27,10 @@ import { CodeHudText } from "./CodeHudText";
  * @author Samchon
  */
 export class CodeHudVoiceRouter {
+  /** Recognitions seen, and how many of them carried a confidence. */
+  private heard: number = 0;
+  private measured: number = 0;
+
   /** Constructs a router bound to one configuration. */
   public constructor(private readonly context: ICodeHudContext) {}
 
@@ -44,6 +48,21 @@ export class CodeHudVoiceRouter {
   ): ICodeHudVoiceRouting {
     const said: string = utterance.trim().replace(/\s+/gu, " ").toLowerCase();
     if (said.length === 0) return { type: "prompt", text: "" };
+
+    // Counted here, before anything can return, because whether a recognizer
+    // reports confidence is a fact about the recognizer and not about what was
+    // said into it. Counting only the utterances that reached the consent check
+    // would make a session of dictation establish nothing, and dictation is
+    // most of what a wearer says.
+    //
+    // The platform is explicit that the number is optional — Android's own
+    // documentation of `CONFIDENCE_SCORES` ends "This value is optional and
+    // might not be provided" — so a device can be handed an engine that never
+    // reports it, and on that device every consent answer is refused forever.
+    // Refused correctly, and indistinguishably from a noisy room, which is the
+    // part a wearer cannot act on.
+    this.heard += 1;
+    if (props.confidence !== undefined) this.measured += 1;
 
     const ordinal: number | undefined = CodeHudVoiceRouter.ordinal(said);
 
@@ -129,12 +148,43 @@ export class CodeHudVoiceRouter {
     void now;
   }
 
+  /**
+   * Whether this device's recognizer appears unable to say how sure it is.
+   *
+   * True once enough recognitions have arrived without a confidence between
+   * them. One missing number is an utterance; a run of them is the engine, and
+   * the difference matters because only the second is something a wearer can
+   * do anything about — change the engine, or work somewhere they can type.
+   *
+   * A single confidence ever seen settles it the other way and permanently:
+   * the question is whether the recognizer *can* report, not whether it did
+   * this time.
+   *
+   * Reported rather than acted on. What a device does about it is the device's,
+   * and what the product should degrade to is a specification question that is
+   * not answered by noticing.
+   */
+  public get confidenceless(): boolean {
+    return this.measured === 0 && this.heard >= CodeHudVoiceRouter.SAMPLE;
+  }
+
   /** Every phrase a wearer may say, for the command that states the grammar. */
   public help(): string[] {
     return CodeHudVoiceRouter.phrases(this.context.consent);
   }
 }
 export namespace CodeHudVoiceRouter {
+  /**
+   * How many recognitions establish that an engine does not report confidence.
+   *
+   * Three, and the number is a judgement rather than a measurement. One is an
+   * utterance and says nothing; two could still be coincidence on a platform
+   * where the field is per-result; three is a run. Erring high costs a wearer
+   * two more refusals before being told something useful, and erring low tells
+   * them their engine is broken when it was a bad second.
+   */
+  export const SAMPLE: number = 3;
+
   /** What the recognizer reported about an utterance. */
   export interface IHeard {
     /**
