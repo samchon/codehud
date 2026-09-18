@@ -1,7 +1,10 @@
 import type {
+  ICodeHudAgentAdapter,
   ICodeHudAgentEvent,
   ICodeHudAgentPermission,
 } from "@codehud/interface";
+
+import { CodeHudActionClass } from "./CodeHudActionClass";
 
 /**
  * Turns what `codex app-server` sends into observations the rest reads.
@@ -212,10 +215,21 @@ export class CodeHudCodexNormalizer {
         : Array.isArray(spoken) === true
           ? spoken.join(" ")
           : spoken;
+    // Every approval this server sends is about something it would run or
+    // write; there is no tool name to read, so the command is the whole of what
+    // can be classified. A permissions request names none, and is an escalation
+    // of access rather than an action, which is why it reports none.
+    const action: ICodeHudAgentAdapter.IPolicy.Action | undefined =
+      command === undefined
+        ? vocabulary === "profile"
+          ? undefined
+          : "write"
+        : CodeHudActionClass.of({ tool: "Bash", command });
     return [
       this.base<ICodeHudAgentEvent.IPermission>({
         type: "permission",
         request: String(id),
+        ...(action === undefined ? {} : { action }),
         title:
           command !== undefined
             ? CodeHudCodexNormalizer.title(command)

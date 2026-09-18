@@ -1,7 +1,10 @@
 import type {
+  ICodeHudAgentAdapter,
   ICodeHudAgentEvent,
   ICodeHudAgentPermission,
 } from "@codehud/interface";
+
+import { CodeHudActionClass } from "./CodeHudActionClass";
 
 /**
  * Turns what Claude Code prints into observations the rest of the system reads.
@@ -193,6 +196,13 @@ export class CodeHudClaudeNormalizer {
     const request: string | undefined = line.request_id;
     if (request === undefined) return [];
     const name: string = line.request?.tool_name ?? "";
+    const action: ICodeHudAgentAdapter.IPolicy.Action | undefined =
+      CodeHudActionClass.of({
+        tool: name,
+        ...(typeof line.request?.input?.["command"] === "string"
+          ? { command: line.request.input["command"] }
+          : {}),
+      });
     return [
       this.base<ICodeHudAgentEvent.IPermission>({
         type: "permission",
@@ -202,6 +212,7 @@ export class CodeHudClaudeNormalizer {
           ? {}
           : { detail: line.request.description }),
         options: [...CodeHudClaudeNormalizer.OPTIONS],
+        ...(action === undefined ? {} : { action }),
       }),
     ];
   }

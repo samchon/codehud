@@ -1,3 +1,4 @@
+export * from "./CodeHudActionClass";
 export * from "./CodeHudAgentPolicy";
 export * from "./CodeHudClaudeAdapter";
 export * from "./CodeHudClaudeNormalizer";

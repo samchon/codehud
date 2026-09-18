@@ -170,7 +170,11 @@ export class CodeHudDeskCommand {
       });
       await this.perform(
         client,
-        CodeHudDeskAction.decide(routing, client.state(this.session)),
+        CodeHudDeskAction.decide(
+          routing,
+          client.state(this.session),
+          this.props.policy,
+        ),
       );
     }
   }
@@ -208,6 +212,9 @@ export class CodeHudDeskCommand {
         break;
       case "silence":
         this.silence(action.active);
+        break;
+      case "confirm":
+        client.confirm(this.session, action.request, action.confirming);
         break;
       case "say":
         this.say(this.phrase(action));

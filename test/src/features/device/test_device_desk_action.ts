@@ -1,5 +1,9 @@
 import { CodeHudAgentPolicy } from "@codehud/agent";
-import type { ICodeHudState, ICodeHudVoiceRouting } from "@codehud/interface";
+import type {
+  ICodeHudAgentAdapter,
+  ICodeHudState,
+  ICodeHudVoiceRouting,
+} from "@codehud/interface";
 import { CodeHudDeskAction, CodeHudDeskCommand } from "@codehud/simulator";
 import { TestValidator } from "@nestia/e2e";
 
@@ -40,7 +44,15 @@ import { Stream } from "../internal/stream";
  *    once, on a surface where the display that would show the state is the one
  *    quiet mode stopped waking.
  * 8. Ambiguity and a recognition below the floor are reported, never resolved.
- * 9. The default policy a desk states is the partition the harness defaults to,
+ * 9. A request whose class the session's policy marks doubly-confirmed is not
+ *    answered by the affirmative: it moves to waiting for the differently
+ *    worded token, repeating the affirmative does not satisfy it, any other
+ *    word leaves that state rather than sitting in it, and refusing still takes
+ *    one word because refusing is the recoverable direction.
+ * 10. A request the adapter could not classify is asked twice wherever the
+ *    wearer's policy asks twice about anything, which is the cautious reading
+ *    of an adapter saying it does not know.
+ * 11. The default policy a desk states is the partition the harness defaults to,
  *    so the two spellings of one decision cannot drift apart.
  */
 export async function test_device_desk_action(): Promise<void> {
@@ -180,6 +192,115 @@ export async function test_device_desk_action(): Promise<void> {
     "or nothing, when the recognizer reported nothing",
     CodeHudDeskAction.decide({ type: "unheard" }, idle),
     { type: "say", reason: "unheard" },
+  );
+
+  // The second confirmation, which is the product's strongest promise about
+  // what one misrecognized word can do.
+  const irreversible: ICodeHudState = {
+    ...asking(
+      { id: "accept", affirmative: true, persistent: false },
+      { id: "decline", affirmative: false, persistent: false },
+    ),
+  };
+  irreversible.pending = { ...irreversible.pending!, action: "delete" };
+  const policy: ICodeHudAgentAdapter.IPolicy = CodeHudDeskCommand.POLICY;
+
+  TestValidator.equals(
+    "the affirmative does not answer a doubly-confirmed request",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      irreversible,
+      policy,
+    ),
+    { type: "confirm", request: "r1", confirming: true },
+  );
+  TestValidator.equals(
+    "while the same words on an ordinary one answer it",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      {
+        ...irreversible,
+        pending: { ...irreversible.pending!, action: "write" },
+      },
+      policy,
+    ),
+    { type: "decision", request: "r1", option: "accept" },
+  );
+
+  const confirming: ICodeHudState = { ...irreversible, confirming: true };
+  TestValidator.equals(
+    "the confirmation token answers it",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "confirm" },
+      confirming,
+      policy,
+    ),
+    { type: "decision", request: "r1", option: "accept" },
+  );
+  TestValidator.equals(
+    "repeating the affirmative does not, and does not keep waiting for one",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      confirming,
+      policy,
+    ),
+    { type: "confirm", request: "r1", confirming: false },
+  );
+  TestValidator.equals(
+    "nor does a prompt, which leaves the request waiting for a first answer",
+    CodeHudDeskAction.decide(
+      { type: "prompt", text: "actually never mind" },
+      confirming,
+      policy,
+    ),
+    { type: "confirm", request: "r1", confirming: false },
+  );
+  TestValidator.equals(
+    "refusing still takes one word, because refusing is the recoverable way",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "deny" },
+      confirming,
+      policy,
+    ),
+    { type: "decision", request: "r1", option: "decline" },
+  );
+  TestValidator.equals(
+    "and an utterance nobody heard leaves it exactly where it was",
+    CodeHudDeskAction.decide({ type: "unheard" }, confirming, policy),
+    { type: "say", reason: "unheard" },
+  );
+  TestValidator.equals(
+    "the token means nothing outside a confirming request",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "confirm" },
+      irreversible,
+      policy,
+    ),
+    { type: "none" },
+  );
+
+  // A request whose class the adapter could not tell.
+  const unclassified: ICodeHudState = {
+    ...irreversible,
+    pending: { ...irreversible.pending!, action: undefined },
+  };
+  TestValidator.equals(
+    "an unclassified request is asked twice under a policy that asks twice",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      unclassified,
+      policy,
+    ),
+    { type: "confirm", request: "r1", confirming: true },
+  );
+  TestValidator.equals(
+    "and once under one that never does",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      unclassified,
+      { actions: { read: "unattended", write: "attended" } },
+    ),
+    { type: "decision", request: "r1", option: "accept" },
   );
 
   // 9. One decision, two spellings, pinned against each other.

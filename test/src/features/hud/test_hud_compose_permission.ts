@@ -40,6 +40,10 @@ import { Stream } from "../internal/stream";
  *    clear it is one a wearer cannot answer at all.
  * 9. When the labels are too long to name both, the hint falls back to a
  *    shorter form that still fits, on either shape.
+ * 10. A request waiting on its second answer says so and names the
+ *    differently-worded token, so a wearer who has already spoken once can tell
+ *    a question that needs confirming from one that did not hear them. The
+ *    refusal is still named, because refusing still takes one word.
  */
 export async function test_hud_compose_permission(): Promise<void> {
   const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
@@ -148,6 +152,42 @@ export async function test_hud_compose_permission(): Promise<void> {
     "an over-long hint falls back and still fits",
     fallback.hint !== undefined &&
       fallback.hint.length <= Stream.NARROW.columns,
+  );
+
+  // The second ask.
+  const confirming: ICodeHudState = { ...asked, confirming: true };
+  const second: ICodeHudFrame = composer.compose(confirming, Stream.WIDE);
+  TestValidator.predicate(
+    "the second ask says it is one",
+    second.lines[0]!.text.startsWith(words.again),
+  );
+  TestValidator.predicate(
+    "and still says what is being asked",
+    second.lines[0]!.text.includes("Write src/index.ts"),
+  );
+  TestValidator.equals(
+    "naming the differently worded token and the refusal",
+    second.hint,
+    `${words.say} Confirm ${words.or} Deny`,
+  );
+  TestValidator.predicate(
+    "which is the configured token, presented as the labels beside it are",
+    second.hint
+      ?.toLowerCase()
+      .includes(CodeHudContext.DEFAULT.consent.confirmation.toLowerCase()) ===
+      true,
+  );
+  TestValidator.equals(
+    "which is not the token that got it here",
+    second.hint?.includes(CodeHudContext.DEFAULT.consent.affirmative),
+    false,
+  );
+  TestValidator.equals("and it is still a demand", second.urgency, "demand");
+  const narrow2: ICodeHudFrame = composer.compose(confirming, Stream.NARROW);
+  TestValidator.predicate(
+    "at the smallest geometry it still fits",
+    narrow2.lines.every((line) => line.text.length <= Stream.NARROW.columns) &&
+      (narrow2.hint?.length ?? 0) <= Stream.NARROW.columns,
   );
 
   const wordy: ICodeHudState = {

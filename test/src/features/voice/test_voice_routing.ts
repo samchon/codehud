@@ -177,6 +177,25 @@ export async function test_voice_routing(): Promise<void> {
       [consent.affirmative, consent.negative].includes("unmute") === false,
   );
 
+  // The second confirmation's own token, which is a consent answer and is
+  // guarded like one.
+  TestValidator.equals(
+    "the confirmation token routes to its own command",
+    router.route(consent.confirmation, { confidence: 1 }),
+    { type: "command", command: "confirm" },
+  );
+  TestValidator.equals(
+    "and is worded differently from the affirmative, or one mishearing does both",
+    consent.confirmation === consent.affirmative,
+    false,
+  );
+  TestValidator.equals(
+    "below the floor it is unheard, like every other consent answer",
+    router.route(consent.confirmation, { confidence: consent.floor - 0.01 })
+      .type,
+    "unheard",
+  );
+
   // The floor, and what it does and does not guard.
   const floor: number = consent.floor;
   TestValidator.equals(
@@ -241,6 +260,7 @@ export async function test_voice_routing(): Promise<void> {
     "help",
     "mute",
     "unmute",
+    "confirm",
   ];
   TestValidator.equals(
     "every command in the vocabulary has a phrase that reaches it",

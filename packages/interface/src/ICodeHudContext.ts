@@ -150,6 +150,15 @@ export namespace ICodeHudContext {
     single: string;
 
     /**
+     * What a request waiting on its second answer is prefixed with.
+     *
+     * A wearer who has already said the affirmative and sees the same words
+     * again cannot tell a request that needs confirming from one that did not
+     * hear them, and the difference decides whether they say it a third time.
+     */
+    again: string;
+
+    /**
      * What a host says when it has been asked to stop waking the wearer.
      *
      * Said rather than drawn: a wearer entering quiet mode is by definition

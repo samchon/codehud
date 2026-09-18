@@ -54,7 +54,12 @@ export class CodeHudComposer {
     if (state.fault !== undefined)
       return this.fault(state.fault, where, geometry);
     if (state.pending !== undefined)
-      return this.permission(state.pending, where, geometry);
+      return this.permission(
+        state.pending,
+        where,
+        geometry,
+        state.confirming === true,
+      );
     if (state.review.active === true) return this.review(state, geometry);
     switch (state.activity) {
       case "connecting":
@@ -90,18 +95,28 @@ export class CodeHudComposer {
     pending: NonNullable<ICodeHudState["pending"]>,
     where: string | undefined,
     geometry: ICodeHudGlassesDescriptor.IGeometry,
+    confirming: boolean = false,
   ): ICodeHudFrame {
     const { hint, room } = this.layout(
       geometry,
-      this.utterances(pending.options, geometry),
+      confirming === true
+        ? this.second(pending.options, geometry)
+        : this.utterances(pending.options, geometry),
     );
+    // The second ask states that it is one. A wearer who has already said the
+    // affirmative and sees the same words again cannot tell a request that
+    // needs confirming from one that did not hear them.
+    const subject: string =
+      confirming === true
+        ? `${this.context.vocabulary.again} ${pending.title}`
+        : pending.title;
     if (room <= 1)
       return this.finish(
         "permission",
         "demand",
         [
           this.line(
-            this.addressed(pending.title, where, geometry),
+            this.addressed(subject, where, geometry),
             "alert",
             geometry,
           ),
@@ -110,7 +125,7 @@ export class CodeHudComposer {
       );
 
     const lines: ICodeHudFrame.ILine[] = [
-      this.line(pending.title, "alert", geometry),
+      this.line(subject, "alert", geometry),
     ];
     if (where !== undefined) lines.push(this.directory(where, geometry));
     if (pending.detail !== undefined)
@@ -299,6 +314,39 @@ export class CodeHudComposer {
       ? full
       : CodeHudText.fit(
           yes === undefined ? no.label : `${yes.label} / ${no.label}`,
+          geometry.columns,
+        );
+  }
+
+  /**
+   * Builds the hint for a request waiting on its second answer.
+   *
+   * Names the configured confirmation token rather than a harness label,
+   * because the second answer is this system's own: no harness knows it was
+   * asked twice. The refusal stays the harness's, and stays available — a
+   * wearer who began confirming and changed their mind refuses with one word,
+   * because refusing is the recoverable direction.
+   */
+  private second(
+    options: ICodeHudAgentPermission[],
+    geometry: ICodeHudGlassesDescriptor.IGeometry,
+  ): string | undefined {
+    const no: ICodeHudAgentPermission | undefined = options.find(
+      (o) => o.affirmative === false,
+    );
+    const { say, or } = this.context.vocabulary;
+    // Presented the way a label is, because it sits where a label sits. The
+    // configured tokens are written lowercase — they are words a wearer says,
+    // not words a display shows — and a hint reading "Say confirm or Deny"
+    // looks like a mistake rather than like two answers.
+    const token: string = this.context.consent.confirmation;
+    const word: string = token.charAt(0).toUpperCase() + token.slice(1);
+    const full: string =
+      no === undefined ? `${say} ${word}` : `${say} ${word} ${or} ${no.label}`;
+    return full.length <= geometry.columns
+      ? full
+      : CodeHudText.fit(
+          no === undefined ? word : `${word} / ${no.label}`,
           geometry.columns,
         );
   }

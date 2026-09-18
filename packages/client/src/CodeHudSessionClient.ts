@@ -174,6 +174,21 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
     this.folds.set(session, this.reducer.review(this.state(session), move));
   }
 
+  /**
+   * Moves a request into or out of waiting for its second answer.
+   *
+   * Local, and deliberately so: the harness is told nothing until the second
+   * word is given, because until then nothing has been answered. It lives here
+   * for the reason review does — the fold is this client's, and a host handed
+   * one to set a flag would have been handed the means to clear a request.
+   */
+  public confirm(session: string, request: string, confirming: boolean): void {
+    this.folds.set(
+      session,
+      this.reducer.confirm(this.state(session), request, confirming),
+    );
+  }
+
   /** The fold this device holds for a session, for a caller that needs it. */
   public state(session: string): ICodeHudState {
     return this.folds.get(session) ?? this.reducer.initialize();
