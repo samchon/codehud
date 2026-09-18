@@ -43,6 +43,20 @@ export class CodeHudNodeChannel implements ICodeHudHarnessChannel {
     const self: CodeHudNodeChannel = this;
     return {
       [Symbol.asyncIterator]: async function* (): AsyncGenerator<unknown> {
+        /**
+         * One line, or nothing when there was no line there.
+         *
+         * `undefined` is the sentinel and is unambiguous: JSON has no literal
+         * for it, so a line the harness meant to send can never parse to it.
+         * `null`, `0`, `false` and `""` can, and are lines.
+         *
+         * The trim is not what makes a `
+
+` ending work — a carriage return
+         * is JSON whitespace and the parser skips it. What it decides is a
+         * byte-order mark, which is not, and which on Windows would otherwise
+         * make a harness's first line unreadable.
+         */
         const take = (line: string): unknown => {
           const flat: string = line.trim();
           if (flat.length === 0) return undefined;
