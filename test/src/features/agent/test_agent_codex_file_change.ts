@@ -49,6 +49,12 @@ import { Codex } from "../internal/codex";
  * 7. The description covers the change shapes the bindings declare — added,
  *    deleted, updated, moved — and counts the rest rather than listing them.
  *    A move names both ends when it has both and one end when it does not.
+ * 8. A change that removes a file is reported as a deletion rather than as a
+ *    write, from the item or from a legacy request's own map, and deletion
+ *    wins when a change set contains both. That is the class this product
+ *    asks about twice, and until the item was read nothing could enter it
+ *    through a patch — an agent that removed a file through its patch
+ *    mechanism rather than through `rm` was confirmed once, as a write.
  *
  * Every comparison of a whole value goes through {@link Assert.equals}, which
  * scenario 0 arms. `TestValidator.equals` accepts a member the expected value
@@ -315,6 +321,114 @@ export async function test_agent_codex_file_change(): Promise<void> {
     { title: both.title, detail: both.detail },
     { title: "update src/index.ts", detail: "writing outside the workspace" },
   );
+
+  // 8. What the change would do, which is not always a write. A wearer asked
+  // once about `rm note.txt` and twice about the same removal done by patch
+  // would be right to call that arbitrary; it was the other way around.
+  const removing: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
+    "s5",
+    () => 0,
+  );
+  removing.normalize({
+    method: "item/started",
+    params: {
+      item: {
+        type: "fileChange",
+        id: "item-13",
+        changes: [
+          { path: "/repo/keep.ts", kind: { type: "add" } },
+          { path: "/repo/gone.ts", kind: { type: "delete" } },
+        ],
+        status: "inProgress",
+      },
+    },
+  });
+  TestValidator.equals(
+    "a change set containing a removal is a deletion, not a write",
+    (
+      removing.normalize({
+        id: 13,
+        method: "item/fileChange/requestApproval",
+        params: { itemId: "item-13" },
+      })[0] as ICodeHudAgentEvent.IPermission
+    ).action,
+    "delete",
+  );
+
+  const removed: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
+    "s6",
+    () => 0,
+  );
+  TestValidator.equals(
+    "and so is a legacy patch that removes one, read from the request itself",
+    (
+      removed.normalize({
+        id: 14,
+        method: "applyPatchApproval",
+        params: {
+          fileChanges: { "/repo/gone.ts": { type: "delete" } },
+        },
+      })[0] as ICodeHudAgentEvent.IPermission
+    ).action,
+    "delete",
+  );
+
+  const unknown: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
+    "s7",
+    () => 0,
+  );
+  TestValidator.equals(
+    "a file change nothing was remembered for keeps the floor it always had",
+    (
+      unknown.normalize({
+        id: 15,
+        method: "item/fileChange/requestApproval",
+        params: { itemId: "item-never-seen" },
+      })[0] as ICodeHudAgentEvent.IPermission
+    ).action,
+    "write",
+  );
+
+  const escalation: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
+    "s8",
+    () => 0,
+  );
+  TestValidator.equals(
+    "and a permissions request still performs no action to classify",
+    (
+      escalation.normalize({
+        id: 16,
+        method: "item/permissions/requestApproval",
+        params: { cwd: "/repo" },
+      })[0] as ICodeHudAgentEvent.IPermission
+    ).action,
+    undefined,
+  );
+
+  // 8b. Which of the eight a patch can reach, stated rather than implied.
+  for (const [changes, expected] of [
+    [[{ path: "/repo/a.ts", kind: { type: "add" } }], "write"],
+    [[{ path: "/repo/a.ts", kind: { type: "update" } }], "write"],
+    [[{ path: "/repo/a.ts", kind: { type: "delete" } }], "delete"],
+    [
+      // A move is a write. The file leaves one path and the content is at the
+      // other, so a wearer asked twice about every rename pays the fatigue the
+      // policy exists to prevent for something they have not lost.
+      [
+        {
+          path: "/repo/a.ts",
+          kind: { type: "update", move_path: "/repo/b.ts" },
+        },
+      ],
+      "write",
+    ],
+    [[], "write"],
+  ] as const)
+    TestValidator.equals(
+      `a change of that shape performs ${expected}`,
+      CodeHudCodexNormalizer.performed(changes),
+      expected,
+    );
 
   // 7. The shapes `PatchChangeKind` declares, and the count that stands in for
   // a list a two-line display could not hold anyway.

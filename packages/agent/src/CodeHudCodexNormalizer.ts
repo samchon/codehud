@@ -27,7 +27,17 @@ import { CodeHudActionClass } from "./CodeHudActionClass";
  * @author Samchon
  */
 export class CodeHudCodexNormalizer {
-  private readonly titles: Map<string, string> = new Map();
+  /**
+   * What each item is about, under the identifier an approval names it by.
+   *
+   * An approval on this server says less than the item it belongs to. A
+   * command execution repeats its command, so only the description is worth
+   * keeping; a file change repeats nothing at all, so what it would do is kept
+   * as well. One table rather than two so the two facts about one item cannot
+   * drift apart.
+   */
+  private readonly subjects: Map<string, CodeHudCodexNormalizer.ISubject> =
+    new Map();
   private sequence: number = 0;
   private started: number;
 
@@ -160,9 +170,12 @@ export class CodeHudCodexNormalizer {
 
       case "commandExecution": {
         const title: string =
-          this.titles.get(item.id) ??
+          this.subjects.get(item.id)?.title ??
           CodeHudCodexNormalizer.title(item.command ?? "");
-        this.titles.set(item.id, title);
+        // No class kept: the approval for a command execution repeats the
+        // command, and reading that is strictly better than remembering a
+        // judgment made from it.
+        this.subjects.set(item.id, { title });
         return [
           this.base<ICodeHudAgentEvent.ITool>({
             type: "tool",
@@ -184,9 +197,12 @@ export class CodeHudCodexNormalizer {
         // no path of its own, only this item's identifier, so it had nothing
         // to be titled from either.
         const title: string =
-          this.titles.get(item.id) ??
+          this.subjects.get(item.id)?.title ??
           CodeHudCodexNormalizer.changed(item.changes ?? []);
-        this.titles.set(item.id, title);
+        this.subjects.set(item.id, {
+          title,
+          action: CodeHudCodexNormalizer.performed(item.changes ?? []),
+        });
         return [
           this.base<ICodeHudAgentEvent.ITool>({
             type: "tool",
@@ -244,16 +260,6 @@ export class CodeHudCodexNormalizer {
         : Array.isArray(spoken) === true
           ? spoken.join(" ")
           : spoken;
-    // Every approval this server sends is about something it would run or
-    // write; there is no tool name to read, so the command is the whole of what
-    // can be classified. A permissions request names none, and is an escalation
-    // of access rather than an action, which is why it reports none.
-    const action: ICodeHudAgentAdapter.IPolicy.Action | undefined =
-      command === undefined
-        ? vocabulary === "profile"
-          ? undefined
-          : "write"
-        : CodeHudActionClass.of({ tool: "Bash", command });
     // What the request is about, when the request does not say it outright.
     //
     // A modern file change names neither a command nor a path: it names the
@@ -274,22 +280,38 @@ export class CodeHudCodexNormalizer {
     // driven send the modern method, and an adapter that met the legacy one
     // and said `Wider access requested` would be wrong in exactly the way
     // this change exists to stop.
-    const remembered: string | undefined =
+    const remembered: CodeHudCodexNormalizer.ISubject | undefined =
       message.params?.itemId === undefined || vocabulary === "profile"
         ? undefined
-        : this.titles.get(message.params.itemId);
-    const described: string | undefined =
-      remembered ??
-      (message.params?.fileChanges === undefined
+        : this.subjects.get(message.params.itemId);
+    const listed: CodeHudCodexNormalizer.IChange[] | undefined =
+      message.params?.fileChanges === undefined
         ? undefined
-        : CodeHudCodexNormalizer.changed(
-            Object.entries(message.params.fileChanges).map(
-              ([path, change]) => ({
-                path,
-                kind: { type: change?.type, move_path: change?.move_path },
-              }),
-            ),
-          ));
+        : Object.entries(message.params.fileChanges).map(([path, change]) => ({
+            path,
+            kind: { type: change?.type, move_path: change?.move_path },
+          }));
+    const described: string | undefined =
+      remembered?.title ??
+      (listed === undefined
+        ? undefined
+        : CodeHudCodexNormalizer.changed(listed));
+    // Every approval this server sends is about something it would run, write
+    // or remove. A command says which of those itself. A file change does not:
+    // it was reported as a write whatever it would do, and a `delete` change is
+    // the class this product asks about twice — so the change is read, from the
+    // item when one is remembered and from the request when it carries its own.
+    // A permissions request names no action; it is an escalation of access
+    // rather than a thing done, which is why it reports none.
+    const action: ICodeHudAgentAdapter.IPolicy.Action | undefined =
+      command !== undefined
+        ? CodeHudActionClass.of({ tool: "Bash", command })
+        : vocabulary === "profile"
+          ? undefined
+          : (remembered?.action ??
+            (listed === undefined
+              ? "write"
+              : CodeHudCodexNormalizer.performed(listed)));
     // A grant root is an access request wearing a file change's clothes: the
     // binding states that when it is set the agent is asking to write anywhere
     // under that root for the rest of the session. The wearer is told that
@@ -715,6 +737,22 @@ export namespace CodeHudCodexNormalizer {
   }
 
   /**
+   * What is known about one item, kept for the approval that names it.
+   *
+   * The description is always worth keeping. The class is kept only where the
+   * approval could not work it out for itself, which is the file change: its
+   * request carries no command to read and reported every change as a write
+   * until the item was asked.
+   */
+  export interface ISubject {
+    /** One line describing the item, as the display would show it. */
+    title: string;
+
+    /** What the item would perform, where only the item says. */
+    action?: ICodeHudAgentAdapter.IPolicy.Action;
+  }
+
+  /**
    * One file a change would touch.
    *
    * Read from the bindings the installed binary generates, where
@@ -825,6 +863,32 @@ export namespace CodeHudCodexNormalizer {
     const one: string = subject.length === 0 ? kind : `${kind} ${subject}`;
     return changes.length <= 1 ? one : `${one} and ${changes.length - 1} more`;
   };
+
+  /**
+   * Which class of action a set of file changes would perform.
+   *
+   * Two of the eight are reachable from a patch: removing a file is a deletion
+   * and everything else is a write. Deletion wins when a change set contains
+   * both, which is the rule {@link CodeHudActionClass} already states for a
+   * command that matches two shapes — the worse of the two is the one reported,
+   * because the cost of naming something destructive is one spoken word and the
+   * cost of missing it is the file.
+   *
+   * A move is a write. It takes a file off one path, but the content is at the
+   * other one, and a wearer asked twice about every rename an agent makes pays
+   * the approval fatigue the policy exists to prevent for something they have
+   * not lost.
+   *
+   * Empty is a write rather than nothing: a request that would change no file
+   * is still a request to write, and reporting no class at all is reserved for
+   * the request that performs no action.
+   */
+  export const performed = (
+    changes: readonly IChange[],
+  ): ICodeHudAgentAdapter.IPolicy.Action =>
+    changes.some((change) => change.kind?.type === "delete") === true
+      ? "delete"
+      : "write";
 
   /**
    * The last two segments of a path.
