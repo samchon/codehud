@@ -37,6 +37,7 @@ The hint costs one of the declared rows, because that is how the composer counts
 ```bash
 pnpm run bridge                                        # in one terminal
 pnpm run desk -- "ws://…:37219/?token=…" --cd /repo    # in another
+pnpm run desk -- "ws://…" --cd /repo --policy careful   # or under a stricter one
 ```
 
 `--cd` may be named several times, one session each. `sessions` reads them out
@@ -46,6 +47,33 @@ pronounce a path.
 The address is the pairing payload the bridge printed, taken verbatim because it
 is the same string a phone would scan. `--columns` and `--rows` state the
 geometry to simulate, and the box is drawn at exactly that.
+
+`--policy` states how much the agent may do without asking, as one of three
+rungs. Until it existed the host passed one frozen constant, so the contract's
+own sentence — the policy is "stated when the work begins, because the right
+answer differs between a scratch repository and one that deploys" — was true and
+unreachable:
+
+| rung | write | execute | network |
+| --- | --- | --- | --- |
+| `careful` | two words | two words | two words |
+| `standard` (default) | one word | one word | one word |
+| `flowing` | one word | no asking | no asking |
+
+Reads never ask, on any rung, and the four irreversible classes — deletion,
+history rewriting, force publication, credential exposure — always take two
+words. A rung that loosened those would remove the promise rather than trade it
+for speed.
+
+`careful` is the proposal in #106, available on demand rather than imposed.
+Measured on four real sessions against a small project, it costs about two extra
+spoken words per session: a session runs roughly two commands, not dozens, so
+the objection that it doubles everything does not survive contact with what a
+session actually asks about.
+
+A rung nobody offers is refused rather than replaced. Someone who asked for
+`careful` and silently received `standard` has been told their statement took
+effect when it did not.
 
 This package therefore holds two things that must not be confused. The adapter
 renders what it is handed and reports what it observes, and knows nothing about

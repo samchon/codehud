@@ -131,6 +131,38 @@ export async function test_voice_routing(): Promise<void> {
     type: "query",
     query: "elapsed",
   });
+
+  // Every question the vocabulary declares is reachable from a phrase and is
+  // answered. Nothing pinned this, and the consequence was a member called
+  // `policy` whose phrases were *what is it asking* and *what is pending* and
+  // whose answer was the pending request's title: a closed vocabulary carrying
+  // a name for something it does not do, for as long as nobody said the name
+  // and the answer out loud in the same place.
+  const questions: ICodeHudVoiceRouting.IQuery.Kind[] = [
+    "activity",
+    "elapsed",
+    "session",
+    "result",
+    "pending",
+  ];
+  for (const question of questions) {
+    const phrases: readonly string[] =
+      CodeHudVoiceRouter.QUESTIONS[question] ?? [];
+    Assert.predicate(
+      `${question} is something a wearer can actually say`,
+      phrases.length > 0,
+    );
+    for (const phrase of phrases)
+      Assert.equals(
+        `"${phrase}" asks about ${question}`,
+        router.route(phrase),
+        { type: "query", query: question },
+      );
+    Assert.predicate(
+      `and ${question} answers rather than returning nothing`,
+      router.answer(question, finished).length > 0,
+    );
+  }
   Assert.equals(
     "and never a prompt, so it costs no turn",
     router.route("what happened").type,
