@@ -92,6 +92,16 @@ What was not: whatever sat in the buffer when the process's output ended was dis
 
 The file's own documentation said no unit test covered it and that this was acceptable, in the paragraph before the one naming the framing as the rule it owns. Both sentences were true of everything except each other.
 
+## A harness that dies says so
+
+`ICodeHudAgentEvent.IError` is defined as the session itself breaking. The Codex normalizer produced one for the server's `error` notification; the Claude normalizer produced one never, and neither session produced one when its channel's output simply stopped — which is what a killed process looks like from inside an adapter.
+
+The bridge is written against the opposite assumption. `CodeHudSessionRegistry.pump` says it in its own catch: "The adapter owns reporting a harness that died, and does so as an error observation on this same stream." Nothing was carrying it, so nothing was said. A Claude session whose process died mid-turn left the display reading **working**, forever, about an agent that no longer existed; a Codex one left it reading **idle**, so the wearer found out one failed delivery at a time.
+
+Both sessions now report a fatal error when their stream ends without their own `close` having caused it, and say nothing when it did — a wearer who ended their own work is not told it broke.
+
+That rule depends on a vendor fact, so it was measured rather than assumed: `claude 2.1.274` with `--print --input-format stream-json --output-format stream-json` was still running two seconds after its first `result` and took a second turn on the same stdin. The process does not exit when a turn ends, so a stream that ends on its own is a harness that is gone rather than one that finished, and reporting it costs nothing on an ordinary turn.
+
 ## Two harnesses, one observation vocabulary
 
 Claude Code streams NDJSON with a control round-trip bolted alongside; Codex is JSON-RPC in both directions. Downstream of the adapters neither difference exists.

@@ -70,17 +70,40 @@ export class CodeHudClaudeSession implements ICodeHudAgentSession {
     const source: AsyncIterable<unknown> = this.channel.lines;
     const normalizer: CodeHudClaudeNormalizer = this.normalizer;
     const waiting: Set<string> = this.waiting;
+    const closed = (): boolean => this.ended;
     return {
       [Symbol.asyncIterator]:
         async function* (): AsyncGenerator<ICodeHudAgentEvent> {
-          for await (const line of source)
-            for (const event of normalizer.normalize(
-              line as CodeHudClaudeNormalizer.ILine,
-            )) {
-              if (event.type === "permission") waiting.add(event.request);
-              if (event.type === "result") waiting.clear();
-              yield event;
-            }
+          try {
+            for await (const line of source)
+              for (const event of normalizer.normalize(
+                line as CodeHudClaudeNormalizer.ILine,
+              )) {
+                if (event.type === "permission") waiting.add(event.request);
+                if (event.type === "result") waiting.clear();
+                yield event;
+              }
+          } catch {
+            // Ending badly is still ending. A pipe can fail rather than close,
+            // and letting that propagate reaches the bridge's own catch, which
+            // says it has nothing to tell a device that the stream did not
+            // already carry — so the wearer would be told nothing by exactly
+            // the code that believes they were told.
+          }
+          // The stream ended. A harness that dies writes nothing to say so,
+          // and the bridge deliberately says nothing either — it is written
+          // against the assumption that the adapter reports a dead harness on
+          // this same stream, which neither adapter did. So the wearer was
+          // shown a session still working on something that no longer existed,
+          // which is the failure this product is for preventing.
+          //
+          // Measured rather than assumed: `claude 2.1.274` with `--print
+          // --input-format stream-json` stays alive after a result and takes a
+          // second turn on the same stdin. The process does not exit when a
+          // turn ends, so a stream that ends on its own is a harness that is
+          // gone rather than one that finished.
+          if (closed() === false)
+            yield normalizer.broken("the harness stopped");
         },
     };
   }

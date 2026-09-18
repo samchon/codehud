@@ -114,6 +114,7 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
     const source: AsyncIterable<unknown> = this.channel.lines;
     const normalizer: CodeHudCodexNormalizer = this.normalizer;
     const waiting: Map<string, string> = this.waiting;
+    const closed = (): boolean => this.ended;
     const names = (thread: string): void => {
       const resolve = this.names;
       this.names = null;
@@ -122,28 +123,42 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
     return {
       [Symbol.asyncIterator]:
         async function* (): AsyncGenerator<ICodeHudAgentEvent> {
-          for await (const line of source) {
-            const message: CodeHudCodexNormalizer.IMessage =
-              line as CodeHudCodexNormalizer.IMessage;
-            const produced: ICodeHudAgentEvent[] =
-              normalizer.normalize(message);
-            // The server names its thread in a notification rather than in a
-            // reply, so this stream is where it becomes known, and an
-            // instruction waiting to be addressed is released here — after the
-            // line has been read rather than before it. Asking first meant the
-            // very line that carries the name was the one line that did not
-            // release anything, which is invisible in a real session, where
-            // more lines follow, and total in one that names its thread and
-            // stops.
-            const thread: string | undefined = normalizer.thread;
-            if (thread !== undefined) names(thread);
-            for (const event of produced) {
-              if (event.type === "permission" && message.method !== undefined)
-                waiting.set(event.request, message.method);
-              if (event.type === "result") waiting.clear();
-              yield event;
+          try {
+            for await (const line of source) {
+              const message: CodeHudCodexNormalizer.IMessage =
+                line as CodeHudCodexNormalizer.IMessage;
+              const produced: ICodeHudAgentEvent[] =
+                normalizer.normalize(message);
+              // The server names its thread in a notification rather than in a
+              // reply, so this stream is where it becomes known, and an
+              // instruction waiting to be addressed is released here — after the
+              // line has been read rather than before it. Asking first meant the
+              // very line that carries the name was the one line that did not
+              // release anything, which is invisible in a real session, where
+              // more lines follow, and total in one that names its thread and
+              // stops.
+              const thread: string | undefined = normalizer.thread;
+              if (thread !== undefined) names(thread);
+              for (const event of produced) {
+                if (event.type === "permission" && message.method !== undefined)
+                  waiting.set(event.request, message.method);
+                if (event.type === "result") waiting.clear();
+                yield event;
+              }
             }
+          } catch {
+            // Ending badly is still ending, for the reason the sibling adapter
+            // states: a propagated failure reaches the bridge's own catch,
+            // which is written believing the stream already said so.
           }
+          // The stream ended. This server has an `error` notification, but that
+          // reports a protocol failure on a process that is still there; a
+          // process that is gone sends nothing, and until now that reached the
+          // wearer as a session sitting idle rather than as one that is over.
+          // The bridge is written against the assumption that the adapter says
+          // so on this stream, so nothing else was going to.
+          if (closed() === false)
+            yield normalizer.broken("the harness stopped");
         },
     };
   }
