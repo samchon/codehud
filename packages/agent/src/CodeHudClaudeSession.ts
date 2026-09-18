@@ -105,7 +105,10 @@ export class CodeHudClaudeSession implements ICodeHudAgentSession {
     if (command.type === "prompt")
       return this.channel.write({
         type: "user",
-        message: { role: "user", content: command.text },
+        message: {
+          role: "user",
+          content: CodeHudClaudeSession.content(command),
+        },
       });
 
     if (command.type === "interrupt")
@@ -152,6 +155,77 @@ export class CodeHudClaudeSession implements ICodeHudAgentSession {
   }
 }
 export namespace CodeHudClaudeSession {
+  /**
+   * What a prompt's message carries.
+   *
+   * A bare string when there is only text, because that is what the harness
+   * receives from every other client and the shape its own captures show. An
+   * array of content blocks when the wearer attached what they were looking at,
+   * which is the one input a desktop terminal cannot produce and the reason the
+   * contract carries images at all.
+   *
+   * The block shape is the vendor's: `{ type: "image", source: { type:
+   * "base64", media_type, data } }`, read out of the installed binary rather
+   * than assumed, alongside the branch that accepts a message whose content is
+   * an array instead of a string.
+   */
+  export const content = (
+    command: ICodeHudAgentCommand.IPrompt,
+  ): string | IBlock[] => {
+    const images: string[] = command.images ?? [];
+    if (images.length === 0) return command.text;
+    return [
+      { type: "text", text: command.text },
+      ...images.map((url) => {
+        const parsed: IImage = image(url);
+        return {
+          type: "image" as const,
+          source: {
+            type: "base64" as const,
+            media_type: parsed.media,
+            data: parsed.data,
+          },
+        };
+      }),
+    ];
+  };
+
+  /**
+   * Splits a data URL into the two things the harness's block needs.
+   *
+   * Refused rather than repaired. A photograph that arrived malformed is a
+   * defect in the device that took it, and sending it as text or dropping it
+   * quietly would leave a wearer looking at an answer about a picture the agent
+   * never saw.
+   */
+  export const image = (url: string): IImage => {
+    const parsed: RegExpMatchArray | null = url.match(
+      /^data:([a-z]+\/[a-z0-9.+-]+);base64,(.+)$/iu,
+    );
+    const media: string | undefined = parsed?.[1];
+    const data: string | undefined = parsed?.[2];
+    if (media === undefined || data === undefined)
+      throw new Error("an attached image is not a base64 data URL");
+    return { media, data };
+  };
+
+  /** One content block of a prompt message. */
+  export type IBlock =
+    | { type: "text"; text: string }
+    | {
+        type: "image";
+        source: { type: "base64"; media_type: string; data: string };
+      };
+
+  /** A data URL split into what the harness's image block carries. */
+  export interface IImage {
+    /** Media type, such as `image/png`. */
+    media: string;
+
+    /** The base64 payload, without the URL around it. */
+    data: string;
+  }
+
   /** What a session needs beyond its channel. */
   export interface IProps {
     /** Whether this conversation was opened by resuming an earlier one. */

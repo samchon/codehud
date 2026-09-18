@@ -9,6 +9,7 @@ import type {
 } from "@codehud/interface";
 import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Codex } from "../internal/codex";
 
 /**
@@ -183,7 +184,7 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
     Codex.admits({}, 1, {}),
     [],
   );
-  TestValidator.error("and a dangling reference is reported", () =>
+  await Assert.throws("and a dangling reference is reported", () =>
     Codex.admits({ $ref: "#/definitions/Nope" }, 1, {}),
   );
 
