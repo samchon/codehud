@@ -164,6 +164,21 @@ export async function test_voice_routing(): Promise<void> {
     undefined,
   );
 
+  // The two readers of one string agree about what the string is. They did not:
+  // the check trimmed before judging a token and the match did not, so a token
+  // written with a space around it was usable and matched nothing — and an
+  // unmatched consent word is not silence, it is an instruction sent to the
+  // agent instead of an answer given to the question in front of the wearer.
+  const padded: CodeHudVoiceRouter = new CodeHudVoiceRouter({
+    ...CodeHudContext.DEFAULT,
+    consent: { ...consent, affirmative: " allow " },
+  });
+  Assert.equals(
+    "a consent word written with spaces around it still answers",
+    padded.route("allow", { confidence: 0.95 }),
+    { type: "command", command: "allow" },
+  );
+
   // The questions this device answers by itself.
   const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
   Stream.reset();

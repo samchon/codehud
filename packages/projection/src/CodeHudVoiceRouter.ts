@@ -336,9 +336,16 @@ export namespace CodeHudVoiceRouter {
       .trim();
     const found: ICodeHudVoiceRouting.ICommand.Kind[] = [];
 
-    if (head === consent.affirmative.toLowerCase()) found.push("allow");
-    if (head === consent.negative.toLowerCase()) found.push("deny");
-    if (head === consent.confirmation.toLowerCase()) found.push("confirm");
+    // Trimmed, on the same terms the configuration is judged by. `unusable`
+    // trims before deciding a token is empty or a duplicate, and this did not,
+    // so a token written with a space around it passed as usable and then
+    // matched nothing: the wearer's "allow" went to the agent as an instruction
+    // instead of answering the question in front of them. Two readers of one
+    // string disagreeing about what the string is.
+    const spoken = (token: string): string => token.trim().toLowerCase();
+    if (head === spoken(consent.affirmative)) found.push("allow");
+    if (head === spoken(consent.negative)) found.push("deny");
+    if (head === spoken(consent.confirmation)) found.push("confirm");
 
     for (const [command, phrases] of Object.entries(GRAMMAR))
       if (phrases.includes(head) === true)
