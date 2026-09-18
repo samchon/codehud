@@ -100,10 +100,15 @@ export class CodeHudTerminalGlasses implements ICodeHudGlassesAdapter {
     };
   }
 
-  /** Nothing to open: a terminal is already there. */
-  public async connect(): Promise<void> {
-    this.asleep = false;
-  }
+  /**
+   * Nothing to open: a terminal is already there.
+   *
+   * Deliberately not a wake. Transport and display are the same thing here and
+   * nowhere else, and an adapter that lit its display on connect would let a
+   * host get away with reconnecting to show a line — which on hardware ends a
+   * session to draw one.
+   */
+  public async connect(): Promise<void> {}
 
   /** Nothing to close either. */
   public async disconnect(): Promise<void> {
@@ -142,6 +147,18 @@ export class CodeHudTerminalGlasses implements ICodeHudGlassesAdapter {
    */
   public async sleep(): Promise<void> {
     this.asleep = true;
+    this.shown = "";
+  }
+
+  /**
+   * Lights the display again.
+   *
+   * Forgets the last key for the same reason sleeping does: a display that went
+   * dark and then skipped the next draw as unchanged would wake to nothing,
+   * which is the one outcome waking exists to prevent.
+   */
+  public async wake(): Promise<void> {
+    this.asleep = false;
     this.shown = "";
   }
 

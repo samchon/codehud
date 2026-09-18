@@ -36,7 +36,10 @@ import { TestValidator } from "@nestia/e2e";
  * 4. A frame differing only in grade is drawn too, since the grade is part of
  *    what a wearer reads and therefore part of the key the composer built.
  * 5. A sleeping display draws nothing at all.
- * 6. Waking redraws what was suppressed, rather than treating it as unchanged.
+ * 6. Reconnecting does not wake a sleeping display, and waking redraws what was
+ *    suppressed rather than treating it as unchanged. The two are separate
+ *    operations because on hardware they are separate things: a host that
+ *    reconnected to light a display would end a session to draw a line.
  * 7. Beginning capture redraws for the same reason, because the title says so.
  */
 export async function test_device_redraw(): Promise<void> {
@@ -109,8 +112,14 @@ export async function test_device_redraw(): Promise<void> {
     0,
   );
   await glasses.connect();
+  TestValidator.equals(
+    "reconnecting is not waking, because the display is not the transport",
+    await drawn(graded),
+    0,
+  );
+  await glasses.wake();
   TestValidator.predicate(
-    "and waking redraws the unchanged frame rather than showing nothing",
+    "waking redraws the unchanged frame rather than showing nothing",
     (await drawn(graded)) > 0,
   );
 
