@@ -48,6 +48,11 @@ export namespace ICodeHudVoiceRouting {
      *
      * Small enough for a wearer to hold in their head. Adding a member is a
      * change to the specification, not a runtime behavior.
+     *
+     * Silencing is two members rather than one toggle. A toggle asks a wearer
+     * to know which state they are in, and the display that would tell them is
+     * the one quiet mode has stopped waking; the failure it produces is a
+     * product speaking up in a meeting because the wearer silenced it twice.
      */
     export type Kind =
       | "allow"
@@ -59,7 +64,9 @@ export namespace ICodeHudVoiceRouting {
       | "repeat"
       | "sessions"
       | "switch"
-      | "help";
+      | "help"
+      | "mute"
+      | "unmute";
   }
 
   /**

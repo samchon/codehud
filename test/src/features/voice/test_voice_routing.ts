@@ -1,4 +1,4 @@
-import type { ICodeHudState } from "@codehud/interface";
+import type { ICodeHudState, ICodeHudVoiceRouting } from "@codehud/interface";
 import {
   CodeHudContext,
   CodeHudReducer,
@@ -155,6 +155,28 @@ export async function test_voice_routing(): Promise<void> {
     CodeHudContext.DEFAULT.vocabulary.ready,
   );
 
+  // Silence, which a wearer has to be able to ask for out loud.
+  TestValidator.equals(
+    "the product can be silenced by saying so",
+    router.route("quiet", { confidence: 1 }),
+    { type: "command", command: "mute" },
+  );
+  TestValidator.equals(
+    "and un-silenced by a different word, not by repeating the same one",
+    router.route("unmute", { confidence: 1 }),
+    { type: "command", command: "unmute" },
+  );
+  TestValidator.equals(
+    "saying it twice asks for the same thing twice",
+    router.route("quiet", { confidence: 1 }),
+    router.route("silence", { confidence: 1 }),
+  );
+  TestValidator.predicate(
+    "and neither word is close to a consent token",
+    [consent.affirmative, consent.negative].includes("mute") === false &&
+      [consent.affirmative, consent.negative].includes("unmute") === false,
+  );
+
   // The floor, and what it does and does not guard.
   const floor: number = consent.floor;
   TestValidator.equals(
@@ -202,6 +224,34 @@ export async function test_voice_routing(): Promise<void> {
     grammar.includes("stop") &&
       grammar.includes("how long") &&
       grammar.includes(consent.affirmative),
+  );
+  // Derived from the closed union rather than listed here, so a command added
+  // to the vocabulary without a phrase a wearer could say fails this rather
+  // than shipping unreachable.
+  const kinds: ICodeHudVoiceRouting.ICommand.Kind[] = [
+    "allow",
+    "deny",
+    "stop",
+    "back",
+    "forward",
+    "latest",
+    "repeat",
+    "sessions",
+    "switch",
+    "help",
+    "mute",
+    "unmute",
+  ];
+  TestValidator.equals(
+    "every command in the vocabulary has a phrase that reaches it",
+    kinds.filter(
+      (kind) =>
+        grammar.some((phrase) => {
+          const routed = router.route(phrase, { confidence: 1 });
+          return routed.type === "command" && routed.command === kind;
+        }) === false,
+    ),
+    [],
   );
   TestValidator.predicate(
     "and every phrase in it routes to something other than a prompt",

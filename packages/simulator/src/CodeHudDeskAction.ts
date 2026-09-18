@@ -111,6 +111,11 @@ export namespace CodeHudDeskAction {
       case "repeat":
         return { type: "redraw" };
 
+      case "mute":
+        return { type: "silence", active: true };
+      case "unmute":
+        return { type: "silence", active: false };
+
       case "help":
         return { type: "say", reason: "help" };
 
@@ -132,6 +137,7 @@ export namespace CodeHudDeskAction {
     | IReview
     | IRedraw
     | IAnswer
+    | ISilence
     | ISay
     | INone;
 
@@ -175,6 +181,21 @@ export namespace CodeHudDeskAction {
   export interface IRedraw {
     /** Discriminator. */
     type: "redraw";
+  }
+
+  /**
+   * Enter or leave quiet mode.
+   *
+   * Carries the state to be in rather than a toggle, because the utterance that
+   * produced it named one: a wearer who says the word for silence twice has
+   * asked for silence twice, and must not get the opposite of what they said.
+   */
+  export interface ISilence {
+    /** Discriminator. */
+    type: "silence";
+
+    /** Whether waking and speech are to be suppressed. */
+    active: boolean;
   }
 
   /** Answer a question from the fold this device already holds. */
