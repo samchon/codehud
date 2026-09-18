@@ -101,8 +101,13 @@ export class CodeHudCodexNormalizer {
         ];
       case undefined:
       default:
-        // A response to something we asked, or one of the eleven kinds of
-        // bookkeeping. Neither changes what a wearer would do.
+        // A response to something we asked, or one of the bookkeeping
+        // notifications. Neither changes what a wearer would do.
+        //
+        // Counted here once, and the count went stale the first time a capture
+        // was redone: `turn/diff/updated` appears only in a turn that writes a
+        // file. The captures' own inventory says how many there are, and it is
+        // the thing that notices when another arrives.
         return [];
     }
   }
