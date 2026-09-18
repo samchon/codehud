@@ -115,5 +115,47 @@ export namespace ICodeHudContext {
 
     /** Complete hint for moving through the retained history. */
     review: string;
+
+    /**
+     * What a host says when an utterance matched more than one command.
+     *
+     * Introduces the candidates rather than standing alone, because a wearer
+     * told only that they were ambiguous has to guess which two.
+     */
+    ambiguous: string;
+
+    /**
+     * What a host says when nothing was heard clearly enough to act on.
+     *
+     * Said rather than silent. A wearer whose consent answer fell below the
+     * floor is owed the difference between not being heard and not being
+     * listened to, and the request is still theirs to answer.
+     */
+    unheard: string;
+
+    /**
+     * What a host says when the answer a wearer gave is not one on offer.
+     *
+     * Reachable whenever a harness omits an answer this surface would otherwise
+     * expect, such as a request that can only be refused.
+     */
+    unoffered: string;
+
+    /**
+     * What a host says when asked to move between sessions it does not have.
+     *
+     * A host running one session still answers, because words that did nothing
+     * are indistinguishable from words that were not heard.
+     */
+    single: string;
+
+    /**
+     * What a host says when a demand went somewhere the wearer is not looking.
+     *
+     * Names the redirection rather than the content: the content already went,
+     * and repeating it here would put on a display the thing the display could
+     * not show.
+     */
+    elsewhere: string;
   }
 }

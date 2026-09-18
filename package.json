@@ -11,6 +11,7 @@
     "build": "pnpm --filter=./packages/** -r build && pnpm --filter @codehud/test build",
     "test": "pnpm --filter @codehud/test start",
     "bridge": "pnpm --filter @codehud/bridge start",
+    "desk": "pnpm --filter @codehud/simulator start",
     "codex:bindings": "codex app-server generate-ts --out packages/codex-protocol/src",
     "format": "prettier --write \"**/*.{ts,cts,mts}\"",
     "format:check": "prettier --check \"**/*.{ts,cts,mts}\"",

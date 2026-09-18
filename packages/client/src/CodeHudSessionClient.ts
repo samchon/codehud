@@ -158,6 +158,22 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
     );
   }
 
+  /**
+   * Moves the review cursor of a session this device holds.
+   *
+   * Local in every sense: no agent turn, no round trip, no money, and it works
+   * while the bridge is unreachable. It lives here rather than on the host
+   * because the folds are this client's, and a host that had to be handed one
+   * to move a cursor would be handed the means to rewrite it.
+   *
+   * A session this device holds nothing for moves nowhere, without needing a
+   * guard here: the reducer leaves an empty history where it is, and the fold
+   * that results is the one an unheld session already reads as.
+   */
+  public review(session: string, move: CodeHudReducer.Move): void {
+    this.folds.set(session, this.reducer.review(this.state(session), move));
+  }
+
   /** The fold this device holds for a session, for a caller that needs it. */
   public state(session: string): ICodeHudState {
     return this.folds.get(session) ?? this.reducer.initialize();

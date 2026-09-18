@@ -13,7 +13,8 @@ import { CodeHudTerminalCanvas } from "./CodeHudTerminalCanvas";
  * A class, and a facade controller: it owns a stream of lines, a rendering
  * destination, and the sleeping state. Every rule about *how* a frame is drawn
  * lives in {@link CodeHudTerminalCanvas} and is pure; what is left here is the
- * stream and the console, which is why no unit test covers this file.
+ * stream, the console, and the one comparison the adapter contract permits an
+ * adapter to make for itself.
  *
  * ## Typed input, and why it does not break the no-keyboard rule
  *
@@ -50,6 +51,14 @@ import { CodeHudTerminalCanvas } from "./CodeHudTerminalCanvas";
 export class CodeHudTerminalGlasses implements ICodeHudGlassesAdapter {
   private asleep: boolean = false;
   private listening: boolean = false;
+
+  /**
+   * The key of what this terminal last drew.
+   *
+   * Empty before anything has been drawn, which no frame's key can equal: a
+   * key always carries at least a kind and a grade.
+   */
+  private shown: string = "";
 
   /** Constructs a simulator at a stated geometry. */
   public constructor(private readonly props: CodeHudTerminalGlasses.IProps) {}
@@ -111,15 +120,29 @@ export class CodeHudTerminalGlasses implements ICodeHudGlassesAdapter {
    */
   public async render(frame: ICodeHudFrame): Promise<void> {
     if (this.asleep === true) return;
+    // The comparison the adapter contract requires of every implementation,
+    // and the only optimization it permits. A terminal has no screen to read
+    // back, so what is already shown is the last thing written; without this a
+    // streaming turn prints one box per token and the scrollback a wearer is
+    // meant to read becomes the thing hiding what they wanted.
+    if (frame.key === this.shown) return;
+    this.shown = frame.key;
     for (const line of CodeHudTerminalCanvas.draw(frame, this.props.geometry, {
       title: `${this.descriptor.model}${this.listening === true ? " · listening" : ""}`,
     }))
       this.props.write(line);
   }
 
-  /** Puts the display to sleep, so a grade that may not wake it shows nothing. */
+  /**
+   * Puts the display to sleep, so a grade that may not wake it shows nothing.
+   *
+   * Forgets what was drawn as well. A display that woke to find the frame
+   * unchanged would skip the draw and show nothing at all, which is the one
+   * outcome waking exists to prevent.
+   */
   public async sleep(): Promise<void> {
     this.asleep = true;
+    this.shown = "";
   }
 
   /**
@@ -132,6 +155,10 @@ export class CodeHudTerminalGlasses implements ICodeHudGlassesAdapter {
   public async listen(): Promise<void> {
     this.asleep = false;
     this.listening = true;
+    // Capture is marked in the title, so what is drawn changes even when the
+    // frame does not. Forgetting the last key is what lets the next draw say
+    // so instead of being skipped as unchanged.
+    this.shown = "";
   }
 }
 export namespace CodeHudTerminalGlasses {

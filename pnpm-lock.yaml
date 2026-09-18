@@ -249,9 +249,18 @@ importers:
 
   packages/simulator:
     dependencies:
+      '@codehud/client':
+        specifier: workspace:^
+        version: link:../client
       '@codehud/interface':
         specifier: workspace:^
         version: link:../interface
+      '@codehud/projection':
+        specifier: workspace:^
+        version: link:../projection
+      tgrid:
+        specifier: catalog:net
+        version: 1.2.1
     devDependencies:
       '@ttsc/evidence':
         specifier: catalog:typescript
