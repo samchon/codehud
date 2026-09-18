@@ -1,3 +1,5 @@
+import { CodeHudActionClass } from "@codehud/agent";
+
 import { Assert } from "../internal/assert";
 import { Claude } from "../internal/claude";
 
@@ -294,4 +296,35 @@ export async function test_agent_claude_envelope(): Promise<void> {
     "the completed message arrives before the stream stops",
     kinds.indexOf("assistant") < kinds.indexOf("content_block_stop"),
   );
+
+  // Every tool the harness stopped to ask about is one this repository
+  // classifies.
+  //
+  // The narrow form on purpose. A check over the whole advertised tool set
+  // would fire on every plugin a developer happens to have installed — the
+  // captured `system/init` lists twenty-seven — while the tools that reach a
+  // wearer are the ones the harness gates, and there is one.
+  //
+  // What it guards is not hypothetical. The policy table named `Bash` while the
+  // harness on this platform ran commands through `PowerShell`, so a wearer who
+  // had said executions were fine was asked about every one of them anyway, at
+  // every policy, and nothing reported it. A recapture that starts gating a tool
+  // this repository has never met now says so here.
+  const gated: string[] = [
+    ...new Set(
+      Claude.ALL.flatMap(({ stream }) => stream)
+        .filter((line) => line.request?.subtype === "can_use_tool")
+        .map((line) => line.request?.tool_name ?? ""),
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+  Assert.equals(
+    "the captures gate exactly the tools this suite says they do",
+    gated,
+    [...Claude.GATED],
+  );
+  for (const tool of gated)
+    Assert.predicate(
+      `${tool} is a tool this repository classifies`,
+      CodeHudActionClass.of({ tool }) !== undefined,
+    );
 }
