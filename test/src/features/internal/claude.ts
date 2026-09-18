@@ -14,13 +14,20 @@ import tool from "./fixtures/claude-code/tool.json";
  * and the Claude Code adapter has to be written against what a real invocation
  * produced and recaptured when the version moves.
  *
- * Captured from `claude 2.1.274` on Windows, in a throwaway directory holding
- * one file, with these invocations:
+ * Captured from `claude 2.1.276` on Windows, in a throwaway directory holding
+ * one file, with these invocations. Retaken from `2.1.274`, and the retaking is
+ * itself a finding: at `2.1.274` a `Read` under `--permission-prompts none`
+ * proceeded, and at `2.1.276` it is refused, so `tool` needed `--allowedTools`
+ * to keep demonstrating a tool call that succeeded rather than quietly becoming
+ * a second capture about denial. The tool set moved too — `TodoWrite` is gone,
+ * `PowerShell` is there, and `NotebookRead`, which the policy table still
+ * names, is not.
  *
  * ```text
  * plain    --print --output-format stream-json --verbose --permission-mode manual
  *          --permission-prompts none "Reply with exactly the word: pong"
- * tool     ... same, "Read notes.txt and reply with only its second line."
+ * tool     ... same plus --allowedTools=Read,
+ *          "Read notes.txt and reply with only its second line."
  * denied   ... same, "Create a file called out.txt containing the word hello."
  * partial  ... same plus --include-partial-messages,
  *          "Count from one to five in words, one per line."
@@ -195,6 +202,23 @@ export namespace Claude {
       { name: "approve", stream: APPROVE },
       { name: "refuse", stream: REFUSE },
     ]);
+
+  /**
+   * Every tool the harness actually stopped to ask about.
+   *
+   * Written out for the reason {@link KINDS} is: a recapture that gates
+   * something new is the event this list exists to make visible, and nothing
+   * else would notice. The gap it guards is not hypothetical — the tool table
+   * named `Bash` while the harness on this platform ran commands through
+   * `PowerShell`, and a wearer who had said executions were fine was asked
+   * about every one of them anyway, at every policy, in silence.
+   *
+   * One, in these captures. That is not reassurance: it is the size of the
+   * sample, and it is why the check that reads this list is about what was
+   * gated rather than about the whole advertised tool set, which varies with
+   * whatever a developer happens to have installed.
+   */
+  export const GATED: readonly string[] = Object.freeze(["Write"]);
 
   /**
    * Every line kind these captures contain.
