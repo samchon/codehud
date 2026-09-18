@@ -157,6 +157,13 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
           // wearer as a session sitting idle rather than as one that is over.
           // The bridge is written against the assumption that the adapter says
           // so on this stream, so nothing else was going to.
+          // Nobody is going to name a thread now, and an instruction waiting
+          // to be addressed is waiting on exactly that. Released with an empty
+          // name, which `thread` already refuses: the wait is bounded anyway,
+          // but the bound covers a harness that is alive and slow, and paying
+          // it out for one that is gone spends ten seconds of a display on a
+          // fact this line already has.
+          names("");
           if (closed() === false)
             yield normalizer.broken("the harness stopped");
         },
@@ -244,6 +251,13 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
    * never settles. The bound is a startup allowance and not a timeout on
    * anything a wearer decides — nothing here ever resolves an approval by
    * elapsed time.
+   *
+   * The bound is the fallback rather than the answer. A stream that ends
+   * without naming a thread releases this wait as it goes, because at that
+   * moment the fact is known and waiting out the clock spends the wearer's
+   * time proving something already true. What the bound still covers is the
+   * harness that is alive and never names one, which is the failure it was
+   * written for.
    */
   private async thread(): Promise<string> {
     const known: string | undefined = this.normalizer.thread;
