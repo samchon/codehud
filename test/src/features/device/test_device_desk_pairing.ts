@@ -2,6 +2,8 @@ import { CodeHudPairingToken } from "@codehud/bridge";
 import { CodeHudDeskCommand } from "@codehud/simulator";
 import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
+
 /**
  * A desk reads the same pairing code a phone would scan.
  *
@@ -54,10 +56,14 @@ export async function test_device_desk_pairing(): Promise<void> {
     "a-b_c=d+e/f",
   );
 
-  TestValidator.error("an address with no token is refused", () =>
+  await Assert.throws("an address with no token is refused", () =>
     CodeHudDeskCommand.paired("ws://127.0.0.1:37219/"),
   );
-  TestValidator.error("and one with an empty token likewise", () =>
+  await Assert.throws("and one with an empty token likewise", () =>
     CodeHudDeskCommand.paired("ws://127.0.0.1:37219/?token="),
+  );
+  TestValidator.predicate(
+    "and the wrapper that says so would have reported one that did not refuse",
+    (await Assert.reports(() => undefined)) === true,
   );
 }

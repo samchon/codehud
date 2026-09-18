@@ -121,7 +121,17 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
     if (command.type === "prompt")
       return this.request("turn/start", {
         threadId: this.thread(),
-        input: [{ type: "text", text: command.text, text_elements: [] }],
+        input: [
+          { type: "text", text: command.text, text_elements: [] },
+          // The attached photographs, in this server's own input vocabulary.
+          // It takes a URL rather than a payload, and the contract already
+          // carries them as data URLs, so nothing is decoded on the way: the
+          // string a device produced is the string the server is handed.
+          ...(command.images ?? []).map((url) => ({
+            type: "image" as const,
+            url,
+          })),
+        ],
       });
 
     if (command.type === "interrupt")
