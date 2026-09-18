@@ -648,7 +648,7 @@ export namespace CodeHudDeskCommand {
    * asking about one spends the budget the other classes need.
    */
   export const RUNGS: Readonly<
-    Record<string, ICodeHudBridgeProvider.IOpen["policy"]>
+    Record<Rung, ICodeHudBridgeProvider.IOpen["policy"]>
   > = Object.freeze({
     careful: Object.freeze({
       actions: Object.freeze({
@@ -677,6 +677,9 @@ export namespace CodeHudDeskCommand {
     }),
   });
 
+  /** The rungs by name, so a caller states one rather than spelling a table. */
+  export type Rung = "careful" | "standard" | "flowing";
+
   /**
    * The rung a command line named, refusing a name that is not one.
    *
@@ -687,13 +690,12 @@ export namespace CodeHudDeskCommand {
   export const rung = (
     name: string | undefined,
   ): ICodeHudBridgeProvider.IOpen["policy"] => {
-    if (name === undefined) return RUNGS["standard"]!;
-    const found = RUNGS[name];
-    if (found === undefined)
+    if (name === undefined) return RUNGS.standard;
+    if (Object.hasOwn(RUNGS, name) === false)
       throw new Error(
         `--policy takes one of ${Object.keys(RUNGS).join(", ")}, not "${name}"`,
       );
-    return found;
+    return RUNGS[name as Rung];
   };
 
   /** What the host needs to run. */

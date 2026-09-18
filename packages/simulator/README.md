@@ -37,6 +37,7 @@ The hint costs one of the declared rows, because that is how the composer counts
 ```bash
 pnpm run bridge                                        # in one terminal
 pnpm run desk -- "ws://…:37219/?token=…" --cd /repo    # in another
+pnpm run desk -- "ws://…" --cd /repo --policy careful   # or under a stricter one
 ```
 
 `--cd` may be named several times, one session each. `sessions` reads them out
