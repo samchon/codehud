@@ -49,7 +49,7 @@ A capability that only works with a hosted relay, or that a wearer can only reac
 | `packages/agent/` | The harness axis: discovery, and the adapters that spawn and normalize Claude Code and Codex |
 | `packages/bridge/` | The process that runs on the repository machine |
 | `packages/client/` | Device-side session client, shared by the phone shell and the simulator |
-| `packages/simulator/` | A terminal device adapter, so the reducer is testable without hardware |
+| `packages/simulator/` | A terminal device adapter, and the desk host that runs the device half against a bridge |
 | `test/` | The whole repository's test program |
 | `evidence.config.ts` | The cross-language evidence graph |
 | `ISSUES.md` | The staging register the GitHub issue list was filed from |

@@ -48,6 +48,11 @@ export namespace CodeHudContext {
       within: "of",
       interrupt: "Say stop",
       review: "Say back, forward, or latest",
+      ambiguous: "That could be",
+      unheard: "Not heard clearly, still waiting",
+      unoffered: "Not an answer this one offers",
+      single: "One session here",
+      elsewhere: "Sent to the phone instead",
     }),
   });
 

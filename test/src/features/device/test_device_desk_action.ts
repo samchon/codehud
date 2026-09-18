@@ -1,0 +1,185 @@
+import { CodeHudAgentPolicy } from "@codehud/agent";
+import type { ICodeHudState, ICodeHudVoiceRouting } from "@codehud/interface";
+import { CodeHudDeskAction, CodeHudDeskCommand } from "@codehud/simulator";
+import { TestValidator } from "@nestia/e2e";
+
+import { Stream } from "../internal/stream";
+
+/**
+ * What a routed utterance does, decided once and in one place.
+ *
+ * The router settles what a wearer said; this settles what that does to the
+ * session in front of them. Separating the two is what keeps a host from
+ * reinterpreting an utterance the router already decided, which is the shape
+ * that produces a word meaning one thing on the glasses and another at a desk.
+ *
+ * The rule that carries the most weight is the one about answers. An approval
+ * is answered with an option *the harness offered*, found by its declared
+ * affirmative property rather than by matching a label: the two harness
+ * families spell their answers differently — `accept` against one, `approved`
+ * against the other, and neither against a permissions request — and the wearer
+ * said none of those spellings. A host that matched labels would answer one
+ * harness and silently fail against the other.
+ *
+ * Scenarios:
+ *
+ * 1. Free words become a prompt, carried unchanged; an empty one does nothing.
+ * 2. A locally answerable question becomes an answer rather than a turn.
+ * 3. An approval answer names the option the harness offered, by its own
+ *    identifier, chosen by the affirmative property.
+ * 4. The same words with nothing pending do nothing at all. A wearer who said
+ *    *allow* into a session that is not asking has not written a prompt.
+ * 5. A request offering no answer of the kind the wearer gave is reported
+ *    rather than answered with something else. A Codex permissions request is
+ *    the live case: it offers only a refusal.
+ * 6. A persisting option is never the one an answer picks, because a consent
+ *    whose scope a display cannot state must not be the easiest thing to say.
+ * 7. Navigation, interruption, repetition, and help each map to one effect.
+ * 8. Ambiguity and a recognition below the floor are reported, never resolved.
+ * 9. The default policy a desk states is the partition the harness defaults to,
+ *    so the two spellings of one decision cannot drift apart.
+ */
+export async function test_device_desk_action(): Promise<void> {
+  Stream.reset();
+  const idle: ICodeHudState = {
+    sequence: 0,
+    activity: "idle",
+    message: "",
+    history: [],
+    review: { active: false, offset: 0 },
+  };
+  const asking = (
+    ...options: { id: string; affirmative: boolean; persistent: boolean }[]
+  ): ICodeHudState => ({
+    ...idle,
+    activity: "waiting",
+    pending: {
+      ...Stream.permission("r1", "Write src/index.ts"),
+      options: options.map((option) => ({ ...option, label: option.id })),
+    },
+  });
+
+  // 1. Words for the agent.
+  TestValidator.equals(
+    "free words are carried to the agent unchanged",
+    CodeHudDeskAction.decide({ type: "prompt", text: "run the suite" }, idle),
+    { type: "prompt", text: "run the suite" },
+  );
+  TestValidator.equals(
+    "and an empty one is addressed to nothing",
+    CodeHudDeskAction.decide({ type: "prompt", text: "" }, idle),
+    { type: "none" },
+  );
+
+  // 2. Questions this device answers itself.
+  TestValidator.equals(
+    "a local question costs no turn",
+    CodeHudDeskAction.decide({ type: "query", query: "elapsed" }, idle),
+    { type: "answer", query: "elapsed" },
+  );
+
+  // 3-6. Answers, and what they are allowed to name.
+  const offered: ICodeHudState = asking(
+    { id: "accept", affirmative: true, persistent: false },
+    { id: "decline", affirmative: false, persistent: false },
+  );
+  TestValidator.equals(
+    "an approval names the harness's own affirmative",
+    CodeHudDeskAction.decide({ type: "command", command: "allow" }, offered),
+    { type: "decision", request: "r1", option: "accept" },
+  );
+  TestValidator.equals(
+    "and a refusal its own negative",
+    CodeHudDeskAction.decide({ type: "command", command: "deny" }, offered),
+    { type: "decision", request: "r1", option: "decline" },
+  );
+
+  const legacy: ICodeHudState = asking(
+    { id: "approved", affirmative: true, persistent: false },
+    { id: "denied", affirmative: false, persistent: false },
+  );
+  TestValidator.equals(
+    "the other harness's spelling is found the same way",
+    CodeHudDeskAction.decide({ type: "command", command: "allow" }, legacy),
+    { type: "decision", request: "r1", option: "approved" },
+  );
+
+  TestValidator.equals(
+    "answering nothing does nothing",
+    CodeHudDeskAction.decide({ type: "command", command: "allow" }, idle),
+    { type: "none" },
+  );
+
+  const withholding: ICodeHudState = asking({
+    id: "withhold",
+    affirmative: false,
+    persistent: false,
+  });
+  TestValidator.equals(
+    "a request with no affirmative cannot be allowed",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      withholding,
+    ),
+    { type: "say", reason: "unoffered" },
+  );
+  TestValidator.equals(
+    "though it can still be refused",
+    CodeHudDeskAction.decide({ type: "command", command: "deny" }, withholding),
+    { type: "decision", request: "r1", option: "withhold" },
+  );
+
+  const persisting: ICodeHudState = asking(
+    { id: "acceptForSession", affirmative: true, persistent: true },
+    { id: "decline", affirmative: false, persistent: false },
+  );
+  TestValidator.equals(
+    "a persisting option is never what an answer picks",
+    CodeHudDeskAction.decide({ type: "command", command: "allow" }, persisting),
+    { type: "say", reason: "unoffered" },
+  );
+
+  // 7. The rest of the grammar, one effect each.
+  for (const [command, expected] of [
+    ["stop", { type: "interrupt" }],
+    ["back", { type: "review", move: "back" }],
+    ["forward", { type: "review", move: "forward" }],
+    ["latest", { type: "review", move: "latest" }],
+    ["repeat", { type: "redraw" }],
+    ["help", { type: "say", reason: "help" }],
+    ["sessions", { type: "say", reason: "single" }],
+    ["switch", { type: "say", reason: "single" }],
+  ] as [ICodeHudVoiceRouting.ICommand.Kind, CodeHudDeskAction.IAction][])
+    TestValidator.equals(
+      `${command} has exactly one effect`,
+      CodeHudDeskAction.decide({ type: "command", command }, idle),
+      expected,
+    );
+
+  // 8. What is reported rather than acted on.
+  TestValidator.equals(
+    "an ambiguous utterance names its candidates",
+    CodeHudDeskAction.decide(
+      { type: "ambiguous", candidates: ["back", "stop"] },
+      idle,
+    ),
+    { type: "say", reason: "ambiguous", candidates: ["back", "stop"] },
+  );
+  TestValidator.equals(
+    "and one below the floor says so, carrying what was reported",
+    CodeHudDeskAction.decide({ type: "unheard", confidence: 0.2 }, idle),
+    { type: "say", reason: "unheard", confidence: 0.2 },
+  );
+  TestValidator.equals(
+    "or nothing, when the recognizer reported nothing",
+    CodeHudDeskAction.decide({ type: "unheard" }, idle),
+    { type: "say", reason: "unheard" },
+  );
+
+  // 9. One decision, two spellings, pinned against each other.
+  TestValidator.equals(
+    "the desk states the partition the harness defaults to",
+    CodeHudDeskCommand.POLICY.actions,
+    CodeHudAgentPolicy.DEFAULT.actions,
+  );
+}
