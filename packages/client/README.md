@@ -35,6 +35,16 @@ The difference is a wearer staring at a question they have already answered whil
 
 An answer that **fails** to reach the bridge leaves the approval where it was, because the wearer still owes it.
 
+## A transport that stopped answering is an observation, not a remark
+
+The host machine goes to sleep and the bridge goes with it. The device reconnects a bounded number of times — retrying a dead machine forever is a display that lies about being connected — and then has to say so.
+
+Saying so is not enough. Driven by taking a real bridge away and waiting the attempts out, the wearer was left looking at the agent's last words at an ambient grade, under an instruction they could no longer give, with the only contradiction printed *beside* the frame rather than in it. On glasses there is no beside.
+
+`ICodeHudAgentEvent.IError` already names three things that can fail: "The harness, the **transport**, or the adapter." So `lost` folds that observation into every session this device holds instead of growing a special case, and the whole display path applies without being told about this situation at all — the reducer moves to a fault, the composer grades it a demand, the notifier routes it like anything a wearer must see.
+
+It is stamped past whatever each fold has taken, because the replay guard discards an observation at or below the counter already folded and this one has no counter of its own. Nothing follows it: the transport that would have delivered a later observation is precisely what failed.
+
 ## Contract traceability
 
 Every export cites the requirement and specification it realizes. Run `pnpm run evidence` from the workspace root.
