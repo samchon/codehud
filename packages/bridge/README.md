@@ -90,6 +90,22 @@ The policy is now remembered with the session and advertised with it. It is the 
 
 A device that addresses a session it has neither opened nor been told about gets the cautious policy — every class confirmed — rather than whatever constant it happens to hold. Not knowing and knowing there is nothing to be careful about are opposite answers, and only one of them is safe to guess.
 
+## What the transport needs from a React Native device
+
+The companion app does not exist yet, and the question of whether TGrid's connector works inside React Native was carried as an unverified assumption from the day the transport was chosen. It is settled, and the answer is that nothing has to be done.
+
+`WebSocketConnector.connect` picks its implementation from `tstl`'s `is_node()`, which is true only when `global.process.versions.node` is defined, and otherwise reads `self.WebSocket`. React Native 0.87.1, read from the published package:
+
+- `Libraries/Core/setUpGlobals.js` assigns `globalThis.self = globalThis` when `self` is undefined, so `self` resolves.
+- The same file creates `global.process` carrying only `env`. Nothing under `Libraries/` defines `process.versions` at all, so `is_node()` is false and the browser branch is the one taken.
+- `Libraries/Core/setUpXHR.js` runs `polyfillGlobal('WebSocket', …)`, and `setUpDefaultReactNativeEnvironment` requires `setUpGlobals` before it and both before the main module.
+
+So the branch resolves, and the worst case that was budgeted for — a one-line `global.self = global` shim — is already done by React Native itself.
+
+The branch was then exercised rather than only read. With `process.versions` hidden long enough for `is_node()` to memoise false, and a bridge running in another process, the connector completed the TGrid handshake, opened a session over the device-to-bridge direction, and folded observations arriving over the bridge-to-device one.
+
+What that does not cover is React Native's own `WebSocket`, which is a native-backed polyfill rather than the runtime's. The branch, the handshake and the duplex surface are settled; the remaining question is that one implementation, and it needs a device or an emulator to answer.
+
 ## Testing without a socket or a harness
 
 `CodeHudSessionRegistry` and `CodeHudBridgeConnection` take every collaborator through a constructor, so retention, replay, ordering, the fan-out, the gate, and all four refusals are exercised in memory. `CodeHudBridgeServer` is the only file that knows what a socket is, and it holds no rule of its own.
