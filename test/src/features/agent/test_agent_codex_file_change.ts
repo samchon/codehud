@@ -6,7 +6,7 @@ import { Assert } from "../internal/assert";
 import { Codex } from "../internal/codex";
 
 /**
- * A Codex file change is shown as work, and its approval says what it is about.
+ * A Codex approval says what it is about, and a file change is shown as work.
  *
  * Seen in the first end-to-end Codex run through the bridge. The wearer was
  * shown a box reading *Wider access requested* over the working directory and
@@ -49,12 +49,34 @@ import { Codex } from "../internal/codex";
  * 7. The description covers the change shapes the bindings declare — added,
  *    deleted, updated, moved — and counts the rest rather than listing them.
  *    A move names both ends when it has both and one end when it does not.
- * 8. A change that removes a file is reported as a deletion rather than as a
+ * 8. A command execution that names no command line is reported as an
+ *    execution rather than as a write, and titled from the item it names. The
+ *    bindings declare `command?: string | null` and say why — a stdin approval
+ *    and a zsh-exec-bridge subcommand approval are both of those — and read as
+ *    a string that null threw out of the normalizer, which is the session's
+ *    read loop and therefore the whole conversation.
+ *
+ *    The throw itself is now the type system's to prevent: the loose interface
+ *    was declaring `command`, `cwd` and `reason` non-nullable against bindings
+ *    that declare all three nullable, and with that corrected, removing the
+ *    guard no longer compiles. What this scenario pins is the part a type
+ *    cannot — which class such a request performs, and what it is called.
+ * 9. A change that removes a file is reported as a deletion rather than as a
  *    write, from the item or from a legacy request's own map, and deletion
  *    wins when a change set contains both. That is the class this product
  *    asks about twice, and until the item was read nothing could enter it
  *    through a patch — an agent that removed a file through its patch
  *    mechanism rather than through `rm` was confirmed once, as a write.
+ * 10. One item is one judgment. What was decided when the item was first seen
+ *    survives a completion that reports a narrower change set — a precaution
+ *    rather than an observation, because the captures show a completion
+ *    repeating what its start carried, and stated so the description and the
+ *    class cannot behave differently from one another.
+ * 11. And under all of it, the floor each method falls to when neither the
+ *    request nor any item it names said anything: a command execution
+ *    executes, a patch writes, and a permissions request is absent from that
+ *    table rather than mapped, because a request the desk host cannot classify
+ *    is the one it confirms twice.
  *
  * Every comparison of a whole value goes through {@link Assert.equals}, which
  * scenario 0 arms. `TestValidator.equals` accepts a member the expected value
@@ -322,7 +344,95 @@ export async function test_agent_codex_file_change(): Promise<void> {
     { title: "update src/index.ts", detail: "writing outside the workspace" },
   );
 
-  // 8. What the change would do, which is not always a write. A wearer asked
+  // 8. The request that names no command line. Not a hypothetical shape read
+  // off a type: the bindings say `command` is null for stdin approvals and for
+  // zsh-exec-bridge subcommand approvals, which are command executions.
+  const silent: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
+    "s4b",
+    () => 0,
+  );
+  silent.normalize({
+    method: "item/started",
+    params: {
+      item: {
+        type: "commandExecution",
+        id: "item-11",
+        command: "echo hello",
+        status: "inProgress",
+      },
+    },
+  });
+  const quiet: ICodeHudAgentEvent[] = silent.normalize({
+    id: 17,
+    method: "item/commandExecution/requestApproval",
+    params: {
+      itemId: "item-11",
+      command: null,
+      cwd: null,
+      reason: null,
+    },
+  });
+  Assert.equals(
+    "a command execution naming no command line is still an execution, named by its item",
+    {
+      title: (quiet[0] as ICodeHudAgentEvent.IPermission | undefined)?.title,
+      action: (quiet[0] as ICodeHudAgentEvent.IPermission | undefined)?.action,
+    },
+    { title: "command echo hello", action: "execute" },
+  );
+
+  // 8a. One item, one judgment, made when it was first seen. The captures show
+  // a completion repeating the change set its start carried, so nothing
+  // observed needs this; it is stated because the title already behaved this
+  // way and an action that did not would let a narrowing completion quietly
+  // weaken a judgment the wearer is about to be asked about.
+  const narrowed: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
+    "s4c",
+    () => 0,
+  );
+  for (const [status, changes] of [
+    [
+      "inProgress",
+      [
+        { path: "/repo/keep.ts", kind: { type: "add" } },
+        { path: "/repo/gone.ts", kind: { type: "delete" } },
+      ],
+    ],
+    ["completed", [{ path: "/repo/keep.ts", kind: { type: "add" } }]],
+  ] as const)
+    narrowed.normalize({
+      method: status === "completed" ? "item/completed" : "item/started",
+      params: {
+        item: {
+          type: "fileChange",
+          id: "item-12",
+          changes: [...changes],
+          status,
+        },
+      },
+    });
+  Assert.equals(
+    "a completion that dropped the removal does not downgrade what was decided",
+    {
+      title: (
+        narrowed.normalize({
+          id: 18,
+          method: "item/fileChange/requestApproval",
+          params: { itemId: "item-12" },
+        })[0] as ICodeHudAgentEvent.IPermission
+      ).title,
+      action: (
+        narrowed.normalize({
+          id: 19,
+          method: "item/fileChange/requestApproval",
+          params: { itemId: "item-12" },
+        })[0] as ICodeHudAgentEvent.IPermission
+      ).action,
+    },
+    { title: "add repo/keep.ts and 1 more", action: "delete" },
+  );
+
+  // 8b. What the change would do, which is not always a write. A wearer asked
   // once about `rm note.txt` and twice about the same removal done by patch
   // would be right to call that arbitrary; it was the other way around.
   const removing: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
@@ -389,6 +499,31 @@ export async function test_agent_codex_file_change(): Promise<void> {
     "write",
   );
 
+  // 8c. And the floor each method falls to when neither the request nor any
+  // item it names has said anything. A patch writes; a command execution
+  // executes; a permissions request performs nothing, because a class given to
+  // it is a class the session policy would then apply to it.
+  Assert.equals(
+    "each approval method states what it performs when nothing else does",
+    [...CodeHudCodexNormalizer.PERFORMS.entries()].sort((a, b) =>
+      a[0].localeCompare(b[0]),
+    ),
+    [
+      ["applyPatchApproval", "write"],
+      ["execCommandApproval", "execute"],
+      ["item/commandExecution/requestApproval", "execute"],
+      ["item/fileChange/requestApproval", "write"],
+    ],
+  );
+  TestValidator.predicate(
+    "and a permissions request is absent from that table rather than mapped",
+    CodeHudCodexNormalizer.PERFORMS.has("item/permissions/requestApproval") ===
+      false &&
+      CodeHudCodexNormalizer.APPROVALS.has(
+        "item/permissions/requestApproval",
+      ) === true,
+  );
+
   const escalation: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
     "s8",
     () => 0,
@@ -405,7 +540,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
     undefined,
   );
 
-  // 8b. Which of the eight a patch can reach, stated rather than implied.
+  // 8d. Which of the eight a patch can reach, stated rather than implied.
   for (const [changes, expected] of [
     [[{ path: "/repo/a.ts", kind: { type: "add" } }], "write"],
     [[{ path: "/repo/a.ts", kind: { type: "update" } }], "write"],
