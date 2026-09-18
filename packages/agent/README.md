@@ -111,6 +111,12 @@ Until the `fileChange` item was normalized, the fallback answered instead, and t
 
 The item arrives first and carries `changes`, each a path and a kind — `add`, `delete`, `update`, the last optionally moving the file. So the item is remembered under its identifier the way a command execution already is, and the approval finds its subject there. A reason the server did give moves to the line under the title, which a file-change request leaves empty because it names no working directory.
 
+Three neighbours of that rule are not the same rule:
+
+- **A permissions request also carries an `itemId`.** It is asking to widen what the agent may do for the rest of the turn, not to perform the item that prompted it, so it is never titled from that item. Understating an access request is the same mistake pointed the other way, and the other way is worse.
+- **A grant root is an access request wearing a file change's clothes.** The bindings say that when `grantRoot` is set the agent is asking to write anywhere under that root for the remainder of the session. Approving one file and approving a directory are different answers, so the wearer is told which they are giving and the change goes on the line below.
+- **The legacy `applyPatchApproval` carries its own subject.** It has `conversationId`, `callId`, a map from path to `FileChange`, a reason and a grant root — no command, no working directory, no item to look anything up by — so it is described from the paths in the map. Typed from the generated bindings rather than from a capture, because every server this repository has driven sends the modern method.
+
 ## The default that is not ours to rely on
 
 `thread/start` takes `approvalsReviewer`, which admits `auto_review` and `guardian_subagent` besides `user`. Those route approvals to a subagent that decides on the wearer's behalf.

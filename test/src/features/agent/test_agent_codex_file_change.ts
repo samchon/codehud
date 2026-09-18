@@ -35,14 +35,20 @@ import { Codex } from "../internal/codex";
  * 3. The approval that follows is titled from that item instead of from the
  *    escalation phrase, and still reports the class it would perform.
  * 4. The escalation phrase still belongs to the request it was written for: a
- *    permissions request naming nothing says it.
+ *    permissions request says it, whether or not it names an item this adapter
+ *    happens to remember, because it is asking to widen what the agent may do
+ *    rather than to perform the item that prompted it.
  * 5. An approval for an item nobody saw — one arriving ahead of its item, or a
- *    resumed conversation — falls back rather than inventing a subject.
+ *    resumed conversation — falls back rather than inventing a subject; the
+ *    legacy patch approval, which carries its own paths and no identifier, is
+ *    described from those; and a request carrying a grant root is reported as
+ *    the access request it is, with the change on the line below.
  * 6. A reason the server did give is not lost when the item supplies a better
  *    title: it moves to the line under it, which a file-change request leaves
  *    empty because it carries no working directory.
  * 7. The description covers the change shapes the bindings declare — added,
  *    deleted, updated, moved — and counts the rest rather than listing them.
+ *    A move names both ends when it has both and one end when it does not.
  *
  * Every comparison of a whole value goes through {@link Assert.equals}, which
  * scenario 0 arms. `TestValidator.equals` accepts a member the expected value
@@ -174,6 +180,38 @@ export async function test_agent_codex_file_change(): Promise<void> {
     CodeHudCodexNormalizer.ESCALATION,
   );
 
+  // 4b. And it keeps it even when the item it names is one we remember. A
+  // permissions request carries an `itemId` too, and it is asking to widen what
+  // the agent may do for the rest of the turn rather than to perform that one
+  // item — so titling it after the item would understate it in the same way
+  // this case exists to stop, in the more dangerous direction.
+  const widening: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
+    "s2b",
+    () => 0,
+  );
+  widening.normalize({
+    method: "item/started",
+    params: {
+      item: {
+        type: "fileChange",
+        id: "item-7",
+        changes: [{ path: "/repo/note.txt", kind: { type: "add" } }],
+        status: "inProgress",
+      },
+    },
+  });
+  TestValidator.equals(
+    "a permissions request naming a remembered item still asks about access",
+    (
+      widening.normalize({
+        id: 10,
+        method: "item/permissions/requestApproval",
+        params: { itemId: "item-7", cwd: "/repo" },
+      })[0] as ICodeHudAgentEvent.IPermission
+    ).title,
+    CodeHudCodexNormalizer.ESCALATION,
+  );
+
   // 5. An item nobody saw is not invented.
   const orphan: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
     "s3",
@@ -189,6 +227,66 @@ export async function test_agent_codex_file_change(): Promise<void> {
       })[0] as ICodeHudAgentEvent.IPermission
     ).title,
     CodeHudCodexNormalizer.ESCALATION,
+  );
+
+  // 5b. The one approval that carries its own subject. `applyPatchApproval` is
+  // `conversationId`, `callId`, a map from path to change, a reason and a grant
+  // root — no command, no working directory, no item to look anything up by.
+  // Typed from the bindings rather than from a capture: this repository has
+  // only ever driven servers that send the modern method, and an adapter
+  // meeting the legacy one would say `Wider access requested` about a patch.
+  const legacy: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
+    "s3b",
+    () => 0,
+  );
+  const patched: ICodeHudAgentEvent.IPermission = legacy.normalize({
+    id: 11,
+    method: "applyPatchApproval",
+    params: {
+      fileChanges: {
+        "/repo/src/index.ts": { type: "update", move_path: null },
+      },
+      reason: "the file is outside the sandbox",
+    },
+  })[0] as ICodeHudAgentEvent.IPermission;
+  Assert.equals(
+    "a legacy patch approval is described from the paths it carries",
+    { title: patched.title, detail: patched.detail },
+    {
+      title: "update src/index.ts",
+      detail: "the file is outside the sandbox",
+    },
+  );
+
+  // 5c. A grant root is an access request wearing a file change's clothes: the
+  // bindings say that when it is set the agent is asking to write anywhere
+  // under that root for the rest of the session. Approving one file and
+  // approving a directory are not the same answer, so the wearer is told which
+  // one they are giving, and the file goes on the line below.
+  const rooted: CodeHudCodexNormalizer = new CodeHudCodexNormalizer(
+    "s3c",
+    () => 0,
+  );
+  rooted.normalize({
+    method: "item/started",
+    params: {
+      item: {
+        type: "fileChange",
+        id: "item-8",
+        changes: [{ path: "/repo/note.txt", kind: { type: "add" } }],
+        status: "inProgress",
+      },
+    },
+  });
+  const licensed: ICodeHudAgentEvent.IPermission = rooted.normalize({
+    id: 12,
+    method: "item/fileChange/requestApproval",
+    params: { itemId: "item-8", grantRoot: "/repo" },
+  })[0] as ICodeHudAgentEvent.IPermission;
+  Assert.equals(
+    "a request that would license a directory does not read as the one file",
+    { title: licensed.title, detail: licensed.detail },
+    { title: CodeHudCodexNormalizer.ESCALATION, detail: "add repo/note.txt" },
   );
 
   // 6. The reason moves rather than disappearing.
@@ -239,6 +337,10 @@ export async function test_agent_codex_file_change(): Promise<void> {
         { path: "/repo/c.ts", kind: { type: "add" } },
       ],
       "add repo/a.ts and 2 more",
+    ],
+    [
+      [{ path: "", kind: { type: "update", move_path: "/repo/b.ts" } }],
+      "update repo/b.ts",
     ],
     [[], "file change"],
   ] as const)
