@@ -53,6 +53,8 @@ export namespace CodeHudContext {
       unoffered: "Not an answer this one offers",
       dropped: "Connection lost, reaching for the bridge",
       unreachable: "The bridge is not answering",
+      unmeasured:
+        "This recognizer cannot report confidence; approval by voice is unavailable",
       nosuch: "No session by that number",
       listing: "Sessions",
       showing: "showing",

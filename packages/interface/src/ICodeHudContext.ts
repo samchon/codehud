@@ -195,6 +195,19 @@ export namespace ICodeHudContext {
     unreachable: string;
 
     /**
+     * What a host says when the recognizer cannot say how sure it is.
+     *
+     * Consent requires a confidence and the platform makes reporting one
+     * optional, so a device can be handed an engine that never does. Every
+     * approval is then refused, correctly, and looks exactly like a noisy room.
+     *
+     * Said once and plainly, because it is the one condition here a wearer can
+     * act on: a different engine, or somewhere they can type. Silence is the
+     * response that leaves them with no move.
+     */
+    unmeasured: string;
+
+    /**
      * What a host says when a demand went somewhere the wearer is not looking.
      *
      * Names the redirection rather than the content: the content already went,

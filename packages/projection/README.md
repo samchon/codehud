@@ -58,6 +58,16 @@ The split is what lets two devices attach to one session, share the state, and e
 - A late observation never rewinds the display.
 - Moving the review cursor toward newer content while already following it does nothing, rather than pinning the display where the wearer did not ask it to stop.
 
+## A recognizer that cannot say how sure it is
+
+Consent takes a confidence floor, and a recognition arriving without a confidence at all is refused rather than admitted for want of a number: an engine that cannot say how sure it is cannot be used to authorize something irreversible.
+
+The platform makes that reachable. Android documents `CONFIDENCE_SCORES` as "optional and might not be provided", so a device can be handed an engine that never reports one, and on that device every approval is refused — correctly, and indistinguishably from a noisy room. A wearer saying *allow* into it will say it again, because nothing has told them there is anything else to try.
+
+So the router counts. One missing number is an utterance and says nothing; a run of them is the engine, and only the second is a fact a wearer can act on — a different engine, or somewhere they can type. A single confidence ever seen settles it the other way and permanently, because the question is whether the recognizer *can* report rather than whether it did this time.
+
+It reports rather than acts. What a device does about it is the device's, and what the product should degrade to is a specification question that noticing does not answer.
+
 ## Grades decide whether a display lights up
 
 Three, and nothing between:
