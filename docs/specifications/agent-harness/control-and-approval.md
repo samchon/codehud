@@ -72,6 +72,8 @@ A request whose class the session's policy marks doubly-confirmed is not answere
 
 Repeating the affirmative does not answer a confirming request, and does not leave the confirming state either. Any other utterance leaves it: the request returns to waiting for a first answer, so a wearer who began confirming and changed their mind has not half-answered anything.
 
+Refusing the request and stopping the turn are the exceptions, and they take effect rather than merely leaving the state. Both are the wearer taking something back, and a confirmation standing between a wearer and their own brake is the state doing the opposite of what it is for.
+
 The refusal needs no second word at any point. Refusing is the recoverable direction, and requiring two utterances to decline would spend the wearer's attention protecting them from the outcome they already have.
 
 A confirming request is still a pending request: it blocks its session, it is never resolved by elapsed time, and the display states which of the two answers it is waiting for.

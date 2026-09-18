@@ -55,8 +55,15 @@ export namespace CodeHudDeskAction {
           ? { type: "say", reason: "unoffered" }
           : { type: "decision", request, option: option.id };
       }
-      if (routing.type === "command" && routing.command === "deny")
-        return command("deny", state, policy);
+      // Refusing and stopping are not swallowed. Both are the wearer taking
+      // something back, and a state that made them say it twice would be a
+      // confirmation prompt standing between a wearer and their own brake.
+      // Everything else leaves the state rather than acting from inside it.
+      if (
+        routing.type === "command" &&
+        (routing.command === "deny" || routing.command === "stop")
+      )
+        return command(routing.command, state, policy);
       if (routing.type === "unheard")
         return {
           type: "say",
