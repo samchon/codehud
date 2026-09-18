@@ -47,10 +47,16 @@ import { CodeHudAgentPolicy } from "./CodeHudAgentPolicy";
  * - **A destructive program this table has not met**, including anything
  *   reached through a script or a task runner, where the line an agent shows
  *   the wearer is the runner's name and not the command.
- * - **Anything a tool other than execution does.** A write is classified as a
- *   write however alarming its path looks, because it is recoverable from
- *   version control and asking twice about every file an agent touches would
- *   cost a wearer more than it saves them.
+ * - **Anything a tool other than execution does**, with one exception. A write
+ *   is classified as a write however alarming its path looks, because it is
+ *   recoverable from version control and asking twice about every file an
+ *   agent touches would cost a wearer more than it saves them. A *removal* is
+ *   not a write, and this table cannot see one that names no program: Codex
+ *   removes a file through a patch, and that arrives as a change kind rather
+ *   than as a command. The adapter that knows the shape reads it and reports
+ *   the class — `CodeHudCodexNormalizer.performed` — because a wearer asked
+ *   once about a removal done by patch and twice about the same removal done
+ *   by `rm` is being told the difference is about spelling.
  *
  * The way to close them is not a longer table. It is to make execution itself
  * doubly-confirmed by default and invert this into a list of what may be

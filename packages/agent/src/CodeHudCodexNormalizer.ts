@@ -27,7 +27,17 @@ import { CodeHudActionClass } from "./CodeHudActionClass";
  * @author Samchon
  */
 export class CodeHudCodexNormalizer {
-  private readonly titles: Map<string, string> = new Map();
+  /**
+   * What each item is about, under the identifier an approval names it by.
+   *
+   * An approval on this server says less than the item it belongs to. A
+   * command execution repeats its command, so only the description is worth
+   * keeping; a file change repeats nothing at all, so what it would do is kept
+   * as well. One table rather than two so the two facts about one item cannot
+   * drift apart.
+   */
+  private readonly subjects: Map<string, CodeHudCodexNormalizer.ISubject> =
+    new Map();
   private sequence: number = 0;
   private started: number;
 
@@ -160,9 +170,12 @@ export class CodeHudCodexNormalizer {
 
       case "commandExecution": {
         const title: string =
-          this.titles.get(item.id) ??
+          this.subjects.get(item.id)?.title ??
           CodeHudCodexNormalizer.title(item.command ?? "");
-        this.titles.set(item.id, title);
+        // No class kept: the approval for a command execution repeats the
+        // command, and reading that is strictly better than remembering a
+        // judgment made from it.
+        this.subjects.set(item.id, { title });
         return [
           this.base<ICodeHudAgentEvent.ITool>({
             type: "tool",
@@ -183,10 +196,19 @@ export class CodeHudCodexNormalizer {
         // nothing to review afterwards — and the approval that follows names
         // no path of its own, only this item's identifier, so it had nothing
         // to be titled from either.
+        const known: CodeHudCodexNormalizer.ISubject | undefined =
+          this.subjects.get(item.id);
         const title: string =
-          this.titles.get(item.id) ??
-          CodeHudCodexNormalizer.changed(item.changes ?? []);
-        this.titles.set(item.id, title);
+          known?.title ?? CodeHudCodexNormalizer.changed(item.changes ?? []);
+        // Both facts stick from the first sighting, for the same reason: one
+        // item is one thing, and a completion that narrowed the change set
+        // would otherwise quietly weaken a judgment already made.
+        this.subjects.set(item.id, {
+          title,
+          action:
+            known?.action ??
+            CodeHudCodexNormalizer.performed(item.changes ?? []),
+        });
         return [
           this.base<ICodeHudAgentEvent.ITool>({
             type: "tool",
@@ -237,23 +259,19 @@ export class CodeHudCodexNormalizer {
     const vocabulary: CodeHudCodexNormalizer.Vocabulary | undefined =
       CodeHudCodexNormalizer.APPROVALS.get(message.method ?? "");
     if (id === undefined || vocabulary === undefined) return [];
-    const spoken: string | string[] | undefined = message.params?.command;
+    // Null, not merely absent. `CommandExecutionRequestApprovalParams` declares
+    // `command?: string | null` and says why: a stdin approval and a
+    // zsh-exec-bridge subcommand approval are command executions that name no
+    // command line. Read as a string, that null threw out of the normalizer and
+    // took the session's read loop with it.
+    const spoken: string | string[] | null | undefined =
+      message.params?.command;
     const command: string | undefined =
-      spoken === undefined
+      spoken === undefined || spoken === null
         ? undefined
         : Array.isArray(spoken) === true
           ? spoken.join(" ")
           : spoken;
-    // Every approval this server sends is about something it would run or
-    // write; there is no tool name to read, so the command is the whole of what
-    // can be classified. A permissions request names none, and is an escalation
-    // of access rather than an action, which is why it reports none.
-    const action: ICodeHudAgentAdapter.IPolicy.Action | undefined =
-      command === undefined
-        ? vocabulary === "profile"
-          ? undefined
-          : "write"
-        : CodeHudActionClass.of({ tool: "Bash", command });
     // What the request is about, when the request does not say it outright.
     //
     // A modern file change names neither a command nor a path: it names the
@@ -274,22 +292,37 @@ export class CodeHudCodexNormalizer {
     // driven send the modern method, and an adapter that met the legacy one
     // and said `Wider access requested` would be wrong in exactly the way
     // this change exists to stop.
-    const remembered: string | undefined =
+    const remembered: CodeHudCodexNormalizer.ISubject | undefined =
       message.params?.itemId === undefined || vocabulary === "profile"
         ? undefined
-        : this.titles.get(message.params.itemId);
-    const described: string | undefined =
-      remembered ??
-      (message.params?.fileChanges === undefined
+        : this.subjects.get(message.params.itemId);
+    const listed: CodeHudCodexNormalizer.IChange[] | undefined =
+      message.params?.fileChanges === undefined
         ? undefined
-        : CodeHudCodexNormalizer.changed(
-            Object.entries(message.params.fileChanges).map(
-              ([path, change]) => ({
-                path,
-                kind: { type: change?.type, move_path: change?.move_path },
-              }),
-            ),
-          ));
+        : Object.entries(message.params.fileChanges).map(([path, change]) => ({
+            path,
+            kind: { type: change?.type, move_path: change?.move_path },
+          }));
+    const described: string | undefined =
+      remembered?.title ??
+      (listed === undefined
+        ? undefined
+        : CodeHudCodexNormalizer.changed(listed));
+    // Every approval this server sends is about something it would run, write
+    // or remove. A command says which of those itself. A file change does not:
+    // it was reported as a write whatever it would do, and a `delete` change is
+    // the class this product asks about twice — so the change is read, from the
+    // item when one is remembered and from the request when it carries its own.
+    // A permissions request names no action; it is an escalation of access
+    // rather than a thing done, which is why it reports none.
+    const action: ICodeHudAgentAdapter.IPolicy.Action | undefined =
+      command !== undefined
+        ? CodeHudActionClass.of({ tool: "Bash", command })
+        : (remembered?.action ??
+          (listed === undefined
+            ? undefined
+            : CodeHudCodexNormalizer.performed(listed)) ??
+          CodeHudCodexNormalizer.PERFORMS.get(message.method ?? ""));
     // A grant root is an access request wearing a file change's clothes: the
     // binding states that when it is set the agent is asking to write anywhere
     // under that root for the rest of the session. The wearer is told that
@@ -426,11 +459,46 @@ export namespace CodeHudCodexNormalizer {
    * announce a sentence as one. The server's own reason is preferred when it
    * gave one, since it was written about this request and anything written here
    * is written about all of them.
+   *
+   * Null as well as absent, because that is what the wire carries: every
+   * approval in the captures sends `reason: null` rather than omitting it.
    */
-  export const asked = (reason: string | undefined): string => {
+  export const asked = (reason: string | null | undefined): string => {
     const flat: string = (reason ?? "").replace(/\s+/gu, " ").trim();
     return flat.length === 0 ? ESCALATION : flat;
   };
+
+  /**
+   * What each approval method performs when the request itself does not say.
+   *
+   * The floor, reached only after the request and the item it names have both
+   * been asked. A command execution executes even when it carries no command
+   * line — a stdin approval is one of those — and a patch writes even when
+   * nothing has told us which files it touches.
+   *
+   * A permissions request is absent rather than mapped to anything. It grants
+   * access instead of performing an action, and the class it would otherwise
+   * be given is a class the session policy would then apply to it.
+   *
+   * Absence is the safe direction, which is why the table may stay short. A
+   * request carrying no class is doubly confirmed whenever the policy marks
+   * any class that way, so a method this table has not met costs a wearer one
+   * extra spoken word rather than one unasked question. That is the
+   * specification's rule rather than this file's inference —
+   * `specifications/agent-harness/control-and-approval.md`,
+   * *A doubly-confirmed request is asked twice*.
+   *
+   * A map rather than an object, for the reason {@link APPROVALS} states.
+   */
+  export const PERFORMS: ReadonlyMap<
+    string,
+    ICodeHudAgentAdapter.IPolicy.Action
+  > = new Map<string, ICodeHudAgentAdapter.IPolicy.Action>([
+    ["item/commandExecution/requestApproval", "execute"],
+    ["item/fileChange/requestApproval", "write"],
+    ["applyPatchApproval", "write"],
+    ["execCommandApproval", "execute"],
+  ]);
 
   /**
    * The answers this adapter offers, per vocabulary.
@@ -635,10 +703,10 @@ export namespace CodeHudCodexNormalizer {
        * say the same thing, and a normalizer that only knew the first would
        * throw on a request from a server old enough to send the second.
        */
-      command?: string | string[];
+      command?: string | string[] | null;
 
-      /** Where it would run, on an approval request. */
-      cwd?: string;
+      /** Where it would run, on an approval request, when it says. */
+      cwd?: string | null;
 
       /**
        * Which item is being asked about, on an approval request.
@@ -659,7 +727,7 @@ export namespace CodeHudCodexNormalizer {
        * nothing to put in front of a wearer but the fact that something was
        * asked.
        */
-      reason?: string;
+      reason?: string | null;
 
       /**
        * What a legacy patch approval would write, keyed by path.
@@ -712,6 +780,22 @@ export namespace CodeHudCodexNormalizer {
 
     /** How it ended: `completed`, `declined`, `failed`, `inProgress`. */
     status?: string;
+  }
+
+  /**
+   * What is known about one item, kept for the approval that names it.
+   *
+   * The description is always worth keeping. The class is kept only where the
+   * approval could not work it out for itself, which is the file change: its
+   * request carries no command to read and reported every change as a write
+   * until the item was asked.
+   */
+  export interface ISubject {
+    /** One line describing the item, as the display would show it. */
+    title: string;
+
+    /** What the item would perform, where only the item says. */
+    action?: ICodeHudAgentAdapter.IPolicy.Action;
   }
 
   /**
@@ -825,6 +909,32 @@ export namespace CodeHudCodexNormalizer {
     const one: string = subject.length === 0 ? kind : `${kind} ${subject}`;
     return changes.length <= 1 ? one : `${one} and ${changes.length - 1} more`;
   };
+
+  /**
+   * Which class of action a set of file changes would perform.
+   *
+   * Two of the eight are reachable from a patch: removing a file is a deletion
+   * and everything else is a write. Deletion wins when a change set contains
+   * both, which is the rule {@link CodeHudActionClass} already states for a
+   * command that matches two shapes — the worse of the two is the one reported,
+   * because the cost of naming something destructive is one spoken word and the
+   * cost of missing it is the file.
+   *
+   * A move is a write. It takes a file off one path, but the content is at the
+   * other one, and a wearer asked twice about every rename an agent makes pays
+   * the approval fatigue the policy exists to prevent for something they have
+   * not lost.
+   *
+   * Empty is a write rather than nothing: a request that would change no file
+   * is still a request to write, and reporting no class at all is reserved for
+   * the request that performs no action.
+   */
+  export const performed = (
+    changes: readonly IChange[],
+  ): ICodeHudAgentAdapter.IPolicy.Action =>
+    changes.some((change) => change.kind?.type === "delete") === true
+      ? "delete"
+      : "write";
 
   /**
    * The last two segments of a path.

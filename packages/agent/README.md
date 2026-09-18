@@ -114,8 +114,15 @@ The item arrives first and carries `changes`, each a path and a kind — `add`, 
 Three neighbours of that rule are not the same rule:
 
 - **A permissions request also carries an `itemId`.** It is asking to widen what the agent may do for the rest of the turn, not to perform the item that prompted it, so it is never titled from that item. Understating an access request is the same mistake pointed the other way, and the other way is worse.
+- **A removal is not a write.** A `delete` change kind is the doubly-confirmed class, and nothing could enter it through a patch: both harnesses reach deletion through their execution tool, so the command table is the only thing that files anything under it, and a Codex agent that removed a file through its patch mechanism rather than through `rm` was confirmed once. The change kinds are read, deletion wins over a write in a set containing both, and a move stays a write because the content is at the other path.
 - **A grant root is an access request wearing a file change's clothes.** The bindings say that when `grantRoot` is set the agent is asking to write anywhere under that root for the remainder of the session. Approving one file and approving a directory are different answers, so the wearer is told which they are giving and the change goes on the line below.
 - **The legacy `applyPatchApproval` carries its own subject.** It has `conversationId`, `callId`, a map from path to `FileChange`, a reason and a grant root — no command, no working directory, no item to look anything up by — so it is described from the paths in the map. Typed from the generated bindings rather than from a capture, because every server this repository has driven sends the modern method.
+
+## A command execution that names no command
+
+`CommandExecutionRequestApprovalParams` declares `command?: string | null`, and says why: a stdin approval and a zsh-exec-bridge subcommand approval are command executions that carry no command line. Read as a string, that null threw out of the normalizer — which is the session's read loop, so the whole conversation went with it.
+
+It is now the same case as an approval that names nothing else: the item the request points at supplies the description, and the class falls to what the method itself performs. A command execution executes whether or not it spelled out what it would run; a patch writes. A method this table has not met is reported with no class at all, and a request carrying no class is doubly confirmed whenever the policy marks any class that way — so an unknown request costs a wearer one extra word rather than one unasked question. The code and the case had that rule; the specification did not say it, and now does.
 
 ## The default that is not ours to rely on
 
