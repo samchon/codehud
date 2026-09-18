@@ -130,13 +130,6 @@ export namespace Assert {
     TestValidator.equals(title, expected as never, actual as never);
   };
 
-  /**
-   * Whether {@link equals} would itself report a value missing a member.
-   *
-   * Exists for the same reason as {@link reports}: the wrapper is armed by a
-   * case rather than trusted, and the caller cannot use the assertion to test
-   * the assertion. Returns what happened instead of asserting it.
-   */
   /** Whether a task completed without throwing. */
   const quiet = (task: () => void): boolean => {
     try {
@@ -167,9 +160,34 @@ export namespace Assert {
       throw new Error(`Bug on ${title}: the two values are equal.`);
   };
 
+  /**
+   * Whether {@link equals} would itself report a value missing a member.
+   *
+   * Exists for the same reason as {@link reports}: the wrapper is armed by a
+   * case rather than trusted, and the caller cannot use the assertion to test
+   * the assertion. Returns what happened instead of asserting it.
+   */
   export const compares = (actual: unknown, expected: unknown): boolean => {
     try {
       equals("a value that was supposed to differ", actual, expected);
+      return false;
+    } catch {
+      return true;
+    }
+  };
+
+  /**
+   * Whether {@link differs} would itself report two values as equal.
+   *
+   * The same reason as {@link compares}, for the mirrored assertion. Worth
+   * arming for the case the library gets backwards: two values that differ only
+   * by a member the first does not have are *not* equal, and
+   * `TestValidator.notEquals` reports them as equal because it never looks at
+   * that member.
+   */
+  export const contrasts = (actual: unknown, expected: unknown): boolean => {
+    try {
+      differs("two values that were supposed to differ", actual, expected);
       return false;
     } catch {
       return true;

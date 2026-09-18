@@ -111,6 +111,11 @@ export async function test_agent_codex_file_change(): Promise<void> {
         { title: "x", detail: "y" },
       ) === false,
   );
+  Assert.predicate(
+    "and its mirror does not call two values equal over a member it never read",
+    Assert.contrasts({ title: "x" }, { title: "x", detail: "y" }) === false &&
+      Assert.contrasts({ title: "x" }, { title: "x" }) === true,
+  );
 
   // What the capture actually holds, checked before anything is concluded from
   // it. A case that reads a fixture without saying what it expected to find is
