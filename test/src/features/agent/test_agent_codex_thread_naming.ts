@@ -31,6 +31,12 @@ import { Assert } from "../internal/assert";
  * 4. A session whose observations nobody reads refuses rather than hanging. The
  *    identifier can only come from that stream, so a wearer is owed an answer
  *    instead of a promise that never settles.
+ * 5. A session whose stream *ends* without naming one refuses **promptly**,
+ *    rather than paying out the whole allowance to prove something the last
+ *    line already settled. The bound covers a harness that is alive and slow;
+ *    a harness that is gone is a fact, and #119 made it one this stream knows.
+ *    Elapsed time is asserted here because it is the point rather than a
+ *    hazard: the difference between the two behaviours is only when.
  */
 export async function test_agent_codex_thread_naming(): Promise<void> {
   /** A channel that yields its lines only when the case says so. */
@@ -144,5 +150,30 @@ export async function test_agent_codex_thread_naming(): Promise<void> {
     "and wrote nothing on the way to refusing",
     unread.written.length,
     0,
+  );
+
+  // 5. The stream ends, naming nothing. The allowance is generous on purpose
+  // and there is nothing left to wait for.
+  const dying: Channel = new Channel([
+    { method: "turn/started", params: { turn: { model: "gpt" } } },
+  ]);
+  const dead: CodeHudCodexSession = new CodeHudCodexSession("s4", dying, {
+    thread: "",
+    directory: "/repo",
+    now: () => 0,
+    naming: 5_000,
+  });
+  void (async (): Promise<void> => {
+    for await (const event of dead.events) void event;
+  })();
+  dying.speak();
+  const began: number = Date.now();
+  await Assert.throws("a session whose harness is gone refuses", () =>
+    dead.send({ type: "prompt", text: "anyone there" }),
+  );
+  const waited: number = Date.now() - began;
+  Assert.predicate(
+    `and does it without paying out the allowance: ${waited}ms of 5000`,
+    waited < 1_000,
   );
 }
