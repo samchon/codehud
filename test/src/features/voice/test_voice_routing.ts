@@ -168,6 +168,21 @@ export async function test_voice_routing(): Promise<void> {
     "unheard",
   );
 
+  // Whether the recognizer reports confidence is a fact about the recognizer,
+  // not about what was said into it, so dictation counts. A wearer mostly
+  // dictates; counting only the words that reached the consent check would make
+  // the commonest session establish nothing at all.
+  const dictating: CodeHudVoiceRouter = new CodeHudVoiceRouter(
+    CodeHudContext.DEFAULT,
+  );
+  for (let i: number = 0; i < CodeHudVoiceRouter.SAMPLE; ++i)
+    dictating.route("have a look at the failing test");
+  Assert.equals(
+    "prompts count, because the recognizer is the same recognizer",
+    dictating.confidenceless,
+    true,
+  );
+
   const heard: CodeHudVoiceRouter = new CodeHudVoiceRouter(
     CodeHudContext.DEFAULT,
   );

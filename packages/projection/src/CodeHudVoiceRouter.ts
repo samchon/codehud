@@ -49,6 +49,21 @@ export class CodeHudVoiceRouter {
     const said: string = utterance.trim().replace(/\s+/gu, " ").toLowerCase();
     if (said.length === 0) return { type: "prompt", text: "" };
 
+    // Counted here, before anything can return, because whether a recognizer
+    // reports confidence is a fact about the recognizer and not about what was
+    // said into it. Counting only the utterances that reached the consent check
+    // would make a session of dictation establish nothing, and dictation is
+    // most of what a wearer says.
+    //
+    // The platform is explicit that the number is optional — Android's own
+    // documentation of `CONFIDENCE_SCORES` ends "This value is optional and
+    // might not be provided" — so a device can be handed an engine that never
+    // reports it, and on that device every consent answer is refused forever.
+    // Refused correctly, and indistinguishably from a noisy room, which is the
+    // part a wearer cannot act on.
+    this.heard += 1;
+    if (props.confidence !== undefined) this.measured += 1;
+
     const ordinal: number | undefined = CodeHudVoiceRouter.ordinal(said);
 
     // A question the client answers itself, checked before the commands so a
@@ -76,16 +91,6 @@ export class CodeHudVoiceRouter {
     // recognizer is silent about certainty one mishearing from authorizing a
     // deletion, and the floor would guard exactly the devices that already
     // measure themselves.
-    // Counted, because one recognition says nothing about the recognizer and
-    // a run of them says everything. The platform is explicit that the number
-    // is optional — Android's own documentation of `CONFIDENCE_SCORES` ends
-    // "This value is optional and might not be provided" — so a device can be
-    // handed an engine that never reports it, and on that device every consent
-    // answer is refused forever. Refused correctly, and indistinguishably from
-    // a noisy room, which is the part a wearer cannot act on.
-    this.heard += 1;
-    if (props.confidence !== undefined) this.measured += 1;
-
     if (
       (only === "allow" || only === "deny" || only === "confirm") &&
       (props.confidence === undefined ||
