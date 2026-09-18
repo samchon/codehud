@@ -110,6 +110,42 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
   }
 
   /**
+   * Marks every session this device holds as lost, because the bridge is gone.
+   *
+   * `ICodeHudAgentEvent.IError` names three things that can fail: "The harness,
+   * the **transport**, or the adapter." A bridge that has stopped answering is
+   * the middle one, and until this existed nothing produced that observation,
+   * so a device that had given up reconnecting kept rendering the last thing
+   * that happened. A wearer glancing at it saw a session that was working, on a
+   * machine that was asleep, and the only thing saying otherwise was a line of
+   * prose beside a frame that still looked alive.
+   *
+   * Folded rather than announced, so the whole display path applies: the
+   * reducer moves to a fault, the composer grades it a demand, and the notifier
+   * routes it the way it routes anything a wearer must see. One synthesized
+   * observation reaches further than any number of special cases would.
+   *
+   * Stamped past whatever each fold has taken, because the replay guard
+   * discards an observation at or below the counter already folded and this one
+   * has no counter of its own to carry. Nothing follows it: the transport that
+   * would have delivered a later observation is what failed.
+   */
+  public lost(message: string): void {
+    for (const [session, fold] of [...this.folds])
+      this.folds.set(
+        session,
+        this.reducer.reduce(fold, {
+          type: "error",
+          session,
+          sequence: this.counters.get(session) ?? 0,
+          at: (this.props.now ?? Date.now)(),
+          message,
+          fatal: true,
+        }),
+      );
+  }
+
+  /**
    * Reports whether this device can be relied on to stay connected.
    *
    * Asked by the bridge rather than volunteered, so a client that has stopped
@@ -270,5 +306,14 @@ export namespace CodeHudSessionClient {
      * simulator and is the shape a device adapter overrides.
      */
     liveness?: () => ICodeHudClientProvider.ILiveness;
+
+    /**
+     * The clock, for the one observation this device produces itself.
+     *
+     * Everything else it folds was stamped by the bridge. Injected for the
+     * same reason the adapters inject theirs: a case that has to reason about
+     * a timestamp should not have to reason about when it ran.
+     */
+    now?: () => number;
   }
 }

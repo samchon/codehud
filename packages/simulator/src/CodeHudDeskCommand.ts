@@ -279,7 +279,15 @@ export class CodeHudDeskCommand {
         return true;
       }
     }
+    // Said and shown. The line below the box is this terminal's affordance and
+    // will not exist on a head-up display; without the fold the wearer's whole
+    // surface still reads as a session that is working, on a machine that is
+    // asleep. `IError` names the transport among the three things that fail,
+    // and this is that one.
     this.say(this.context.vocabulary.unreachable);
+    client.lost(this.context.vocabulary.unreachable);
+    this.shown = "";
+    await this.draw();
     return false;
   }
 
