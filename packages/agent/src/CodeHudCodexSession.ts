@@ -43,6 +43,31 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
   private outgoing: number = 100;
   private ended: boolean = false;
 
+  /**
+   * Resolves when there is a thread to address an instruction to.
+   *
+   * The server names the thread in a notification, which arrives on the
+   * observation stream some moments after the process starts. Until then this
+   * session knows the bridge's own identifier and nothing the server would
+   * recognize, and an instruction sent in that window names an empty thread and
+   * is discarded in silence — the turn never starts, no observation ever
+   * arrives, and the display sits on *Connecting* forever.
+   *
+   * That was not hypothetical. It is what a wearer got whenever they spoke
+   * before the server had finished starting, which on this harness is most of
+   * the time, because a desk host reads a line the instant it has one.
+   *
+   * Already resolved when the opening exchange learned the identifier or the
+   * caller supplied one to resume.
+   */
+  private readonly named: Promise<string>;
+
+  /** Hands the identifier to whoever is waiting, once. */
+  private names: ((thread: string) => void) | null = null;
+
+  /** How long an instruction waits for that identifier. */
+  private readonly naming: number;
+
   /** Constructs a session over one running server, on one thread. */
   public constructor(
     /**
@@ -54,8 +79,15 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
      */
     public readonly id: string,
     private readonly channel: ICodeHudHarnessChannel,
-    private readonly props: CodeHudCodexSession.IProps,
+    props: CodeHudCodexSession.IProps,
   ) {
+    this.named =
+      props.thread.length === 0
+        ? new Promise<string>((resolve) => {
+            this.names = resolve;
+          })
+        : Promise.resolve(props.thread);
+    this.naming = props.naming ?? CodeHudCodexSession.NAMING;
     this.normalizer = new CodeHudCodexNormalizer(id, props.now);
     this.normalizer.directory = props.directory;
     this.normalizer.resumed = props.resumed === true;
@@ -82,13 +114,30 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
     const source: AsyncIterable<unknown> = this.channel.lines;
     const normalizer: CodeHudCodexNormalizer = this.normalizer;
     const waiting: Map<string, string> = this.waiting;
+    const names = (thread: string): void => {
+      const resolve = this.names;
+      this.names = null;
+      resolve?.(thread);
+    };
     return {
       [Symbol.asyncIterator]:
         async function* (): AsyncGenerator<ICodeHudAgentEvent> {
           for await (const line of source) {
             const message: CodeHudCodexNormalizer.IMessage =
               line as CodeHudCodexNormalizer.IMessage;
-            for (const event of normalizer.normalize(message)) {
+            const produced: ICodeHudAgentEvent[] =
+              normalizer.normalize(message);
+            // The server names its thread in a notification rather than in a
+            // reply, so this stream is where it becomes known, and an
+            // instruction waiting to be addressed is released here — after the
+            // line has been read rather than before it. Asking first meant the
+            // very line that carries the name was the one line that did not
+            // release anything, which is invisible in a real session, where
+            // more lines follow, and total in one that names its thread and
+            // stops.
+            const thread: string | undefined = normalizer.thread;
+            if (thread !== undefined) names(thread);
+            for (const event of produced) {
               if (event.type === "permission" && message.method !== undefined)
                 waiting.set(event.request, message.method);
               if (event.type === "result") waiting.clear();
@@ -120,7 +169,7 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
 
     if (command.type === "prompt")
       return this.request("turn/start", {
-        threadId: this.thread(),
+        threadId: await this.thread(),
         input: [
           { type: "text", text: command.text, text_elements: [] },
           // The attached photographs, in this server's own input vocabulary.
@@ -135,7 +184,7 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
       });
 
     if (command.type === "interrupt")
-      return this.request("turn/interrupt", { threadId: this.thread() });
+      return this.request("turn/interrupt", { threadId: await this.thread() });
 
     const method: string | undefined = this.waiting.get(command.request);
     const vocabulary: CodeHudCodexNormalizer.Vocabulary | undefined =
@@ -167,14 +216,32 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
   }
 
   /**
-   * The thread every instruction names.
+   * The thread every instruction names, waited for if it is not known yet.
    *
-   * Taken from the server once it has said, and from what the adapter was told
-   * before that. An instruction that arrived between opening and the first
-   * notification would otherwise name nothing.
+   * The server names it on the observation stream rather than in a reply, so
+   * between opening and that notification there is nothing to address. Waiting
+   * is the only honest answer: naming an empty thread sends the instruction
+   * into a silence the wearer cannot distinguish from a slow agent.
+   *
+   * Bounded, because the wait depends on something outside this session. The
+   * stream is read by whoever owns the session, and one that nobody reads never
+   * learns anything; a wearer is owed a refusal rather than a promise that
+   * never settles. The bound is a startup allowance and not a timeout on
+   * anything a wearer decides — nothing here ever resolves an approval by
+   * elapsed time.
    */
-  private thread(): string {
-    return this.normalizer.thread ?? this.props.thread;
+  private async thread(): Promise<string> {
+    const known: string | undefined = this.normalizer.thread;
+    if (known !== undefined) return known;
+    const named: string | undefined = await Promise.race([
+      this.named,
+      CodeHudCodexSession.after(this.naming),
+    ]);
+    if (named === undefined || named.length === 0)
+      throw new Error(
+        `the server has not named a thread for session ${this.id}`,
+      );
+    return named;
   }
 
   private request(method: string, params: unknown): Promise<void> {
@@ -187,6 +254,31 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
   }
 }
 export namespace CodeHudCodexSession {
+  /**
+   * How long an instruction waits for the server to name its thread.
+   *
+   * A startup allowance. The server names the thread within the first moments
+   * of the process being up; this is an order of magnitude beyond what that
+   * takes, and it exists so that a session nobody is reading refuses rather
+   * than hangs.
+   */
+  export const NAMING: number = 10_000;
+
+  /**
+   * Resolves to nothing after a while, for the one place that races it.
+   *
+   * Deliberately not unreferenced. The first version was, on the reasoning that
+   * a timer whose only job is to end a wait should not hold a process open —
+   * and the effect was that a process with nothing else pending **exited
+   * silently** in the middle of that wait, which is the failure the wait exists
+   * to turn into a refusal. A few seconds of a held event loop is the price of
+   * an answer.
+   */
+  export const after = (ms: number): Promise<undefined> =>
+    new Promise<undefined>((resolve) => {
+      setTimeout(() => resolve(undefined), ms);
+    });
+
   /** What a session needs beyond its channel. */
   export interface IProps {
     /** Thread the adapter opened, as the server named it. */
@@ -200,5 +292,13 @@ export namespace CodeHudCodexSession {
 
     /** Clock, so a test can state the times it expects. */
     now?: () => number;
+
+    /**
+     * How long an instruction waits for the server to name its thread.
+     *
+     * Stated so a case can exercise the refusal without spending the allowance
+     * a real startup needs. Absent is {@link NAMING}.
+     */
+    naming?: number;
   }
 }

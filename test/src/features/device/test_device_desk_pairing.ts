@@ -66,4 +66,8 @@ export async function test_device_desk_pairing(): Promise<void> {
     "and the wrapper that says so would have reported one that did not refuse",
     (await Assert.reports(() => undefined)) === true,
   );
+  TestValidator.predicate(
+    "including one that did not refuse asynchronously",
+    (await Assert.reports(async () => undefined)) === true,
+  );
 }
