@@ -5,8 +5,8 @@ import {
   CodeHudContext,
   CodeHudReducer,
 } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Claude } from "../internal/claude";
 import { Stream } from "../internal/stream";
 
@@ -67,22 +67,16 @@ export async function test_agent_claude_vertical(): Promise<void> {
 
   const spoken: string =
     Claude.PARTIAL.find((line) => line.type === "result")?.result ?? "";
-  TestValidator.predicate("the harness said something", spoken.length > 0);
+  Assert.predicate("the harness said something", spoken.length > 0);
 
   const streamed = fold(Claude.PARTIAL, true);
   const recorded: string[] = streamed.state.history
     .filter((entry) => entry.kind === "message")
     .map((entry) => entry.title);
-  TestValidator.equals(
-    "the display holds what the harness said, once",
-    recorded,
-    [spoken],
-  );
-  TestValidator.equals(
-    "and nothing is left half-folded",
-    streamed.state.message,
-    "",
-  );
+  Assert.equals("the display holds what the harness said, once", recorded, [
+    spoken,
+  ]);
+  Assert.equals("and nothing is left half-folded", streamed.state.message, "");
 
   // The same capture read as though partial messages had been off. The deltas
   // are ignored and the completed block carries the text instead.
@@ -90,7 +84,7 @@ export async function test_agent_claude_vertical(): Promise<void> {
     Claude.PARTIAL.filter((line) => line.type !== "stream_event"),
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "streaming off reaches the same history",
     whole.state.history
       .filter((entry) => entry.kind === "message")
@@ -103,7 +97,7 @@ export async function test_agent_claude_vertical(): Promise<void> {
     (acc, event) => reducer.reduce(acc, event),
     streamed.state,
   );
-  TestValidator.equals(
+  Assert.equals(
     "replaying the whole turn changes nothing",
     again,
     streamed.state,
@@ -120,17 +114,13 @@ export async function test_agent_claude_vertical(): Promise<void> {
     true,
   );
   const pending = composer.compose(asking.state, Stream.WIDE);
-  TestValidator.equals(
-    "an approval demands the wearer",
-    pending.kind,
-    "permission",
-  );
-  TestValidator.equals("and says so", pending.urgency, "demand");
-  TestValidator.predicate(
+  Assert.equals("an approval demands the wearer", pending.kind, "permission");
+  Assert.equals("and says so", pending.urgency, "demand");
+  Assert.predicate(
     "naming the tool it is about",
     pending.lines[0]!.text.startsWith("Write"),
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "with something to say out loud",
     pending.hint !== undefined && pending.hint.includes("Allow"),
   );
@@ -139,8 +129,8 @@ export async function test_agent_claude_vertical(): Promise<void> {
     fold(Claude.APPROVE, true).state,
     Stream.WIDE,
   );
-  TestValidator.equals("a finished turn is a result", settled.kind, "result");
-  TestValidator.equals(
+  Assert.equals("a finished turn is a result", settled.kind, "result");
+  Assert.equals(
     "with no approval still pending",
     fold(Claude.APPROVE, true).state.pending,
     undefined,

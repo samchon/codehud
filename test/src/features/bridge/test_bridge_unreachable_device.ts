@@ -1,6 +1,6 @@
 import { CodeHudSessionRegistry } from "@codehud/bridge";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Harness } from "../internal/harness";
 
 /**
@@ -46,22 +46,18 @@ export async function test_bridge_unreachable_device(): Promise<void> {
   session.emit("three");
   await Harness.settle();
 
-  TestValidator.equals(
-    "the unreachable device received nothing",
-    gone.seen,
-    [],
-  );
-  TestValidator.equals(
+  Assert.equals("the unreachable device received nothing", gone.seen, []);
+  Assert.equals(
     "the device beside it received everything, in order",
     healthy.seen,
     [0, 1, 2],
   );
-  TestValidator.equals(
+  Assert.equals(
     "the harness was never closed over a delivery failure",
     session.closed,
     0,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and its counter kept advancing",
     registry.list()[0]!.sequence,
     3,
@@ -69,21 +65,17 @@ export async function test_bridge_unreachable_device(): Promise<void> {
 
   session.emit("four");
   await Harness.settle();
-  TestValidator.equals(
+  Assert.equals(
     "the stream did not stop behind the dropped device",
     healthy.seen,
     [0, 1, 2, 3],
   );
-  TestValidator.equals(
-    "and the dropped device was not tried again",
-    gone.attempts,
-    1,
-  );
+  Assert.equals("and the dropped device was not tried again", gone.attempts, 1);
 
   const returned: Harness.Device = new Harness.Device();
   registry.attach("s1", 0, returned);
   await Harness.settle();
-  TestValidator.equals(
+  Assert.equals(
     "a fresh device is served the whole retained history",
     returned.seen,
     [0, 1, 2, 3],

@@ -3,7 +3,8 @@ import {
   type ICodeHudHarnessRunner,
 } from "@codehud/agent";
 import type { ICodeHudAgentAdapter } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * Discovery reports every harness family, including the ones it cannot use.
@@ -63,25 +64,25 @@ export async function test_agent_probe(): Promise<void> {
     ),
   ).probe();
 
-  TestValidator.equals("one entry per family", both.length, 2);
-  TestValidator.equals("declaration order", both[0]!.kind, "claude-code");
-  TestValidator.equals("declaration order", both[1]!.kind, "codex");
-  TestValidator.equals(
+  Assert.equals("one entry per family", both.length, 2);
+  Assert.equals("declaration order", both[0]!.kind, "claude-code");
+  Assert.equals("declaration order", both[1]!.kind, "codex");
+  Assert.equals(
     "descriptor carries the resolved path",
     both[0]!.descriptor?.executable,
     "/usr/bin/claude",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the parsed version",
     both[0]!.descriptor?.version,
     "2.1.274",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the codex version, in its own shape",
     both[1]!.descriptor?.version,
     "0.154.0",
   );
-  TestValidator.equals("no reason when usable", both[0]!.reason, undefined);
+  Assert.equals("no reason when usable", both[0]!.reason, undefined);
 
   const half: ICodeHudAgentAdapter.IProbe[] = await new CodeHudHarnessProbe(
     runner(
@@ -91,21 +92,17 @@ export async function test_agent_probe(): Promise<void> {
       },
     ),
   ).probe();
-  TestValidator.equals("the absent one is still reported", half.length, 2);
-  TestValidator.equals("no descriptor", half[0]!.descriptor, undefined);
-  TestValidator.predicate(
+  Assert.equals("the absent one is still reported", half.length, 2);
+  Assert.equals("no descriptor", half[0]!.descriptor, undefined);
+  Assert.predicate(
     "the reason names the command, not the family",
     half[0]!.reason?.includes("claude") === true &&
       half[0]!.reason?.includes("Claude Code") === false,
   );
-  TestValidator.equals(
-    "the other survives",
-    half[1]!.descriptor?.version,
-    "0.154.0",
-  );
+  Assert.equals("the other survives", half[1]!.descriptor?.version, "0.154.0");
 
   for (const probe of [...both, ...half])
-    TestValidator.predicate(
+    Assert.predicate(
       `${probe.kind}: exactly one of descriptor and reason`,
       (probe.descriptor === undefined) !== (probe.reason === undefined),
     );
@@ -118,17 +115,17 @@ export async function test_agent_probe(): Promise<void> {
       },
     ),
   ).probe();
-  TestValidator.equals(
+  Assert.equals(
     "a throwing resolver leaves the harness unusable",
     throwing[0]!.descriptor,
     undefined,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and says it could not look, rather than that nothing is there",
     throwing[0]!.reason?.includes("PATH unreadable") === true &&
       throwing[0]!.reason?.includes("was not found") === false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and does not hide the other harness",
     throwing[1]!.descriptor?.version,
     "0.154.0",
@@ -137,17 +134,13 @@ export async function test_agent_probe(): Promise<void> {
   const mute: ICodeHudAgentAdapter.IProbe[] = await new CodeHudHarnessProbe(
     runner({ claude: "/usr/bin/claude", codex: null }),
   ).probe();
-  TestValidator.equals(
+  Assert.equals(
     "a silent harness is still available",
     mute[0]!.descriptor?.executable,
     "/usr/bin/claude",
   );
-  TestValidator.equals(
-    "without a version",
-    mute[0]!.descriptor?.version,
-    undefined,
-  );
-  TestValidator.equals("and without a reason", mute[0]!.reason, undefined);
+  Assert.equals("without a version", mute[0]!.descriptor?.version, undefined);
+  Assert.equals("and without a reason", mute[0]!.reason, undefined);
 
   const noisy: ICodeHudAgentAdapter.IProbe[] = await new CodeHudHarnessProbe(
     runner(
@@ -157,12 +150,12 @@ export async function test_agent_probe(): Promise<void> {
       },
     ),
   ).probe();
-  TestValidator.equals(
+  Assert.equals(
     "output without a version reads the same way",
     noisy[0]!.descriptor?.version,
     undefined,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and still leaves the harness usable",
     noisy[0]!.descriptor?.executable,
     "/usr/bin/claude",

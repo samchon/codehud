@@ -1,5 +1,6 @@
 import { CodeHudHarnessProbe } from "@codehud/agent";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * Version parsing reads what the two harnesses actually print.
@@ -33,51 +34,31 @@ import { TestValidator } from "@nestia/e2e";
 export async function test_agent_version_parsing(): Promise<void> {
   const parse = CodeHudHarnessProbe.version;
 
-  TestValidator.equals(
+  Assert.equals(
     "claude, as measured",
     parse("2.1.274 (Claude Code)"),
     "2.1.274",
   );
-  TestValidator.equals(
-    "codex, as measured",
-    parse("codex-cli 0.154.0"),
-    "0.154.0",
-  );
+  Assert.equals("codex, as measured", parse("codex-cli 0.154.0"), "0.154.0");
 
-  TestValidator.equals(
-    "prerelease survives",
-    parse("v1.2.3-beta.4"),
-    "1.2.3-beta.4",
-  );
-  TestValidator.equals(
+  Assert.equals("prerelease survives", parse("v1.2.3-beta.4"), "1.2.3-beta.4");
+  Assert.equals(
     "build metadata survives",
     parse("2.0.0+build.7"),
     "2.0.0+build.7",
   );
 
-  TestValidator.equals("no version at all", parse("hello there"), undefined);
-  TestValidator.equals("empty output", parse(""), undefined);
+  Assert.equals("no version at all", parse("hello there"), undefined);
+  Assert.equals("empty output", parse(""), undefined);
 
-  TestValidator.equals(
-    "a bare integer is not a version",
-    parse("exit 1"),
-    undefined,
-  );
+  Assert.equals("a bare integer is not a version", parse("exit 1"), undefined);
 
-  TestValidator.equals(
+  Assert.equals(
     "the first dotted token wins",
     parse("1.2.3 built 4.5.6"),
     "1.2.3",
   );
 
-  TestValidator.equals(
-    "parentheses do not hide it",
-    parse("tool (3.4.5)"),
-    "3.4.5",
-  );
-  TestValidator.equals(
-    "brackets do not either",
-    parse("tool [3.4.5]"),
-    "3.4.5",
-  );
+  Assert.equals("parentheses do not hide it", parse("tool (3.4.5)"), "3.4.5");
+  Assert.equals("brackets do not either", parse("tool [3.4.5]"), "3.4.5");
 }

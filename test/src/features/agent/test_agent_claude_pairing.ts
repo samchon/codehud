@@ -3,8 +3,8 @@ import {
   type ICodeHudHarnessChannel,
 } from "@codehud/agent";
 import type { ICodeHudAgentEvent } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Claude } from "../internal/claude";
 
 /**
@@ -88,7 +88,7 @@ export async function test_agent_claude_pairing(): Promise<void> {
   const asked: string =
     Claude.APPROVE.find((line) => line.request?.subtype === "can_use_tool")
       ?.request_id ?? "";
-  TestValidator.predicate("a real request was captured", asked.length > 0);
+  Assert.predicate("a real request was captured", asked.length > 0);
 
   const allowed = await drain(Claude.APPROVE);
   await allowed.session.send({
@@ -96,12 +96,12 @@ export async function test_agent_claude_pairing(): Promise<void> {
     request: asked,
     option: "allow",
   });
-  TestValidator.equals(
+  Assert.equals(
     "answering what was asked writes one line",
     allowed.channel.written.length,
     1,
   );
-  TestValidator.equals(
+  Assert.equals(
     "naming the identifier and the behaviour",
     allowed.channel.written[0],
     {
@@ -120,7 +120,7 @@ export async function test_agent_claude_pairing(): Promise<void> {
     request: asked,
     option: "deny",
   });
-  TestValidator.equals(
+  Assert.equals(
     "a negative option denies",
     (
       refused.channel.written[0] as {
@@ -131,18 +131,14 @@ export async function test_agent_claude_pairing(): Promise<void> {
   );
 
   const unknown = await drain(Claude.APPROVE);
-  await TestValidator.error("an unrecognized identifier is refused", () =>
+  await Assert.throws("an unrecognized identifier is refused", () =>
     unknown.session.send({
       type: "decision",
       request: "toolu_nobody_asked",
       option: "allow",
     }),
   );
-  TestValidator.equals(
-    "and nothing is written",
-    unknown.channel.written.length,
-    0,
-  );
+  Assert.equals("and nothing is written", unknown.channel.written.length, 0);
 
   const twice = await drain(Claude.APPROVE);
   await twice.session.send({
@@ -150,10 +146,10 @@ export async function test_agent_claude_pairing(): Promise<void> {
     request: asked,
     option: "allow",
   });
-  await TestValidator.error("the same approval is not answered twice", () =>
+  await Assert.throws("the same approval is not answered twice", () =>
     twice.session.send({ type: "decision", request: asked, option: "deny" }),
   );
-  TestValidator.equals(
+  Assert.equals(
     "so only the first answer was written",
     twice.channel.written.length,
     1,
@@ -161,26 +157,20 @@ export async function test_agent_claude_pairing(): Promise<void> {
 
   // A word this harness does not offer, and what it must leave behind.
   const mistaken = await drain(Claude.APPROVE);
-  await TestValidator.error(
-    "a word this harness does not offer is refused",
-    () =>
-      mistaken.session.send({
-        type: "decision",
-        request: asked,
-        option: "approved",
-      }),
+  await Assert.throws("a word this harness does not offer is refused", () =>
+    mistaken.session.send({
+      type: "decision",
+      request: asked,
+      option: "approved",
+    }),
   );
-  TestValidator.equals(
-    "and nothing was written",
-    mistaken.channel.written.length,
-    0,
-  );
+  Assert.equals("and nothing was written", mistaken.channel.written.length, 0);
   await mistaken.session.send({
     type: "decision",
     request: asked,
     option: "allow",
   });
-  TestValidator.equals(
+  Assert.equals(
     "the request was still pending, so the correct answer lands",
     mistaken.channel.written.length,
     1,
@@ -188,7 +178,7 @@ export async function test_agent_claude_pairing(): Promise<void> {
 
   const prompting = await drain(Claude.APPROVE);
   await prompting.session.send({ type: "prompt", text: "keep going" });
-  TestValidator.equals(
+  Assert.equals(
     "an instruction is not an answer and is always written",
     prompting.channel.written[0],
     { type: "user", message: { role: "user", content: "keep going" } },
@@ -203,19 +193,15 @@ export async function test_agent_claude_pairing(): Promise<void> {
     { now: () => 0 },
   );
   for await (const _ of session.events) void _;
-  await TestValidator.error("an answer after the turn ended is refused", () =>
+  await Assert.throws("an answer after the turn ended is refused", () =>
     session.send({ type: "decision", request: asked, option: "allow" }),
   );
-  TestValidator.equals("and is not written", finished.written.length, 0);
+  Assert.equals("and is not written", finished.written.length, 0);
 
   await session.close();
   await session.close();
-  TestValidator.equals(
-    "closing twice reaches the channel once",
-    finished.closed,
-    1,
-  );
-  await TestValidator.error("and sending afterwards is refused", () =>
+  Assert.equals("closing twice reaches the channel once", finished.closed, 1);
+  await Assert.throws("and sending afterwards is refused", () =>
     session.send({ type: "prompt", text: "too late" }),
   );
 }

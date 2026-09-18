@@ -9,8 +9,8 @@ import type {
   ICodeHudAgentDescriptor,
   ICodeHudAgentEvent,
 } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Codex } from "../internal/codex";
 
 /**
@@ -88,7 +88,7 @@ export async function test_agent_codex_pairing(): Promise<void> {
     Codex.sent(Codex.APPROVE).find(
       (line) => line.method === "item/commandExecution/requestApproval",
     )?.id ?? -1;
-  TestValidator.predicate("a real request was captured", asked >= 0);
+  Assert.predicate("a real request was captured", asked >= 0);
 
   const allowed = await drain(Codex.APPROVE);
   await allowed.session.send({
@@ -96,12 +96,12 @@ export async function test_agent_codex_pairing(): Promise<void> {
     request: String(asked),
     option: "accept",
   });
-  TestValidator.equals(
+  Assert.equals(
     "answering what was asked writes one reply",
     allowed.channel.written.length,
     1,
   );
-  TestValidator.equals(
+  Assert.equals(
     "as a result carrying that identifier and the server's own word",
     allowed.channel.written[0],
     { jsonrpc: "2.0", id: asked, result: { decision: "accept" } },
@@ -113,7 +113,7 @@ export async function test_agent_codex_pairing(): Promise<void> {
     request: String(asked),
     option: "decline",
   });
-  TestValidator.equals(
+  Assert.equals(
     "a negative option declines, in the server's word",
     (refused.channel.written[0] as { result: { decision: string } }).result
       .decision,
@@ -121,18 +121,14 @@ export async function test_agent_codex_pairing(): Promise<void> {
   );
 
   const unknown = await drain(Codex.APPROVE);
-  await TestValidator.error("an unrecognized identifier is refused", () =>
+  await Assert.throws("an unrecognized identifier is refused", () =>
     unknown.session.send({
       type: "decision",
       request: "9999",
       option: "accept",
     }),
   );
-  TestValidator.equals(
-    "and nothing is written",
-    unknown.channel.written.length,
-    0,
-  );
+  Assert.equals("and nothing is written", unknown.channel.written.length, 0);
 
   const twice = await drain(Codex.APPROVE);
   await twice.session.send({
@@ -140,14 +136,14 @@ export async function test_agent_codex_pairing(): Promise<void> {
     request: String(asked),
     option: "accept",
   });
-  await TestValidator.error("the same approval is not answered twice", () =>
+  await Assert.throws("the same approval is not answered twice", () =>
     twice.session.send({
       type: "decision",
       request: String(asked),
       option: "decline",
     }),
   );
-  TestValidator.equals(
+  Assert.equals(
     "so only the first answer was written",
     twice.channel.written.length,
     1,
@@ -160,7 +156,7 @@ export async function test_agent_codex_pairing(): Promise<void> {
     id?: number;
     params?: { threadId?: string };
   };
-  TestValidator.equals(
+  Assert.equals(
     "an instruction is a request of its own",
     instruction.method,
     "turn/start",
@@ -169,15 +165,15 @@ export async function test_agent_codex_pairing(): Promise<void> {
   // weak to catch a counter that never advances: any constant satisfies it.
   await prompting.session.send({ type: "prompt", text: "and again" });
   const second = prompting.channel.written[1] as { id?: number };
-  TestValidator.predicate(
+  Assert.predicate(
     "with an identifier the session minted rather than one it was given",
     typeof instruction.id === "number" && instruction.id !== asked,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and a fresh one each time, so two questions are never the same question",
     typeof second.id === "number" && second.id !== instruction.id,
   );
-  TestValidator.equals(
+  Assert.equals(
     "naming the thread the server opened",
     instruction.params?.threadId,
     Codex.sent(Codex.APPROVE).find((line) => line.method === "thread/started")
@@ -192,24 +188,20 @@ export async function test_agent_codex_pairing(): Promise<void> {
   });
   const seen: ICodeHudAgentEvent[] = [];
   for await (const event of session.events) seen.push(event);
-  TestValidator.predicate("the turn ran to its end", seen.length > 0);
-  await TestValidator.error("an answer after the turn ended is refused", () =>
+  Assert.predicate("the turn ran to its end", seen.length > 0);
+  await Assert.throws("an answer after the turn ended is refused", () =>
     session.send({
       type: "decision",
       request: String(asked),
       option: "accept",
     }),
   );
-  TestValidator.equals("and is not written", finished.written.length, 0);
+  Assert.equals("and is not written", finished.written.length, 0);
 
   await session.close();
   await session.close();
-  TestValidator.equals(
-    "closing twice reaches the channel once",
-    finished.closed,
-    1,
-  );
-  await TestValidator.error("and sending afterwards is refused", () =>
+  Assert.equals("closing twice reaches the channel once", finished.closed, 1);
+  await Assert.throws("and sending afterwards is refused", () =>
     session.send({ type: "prompt", text: "too late" }),
   );
 
@@ -224,14 +216,10 @@ export async function test_agent_codex_pairing(): Promise<void> {
     platform: "linux",
     id: () => "s2",
     channel: (file, args) => {
-      TestValidator.equals("the server is started as an app server", args, [
+      Assert.equals("the server is started as an app server", args, [
         "app-server",
       ]);
-      TestValidator.equals(
-        "using the resolved executable",
-        file,
-        "/usr/bin/codex",
-      );
+      Assert.equals("using the resolved executable", file, "/usr/bin/codex");
       return opening;
     },
   });
@@ -240,7 +228,7 @@ export async function test_agent_codex_pairing(): Promise<void> {
   };
   await adapter.open({ directory: "/repo", policy });
 
-  TestValidator.equals(
+  Assert.equals(
     "the client announces itself first",
     (opening.written[0] as { method?: string }).method,
     "initialize",
@@ -249,28 +237,28 @@ export async function test_agent_codex_pairing(): Promise<void> {
     method?: string;
     params?: Record<string, unknown>;
   };
-  TestValidator.equals("then starts a thread", start.method, "thread/start");
-  TestValidator.equals(
+  Assert.equals("then starts a thread", start.method, "thread/start");
+  Assert.equals(
     "in the directory the wearer named",
     start.params?.["cwd"],
     "/repo",
   );
-  TestValidator.equals(
+  Assert.equals(
     "asking about everything",
     start.params?.["approvalPolicy"],
     "untrusted",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and routing approvals to the wearer rather than trusting the default",
     start.params?.["approvalsReviewer"],
     "user",
   );
-  TestValidator.equals(
+  Assert.equals(
     "with a sandbox the policy implies",
     start.params?.["sandbox"],
     "read-only",
   );
-  TestValidator.equals(
+  Assert.equals(
     "which opens only for an unattended write",
     CodeHudAgentPolicy.sandbox({ actions: { write: "unattended" } }),
     "workspace-write",

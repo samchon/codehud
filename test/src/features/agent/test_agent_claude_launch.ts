@@ -6,7 +6,8 @@ import type {
   ICodeHudAgentAdapter,
   ICodeHudAgentDescriptor,
 } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * The harness is launched so that it asks, and told who is answering first.
@@ -96,64 +97,56 @@ export async function test_agent_claude_launch(): Promise<void> {
   const flag = (name: string): string | undefined =>
     plain.args[plain.args.indexOf(name) + 1];
 
-  TestValidator.equals(
-    "input is streamed",
-    flag("--input-format"),
-    "stream-json",
-  );
-  TestValidator.equals(
-    "output is streamed",
-    flag("--output-format"),
-    "stream-json",
-  );
-  TestValidator.equals(
+  Assert.equals("input is streamed", flag("--input-format"), "stream-json");
+  Assert.equals("output is streamed", flag("--output-format"), "stream-json");
+  Assert.equals(
     "and this process is named as the one that answers",
     flag("--permission-prompt-tool"),
     "stdio",
   );
-  TestValidator.equals(
+  Assert.equals(
     "with nothing pre-approved",
     flag("--permission-mode"),
     "manual",
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "prose arrives while it is being written",
     plain.args.includes("--include-partial-messages"),
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and the stream carries more than the final answer",
     plain.args.includes("--verbose"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "the session runs where the wearer said",
     plain.directory,
     "/repo",
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "nothing is resumed unless asked",
     plain.args.includes("--resume"),
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and no model is forced",
     plain.args.includes("--model"),
     false,
   );
 
   const chosen = await launch({ resume: "native-7", model: "opus" });
-  TestValidator.equals(
+  Assert.equals(
     "a resumed conversation is named",
     chosen.args[chosen.args.indexOf("--resume") + 1],
     "native-7",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and so is a chosen model",
     chosen.args[chosen.args.indexOf("--model") + 1],
     "opus",
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "the host declares itself before anything else",
     plain.channel.written[0],
     {
@@ -162,7 +155,7 @@ export async function test_agent_claude_launch(): Promise<void> {
       request: { subtype: "initialize", hooks: {} },
     },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and that is all the open sent",
     plain.channel.written.length,
     1,
@@ -174,11 +167,10 @@ export async function test_agent_claude_launch(): Promise<void> {
     id: () => "s2",
     channel: () => broken,
   });
-  await TestValidator.error(
-    "a harness that will not listen fails the open",
-    () => refusing.open({ directory: "/repo", policy }),
+  await Assert.throws("a harness that will not listen fails the open", () =>
+    refusing.open({ directory: "/repo", policy }),
   );
-  TestValidator.equals("and is not left running", broken.closed, 1);
+  Assert.equals("and is not left running", broken.closed, 1);
 
   const shimmed: CodeHudClaudeAdapter = new CodeHudClaudeAdapter(
     { ...descriptor, executable: "C:\\npm\\claude.cmd" },
@@ -186,12 +178,8 @@ export async function test_agent_claude_launch(): Promise<void> {
       platform: "win32",
       id: () => "s3",
       channel: (file, args) => {
-        TestValidator.equals(
-          "a Windows shim goes through cmd.exe",
-          file,
-          "cmd.exe",
-        );
-        TestValidator.predicate(
+        Assert.equals("a Windows shim goes through cmd.exe", file, "cmd.exe");
+        Assert.predicate(
           "carrying the shim and its arguments",
           args.includes("C:\\npm\\claude.cmd") && args.includes("--print"),
         );

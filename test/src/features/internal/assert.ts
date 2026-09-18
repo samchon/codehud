@@ -1,7 +1,30 @@
+// The one import of this name in the package. `test/lint.config.ts` restricts
+// it everywhere else and names this file in its `ignores`, which refines that
+// entry's own rule rather than excusing the file from the workspace's —
+// checked, not assumed.
 import { TestValidator } from "@nestia/e2e";
 
 /**
- * The refusal assertion this suite uses, and why it is not the obvious one.
+ * Every assertion this suite makes, and why it is not `TestValidator` directly.
+ *
+ * `@nestia/e2e` is written for suites that compare a server's response against
+ * part of it. This one compares a pure function's whole output against what it
+ * should be, and two of its assertions are wrong for that job in the direction
+ * that keeps a case green. So the suite asserts through here instead, and the
+ * cases never import `TestValidator` — not because the library is at fault, but
+ * because an assertion that cannot be made to fail is the one thing this
+ * repository will not keep, and the only way to know that of six hundred
+ * assertions is for them all to come through one door.
+ *
+ * What was measured before this existed, by instrumenting the suite rather than
+ * reading it: 899 equality assertions, 216 of them over structures, **none**
+ * wrong today, and 18 refusal assertions, **none** synchronous. Both traps were
+ * real and neither was sprung. That is the whole argument for doing it this way
+ * — there was nothing to repair, and a door is cheaper than remembering.
+ *
+ * {@link predicate} is re-exported unchanged. It was read and it is sound.
+ *
+ * ## The refusal assertion
  *
  * `TestValidator.error` does the right thing for a task that returns a promise
  * and the wrong thing for one that does not. Its synchronous branch raises the
@@ -25,6 +48,16 @@ import { TestValidator } from "@nestia/e2e";
  * later release fixing the synchronous branch changes nothing here.
  */
 export namespace Assert {
+  /**
+   * Asserts a condition, unchanged from the library.
+   *
+   * Re-exported rather than wrapped. Its three branches were read and each is
+   * sound: a boolean is compared, a closure's boolean result is compared, and a
+   * promised one is awaited. It is here so that a case has one place to import
+   * its assertions from, which is what makes the other two enforceable.
+   */
+  export const predicate = TestValidator.predicate;
+
   /**
    * Asserts that a task refuses, whether or not it is asynchronous.
    *
@@ -97,6 +130,36 @@ export namespace Assert {
     TestValidator.equals(title, expected as never, actual as never);
   };
 
+  /** Whether a task completed without throwing. */
+  const quiet = (task: () => void): boolean => {
+    try {
+      task();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  /**
+   * Asserts that two values are not equal, symmetrically.
+   *
+   * `TestValidator.notEquals` is the same comparison negated, so it carries the
+   * mirror image of the weakness {@link equals} works around: it walks the
+   * first operand's keys, and a difference that exists only as a member the
+   * first operand does not have is a difference it cannot see. Asserted as "at
+   * least one direction found something", which is what "not equal" means.
+   */
+  export const differs = <T>(title: string, actual: T, expected: T): void => {
+    const one: boolean = quiet(() =>
+      TestValidator.notEquals(title, actual as never, expected as never),
+    );
+    const other: boolean = quiet(() =>
+      TestValidator.notEquals(title, expected as never, actual as never),
+    );
+    if (one === false && other === false)
+      throw new Error(`Bug on ${title}: the two values are equal.`);
+  };
+
   /**
    * Whether {@link equals} would itself report a value missing a member.
    *
@@ -107,6 +170,24 @@ export namespace Assert {
   export const compares = (actual: unknown, expected: unknown): boolean => {
     try {
       equals("a value that was supposed to differ", actual, expected);
+      return false;
+    } catch {
+      return true;
+    }
+  };
+
+  /**
+   * Whether {@link differs} would itself report two values as equal.
+   *
+   * The same reason as {@link compares}, for the mirrored assertion. Worth
+   * arming for the case the library gets backwards: two values that differ only
+   * by a member the first does not have are *not* equal, and
+   * `TestValidator.notEquals` reports them as equal because it never looks at
+   * that member.
+   */
+  export const contrasts = (actual: unknown, expected: unknown): boolean => {
+    try {
+      differs("two values that were supposed to differ", actual, expected);
       return false;
     } catch {
       return true;

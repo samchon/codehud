@@ -1,5 +1,4 @@
-import { TestValidator } from "@nestia/e2e";
-
+import { Assert } from "../internal/assert";
 import { Claude } from "../internal/claude";
 
 /**
@@ -57,7 +56,7 @@ import { Claude } from "../internal/claude";
 export async function test_agent_claude_envelope(): Promise<void> {
   const observed: Set<string> = new Set();
   for (const { name, stream } of Claude.ALL) {
-    TestValidator.predicate(`${name} is not empty`, stream.length > 0);
+    Assert.predicate(`${name} is not empty`, stream.length > 0);
     for (const line of stream) observed.add(Claude.kind(line));
 
     // Only what the harness emitted. The two bidirectional captures also hold
@@ -70,12 +69,8 @@ export async function test_agent_claude_envelope(): Promise<void> {
     const terminal: Claude.IEnvelope[] = emitted.filter(
       (line) => line.type === "result",
     );
-    TestValidator.equals(
-      `${name} ends a turn exactly once`,
-      terminal.length,
-      1,
-    );
-    TestValidator.equals(
+    Assert.equals(`${name} ends a turn exactly once`, terminal.length, 1);
+    Assert.equals(
       `${name} ends with that line`,
       Claude.kind(emitted[emitted.length - 1]!),
       "result/success",
@@ -88,8 +83,8 @@ export async function test_agent_claude_envelope(): Promise<void> {
         .filter((line) => line.type.startsWith("control_") === false)
         .map((line) => line.session_id),
     );
-    TestValidator.equals(`${name} is one session`, sessions.size, 1);
-    TestValidator.equals(
+    Assert.equals(`${name} is one session`, sessions.size, 1);
+    Assert.equals(
       `${name} names it on every conversation line`,
       sessions.has(undefined),
       false,
@@ -102,19 +97,19 @@ export async function test_agent_claude_envelope(): Promise<void> {
   // from. One control channel per session is therefore not a convenience.
   for (const line of [...Claude.APPROVE, ...Claude.REFUSE])
     if (line.type.startsWith("control_") === true)
-      TestValidator.equals(
+      Assert.equals(
         `a ${line.type} names no session`,
         line.session_id,
         undefined,
       );
 
   for (const seen of observed)
-    TestValidator.predicate(
+    Assert.predicate(
       `${seen} is a kind the adapter is on notice for`,
       Claude.KINDS.includes(seen),
     );
   for (const declared of Claude.KINDS)
-    TestValidator.predicate(
+    Assert.predicate(
       `${declared} was actually observed`,
       observed.has(declared),
     );
@@ -127,12 +122,12 @@ export async function test_agent_claude_envelope(): Promise<void> {
     ),
   );
   for (const seen of blocks)
-    TestValidator.predicate(
+    Assert.predicate(
       `the ${seen} block is one the adapter is on notice for`,
       Claude.BLOCKS.includes(seen),
     );
   for (const declared of Claude.BLOCKS)
-    TestValidator.predicate(
+    Assert.predicate(
       `the ${declared} block was actually observed`,
       blocks.has(declared),
     );
@@ -143,7 +138,7 @@ export async function test_agent_claude_envelope(): Promise<void> {
   // with the flag at its default, it is never recognized as a host and the
   // write is denied without anyone being asked. The other two are the same
   // request with the control protocol in place, answered both ways.
-  TestValidator.equals(
+  Assert.equals(
     "an unrecognized host is never asked, and the write is refused",
     (
       Claude.HOSTED.find((line) => line.type === "result")
@@ -151,7 +146,7 @@ export async function test_agent_claude_envelope(): Promise<void> {
     ).map((entry) => entry.tool_name),
     ["Write"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "and nothing was asked of it",
     Claude.HOSTED.filter((line) => line.request?.subtype === "can_use_tool")
       .length,
@@ -165,17 +160,17 @@ export async function test_agent_claude_envelope(): Promise<void> {
     const asked: Claude.IEnvelope[] = stream.filter(
       (line) => line.request?.subtype === "can_use_tool",
     );
-    TestValidator.equals(`${name} is asked exactly once`, asked.length, 1);
-    TestValidator.equals(
+    Assert.equals(`${name} is asked exactly once`, asked.length, 1);
+    Assert.equals(
       `${name} is asked about the tool by name`,
       asked[0]?.request?.tool_name,
       "Write",
     );
-    TestValidator.predicate(
+    Assert.predicate(
       `${name} is asked with the input the tool would run`,
       asked[0]?.request?.input !== undefined,
     );
-    TestValidator.predicate(
+    Assert.predicate(
       `${name} carries the identifier its answer is paired by`,
       typeof asked[0]?.request_id === "string",
     );
@@ -185,12 +180,12 @@ export async function test_agent_claude_envelope(): Promise<void> {
         line.__direction === "host->harness" &&
         line.response?.response?.behavior !== undefined,
     );
-    TestValidator.equals(
+    Assert.equals(
       `${name} was answered ${behavior}`,
       answer?.response?.response?.behavior,
       behavior,
     );
-    TestValidator.equals(
+    Assert.equals(
       `${name} answered the question it was asked`,
       answer?.response?.request_id,
       asked[0]?.request_id,
@@ -204,18 +199,18 @@ export async function test_agent_claude_envelope(): Promise<void> {
       ),
     );
 
-  TestValidator.equals(
+  Assert.equals(
     "an allowed tool runs, and nothing is listed as refused",
     Claude.APPROVE.find((line) => line.type === "result")?.permission_denials,
     [],
   );
-  TestValidator.equals(
+  Assert.equals(
     "and its result is not an error",
     failed(Claude.APPROVE),
     false,
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "a refused tool is listed on the terminal line",
     (
       Claude.REFUSE.find((line) => line.type === "result")
@@ -223,23 +218,19 @@ export async function test_agent_claude_envelope(): Promise<void> {
     ).map((entry) => entry.tool_name),
     ["Write"],
   );
-  TestValidator.equals(
-    "and its result is an error",
-    failed(Claude.REFUSE),
-    true,
-  );
+  Assert.equals("and its result is an error", failed(Claude.REFUSE), true);
 
   // The distinction an adapter has to respect. `system/permission_denied`
   // reports a local rule deciding; a refusal the wearer made arrives only as
   // the errored result and the terminal list, with no such line at all.
-  TestValidator.equals(
+  Assert.equals(
     "a locally denied write announces itself on its own line",
     Claude.HOSTED.some(
       (line) => Claude.kind(line) === "system/permission_denied",
     ),
     true,
   );
-  TestValidator.equals(
+  Assert.equals(
     "a host-refused write does not",
     Claude.REFUSE.some(
       (line) => Claude.kind(line) === "system/permission_denied",
@@ -247,13 +238,13 @@ export async function test_agent_claude_envelope(): Promise<void> {
     false,
   );
 
-  TestValidator.predicate(
+  Assert.predicate(
     "a refusal announces itself on its own line",
     Claude.DENIED.some(
       (line) => Claude.kind(line) === "system/permission_denied",
     ),
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and comes back as a failed tool result",
     Claude.DENIED.some((line) =>
       Claude.blocks(line).some(
@@ -264,12 +255,12 @@ export async function test_agent_claude_envelope(): Promise<void> {
   const denials = Claude.DENIED.find(
     (line) => line.type === "result",
   )?.permission_denials;
-  TestValidator.equals(
+  Assert.equals(
     "and is listed on the terminal line, naming the tool",
     (denials ?? []).map((entry) => entry.tool_name),
     ["Write"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "a turn that was not refused lists nothing",
     Claude.TOOL.find((line) => line.type === "result")?.permission_denials,
     [],
@@ -288,13 +279,9 @@ export async function test_agent_claude_envelope(): Promise<void> {
     .map((block) => block.text ?? "")
     .join("");
 
-  TestValidator.predicate("there were deltas to fold", deltas.length > 0);
-  TestValidator.equals(
-    "folded deltas equal the completed message",
-    deltas,
-    message,
-  );
-  TestValidator.equals(
+  Assert.predicate("there were deltas to fold", deltas.length > 0);
+  Assert.equals("folded deltas equal the completed message", deltas, message);
+  Assert.equals(
     "and equal the terminal result",
     deltas,
     Claude.PARTIAL.find((line) => line.type === "result")?.result,
@@ -303,7 +290,7 @@ export async function test_agent_claude_envelope(): Promise<void> {
   const kinds: string[] = Claude.PARTIAL.map((line) =>
     line.event === undefined ? Claude.kind(line) : line.event.type,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "the completed message arrives before the stream stops",
     kinds.indexOf("assistant") < kinds.indexOf("content_block_stop"),
   );

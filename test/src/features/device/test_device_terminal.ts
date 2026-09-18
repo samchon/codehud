@@ -1,6 +1,7 @@
 import type { ICodeHudFrame } from "@codehud/interface";
 import { CodeHudTerminalCanvas } from "@codehud/simulator";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * The simulator draws at the declared geometry, and never hides an overflow.
@@ -47,24 +48,24 @@ export async function test_device_terminal(): Promise<void> {
     colored: false,
   });
 
-  TestValidator.equals(
+  Assert.equals(
     "every line is the same width",
     new Set(drawn.map((line) => line.length)).size,
     1,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and that width is the declared one plus its two borders",
     drawn[0]!.length,
     26,
   );
 
   const body: string[] = drawn.filter((line) => line.startsWith("│"));
-  TestValidator.equals("as many rows as were declared", body.length, 2);
-  TestValidator.predicate(
+  Assert.equals("as many rows as were declared", body.length, 2);
+  Assert.predicate(
     "the first holding what the frame said",
     body[0]!.includes("Write src/index.ts"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the second padded rather than absent",
     body[1],
     `│${" ".repeat(24)}│`,
@@ -72,21 +73,14 @@ export async function test_device_terminal(): Promise<void> {
 
   // An overflow is a defect upstream, and is shown as one.
   const long: string = CodeHudTerminalCanvas.pad("x".repeat(40), 24);
-  TestValidator.equals(
-    "an overflowing line is cut to the width",
-    long.length,
-    24,
-  );
-  TestValidator.predicate(
-    "and marked, not silently trimmed",
-    long.endsWith("!"),
-  );
-  TestValidator.equals(
+  Assert.equals("an overflowing line is cut to the width", long.length, 24);
+  Assert.predicate("and marked, not silently trimmed", long.endsWith("!"));
+  Assert.equals(
     "a line exactly at the width is untouched",
     CodeHudTerminalCanvas.pad("y".repeat(24), 24),
     "y".repeat(24),
   );
-  TestValidator.equals(
+  Assert.equals(
     "and a newline never breaks the box",
     CodeHudTerminalCanvas.pad("a\nb", 4),
     "a b ",
@@ -96,28 +90,28 @@ export async function test_device_terminal(): Promise<void> {
     frame({ hint: "Say Allow or Deny" }),
     { columns: 24, rows: 2, colored: false },
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "a hint gets its own compartment",
     hinted.some((line) => line.startsWith("├")) &&
       hinted.some((line) => line.includes("Say Allow or Deny")),
   );
-  TestValidator.equals(
+  Assert.equals(
     "and costs one of the declared rows rather than being drawn below them",
     hinted.filter((line) => line.startsWith("│")).length,
     2,
   );
-  TestValidator.equals(
+  Assert.equals(
     "so the same geometry always draws the same number of rows",
     hinted.filter((line) => line.startsWith("│")).length,
     drawn.filter((line) => line.startsWith("│")).length,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and a frame without one has no compartment for it",
     drawn.some((line) => line.startsWith("├")),
     false,
   );
 
-  TestValidator.predicate(
+  Assert.predicate(
     "the grade is stated, so the notification rules are visible here",
     drawn[drawn.length - 1]!.includes("demand"),
   );
@@ -133,12 +127,12 @@ export async function test_device_terminal(): Promise<void> {
     }),
     { columns: 24, rows: 2, colored: false },
   );
-  TestValidator.equals(
+  Assert.equals(
     "a frame with more lines than rows is cut to the rows",
     crowded.filter((line) => line.startsWith("│")).length,
     2,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the ones that did not fit are gone rather than wrapped",
     crowded.some((line) => line.includes("three")),
     false,

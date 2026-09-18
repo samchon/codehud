@@ -8,8 +8,8 @@ import {
   CodeHudContext,
   CodeHudReducer,
 } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -123,32 +123,29 @@ export async function test_hud_compose_geometry(): Promise<void> {
       const where = `${name} at ${geometry.columns}x${geometry.rows}`;
 
       for (const line of frame.lines)
-        TestValidator.predicate(
+        Assert.predicate(
           `${where}: line within ${geometry.columns} columns`,
           line.text.length <= geometry.columns,
         );
 
       if (frame.hint !== undefined)
-        TestValidator.predicate(
+        Assert.predicate(
           `${where}: hint within ${geometry.columns} columns`,
           frame.hint.length <= geometry.columns,
         );
 
-      TestValidator.predicate(
+      Assert.predicate(
         `${where}: lines plus hint within ${geometry.rows} rows`,
         frame.lines.length + (frame.hint === undefined ? 0 : 1) <=
           geometry.rows,
       );
 
-      TestValidator.predicate(
-        `${where}: says something`,
-        frame.lines.length >= 1,
-      );
+      Assert.predicate(`${where}: says something`, frame.lines.length >= 1);
 
       // Urgency is a property of the situation, not of the surface. A narrow
       // display must not raise the grade to compensate for having less room,
       // and a wide one must not lower it.
-      TestValidator.equals(
+      Assert.equals(
         `${where}: grade does not vary with geometry`,
         frame.urgency,
         composer.compose(state, Stream.WIDE).urgency,
@@ -157,11 +154,11 @@ export async function test_hud_compose_geometry(): Promise<void> {
 
   const before: ICodeHudFrame = composer.compose(done, Stream.NARROW);
   const after: ICodeHudFrame = composer.compose(failed, Stream.NARROW);
-  TestValidator.predicate(
+  Assert.predicate(
     "the key follows the visible content",
     before.key !== after.key,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and is stable for unchanged content",
     composer.compose(done, Stream.NARROW).key,
     before.key,

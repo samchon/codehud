@@ -1,5 +1,6 @@
 import { CodeHudText } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * `elapsed` renders a duration in the coarsest unit that stays honest.
@@ -20,41 +21,21 @@ import { TestValidator } from "@nestia/e2e";
  *    which can happen when a host clock is adjusted mid-turn.
  */
 export async function test_hud_text_elapsed(): Promise<void> {
-  TestValidator.equals("zero", CodeHudText.elapsed(0), "0s");
-  TestValidator.equals("rounds up", CodeHudText.elapsed(4_600), "5s");
-  TestValidator.equals("rounds down", CodeHudText.elapsed(4_400), "4s");
-  TestValidator.equals(
-    "just under a minute",
-    CodeHudText.elapsed(59_000),
-    "59s",
-  );
+  Assert.equals("zero", CodeHudText.elapsed(0), "0s");
+  Assert.equals("rounds up", CodeHudText.elapsed(4_600), "5s");
+  Assert.equals("rounds down", CodeHudText.elapsed(4_400), "4s");
+  Assert.equals("just under a minute", CodeHudText.elapsed(59_000), "59s");
 
-  TestValidator.equals(
-    "exactly a minute",
-    CodeHudText.elapsed(60_000),
-    "1m 0s",
-  );
-  TestValidator.equals(
-    "minutes and seconds",
-    CodeHudText.elapsed(200_000),
-    "3m 20s",
-  );
-  TestValidator.equals(
+  Assert.equals("exactly a minute", CodeHudText.elapsed(60_000), "1m 0s");
+  Assert.equals("minutes and seconds", CodeHudText.elapsed(200_000), "3m 20s");
+  Assert.equals(
     "just under an hour",
     CodeHudText.elapsed(3_599_000),
     "59m 59s",
   );
 
-  TestValidator.equals(
-    "exactly an hour",
-    CodeHudText.elapsed(3_600_000),
-    "1h 0m",
-  );
-  TestValidator.equals(
-    "hours and minutes",
-    CodeHudText.elapsed(3_840_000),
-    "1h 4m",
-  );
+  Assert.equals("exactly an hour", CodeHudText.elapsed(3_600_000), "1h 0m");
+  Assert.equals("hours and minutes", CodeHudText.elapsed(3_840_000), "1h 4m");
 
-  TestValidator.equals("negative clamps", CodeHudText.elapsed(-5_000), "0s");
+  Assert.equals("negative clamps", CodeHudText.elapsed(-5_000), "0s");
 }

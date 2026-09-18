@@ -1,5 +1,6 @@
 import { CodeHudText } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * `path` drops leading segments rather than trailing characters.
@@ -22,15 +23,11 @@ import { TestValidator } from "@nestia/e2e";
  *    input that reaches the fallback with nothing to fall back to.
  */
 export async function test_hud_text_path(): Promise<void> {
-  TestValidator.equals("zero budget", CodeHudText.path("/a/b/c", 0), "");
+  Assert.equals("zero budget", CodeHudText.path("/a/b/c", 0), "");
 
-  TestValidator.equals(
-    "fits unchanged",
-    CodeHudText.path("/a/b.ts", 20),
-    "/a/b.ts",
-  );
+  Assert.equals("fits unchanged", CodeHudText.path("/a/b.ts", 20), "/a/b.ts");
 
-  TestValidator.equals(
+  Assert.equals(
     "backslashes normalized",
     CodeHudText.path("D:\\github\\samchon\\codehud", 40),
     "D:/github/samchon/codehud",
@@ -40,29 +37,25 @@ export async function test_hud_text_path(): Promise<void> {
     "/home/dev/projects/codehud/packages/projection/src/CodeHudComposer.ts",
     30,
   );
-  TestValidator.equals("elided fits", elided.length <= 30, true);
-  TestValidator.equals(
+  Assert.equals("elided fits", elided.length <= 30, true);
+  Assert.equals(
     "elision marked",
     elided.startsWith(CodeHudText.ELLIPSIS),
     true,
   );
-  TestValidator.equals(
-    "tail survives",
-    elided.endsWith("CodeHudComposer.ts"),
-    true,
-  );
+  Assert.equals("tail survives", elided.endsWith("CodeHudComposer.ts"), true);
 
   const tiny: string = CodeHudText.path(
     "/home/dev/VeryLongFileNameIndeed.ts",
     8,
   );
-  TestValidator.equals("tiny budget fits", tiny.length <= 8, true);
-  TestValidator.equals(
+  Assert.equals("tiny budget fits", tiny.length <= 8, true);
+  Assert.equals(
     "tiny budget falls back to fit",
     tiny.startsWith("VeryLon"),
     true,
   );
 
   const separators: string = CodeHudText.path("//////////", 3);
-  TestValidator.equals("only separators fits", separators.length <= 3, true);
+  Assert.equals("only separators fits", separators.length <= 3, true);
 }

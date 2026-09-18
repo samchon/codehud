@@ -1,8 +1,8 @@
 import { CodeHudBridgeServer } from "@codehud/bridge";
 import type { ICodeHudAgentAdapter } from "@codehud/interface";
 import { CodeHudDeskCommand } from "@codehud/simulator";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Harness } from "../internal/harness";
 
 /**
@@ -90,7 +90,7 @@ export async function test_device_desk_survives_refusal(): Promise<void> {
   try {
     for (let i: number = 0; i < 40 && written.length === 0; ++i)
       await Harness.settle(10);
-    TestValidator.predicate("the host connected and drew", written.length > 0);
+    Assert.predicate("the host connected and drew", written.length > 0);
 
     // The rude part.
     await bridge.close();
@@ -100,19 +100,19 @@ export async function test_device_desk_survives_refusal(): Promise<void> {
     command.speak("hello there");
     await Harness.settle(40);
 
-    TestValidator.equals(
+    Assert.equals(
       "the run did not end when the instruction could not be delivered",
       ended,
       null,
     );
-    TestValidator.predicate(
+    Assert.predicate(
       "and the wearer was told something about it",
       written.length > before,
     );
 
     command.speak("what is it doing");
     await Harness.settle(40);
-    TestValidator.predicate(
+    Assert.predicate(
       "the host is still reading, which is the whole point",
       written.length > before + 1 && ended === null,
     );

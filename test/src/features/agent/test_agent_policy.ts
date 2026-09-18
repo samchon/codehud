@@ -1,6 +1,7 @@
 import { CodeHudAgentPolicy } from "@codehud/agent";
 import type { ICodeHudAgentAdapter } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * One spoken policy means the same thing on both harnesses.
@@ -40,7 +41,7 @@ import { TestValidator } from "@nestia/e2e";
 export async function test_agent_policy(): Promise<void> {
   const defaults = CodeHudAgentPolicy.DEFAULT;
 
-  TestValidator.equals("the stated defaults, exactly", defaults.actions, {
+  Assert.equals("the stated defaults, exactly", defaults.actions, {
     read: "unattended",
     write: "attended",
     execute: "attended",
@@ -51,17 +52,17 @@ export async function test_agent_policy(): Promise<void> {
     credential: "confirmed",
   });
 
-  TestValidator.equals(
+  Assert.equals(
     "reads need no asking, and nothing else is allowed by name",
     CodeHudAgentPolicy.allowed(defaults),
     ["Glob", "Grep", "NotebookRead", "Read"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "and Codex is told to ask about everything",
     CodeHudAgentPolicy.approval(defaults),
     "untrusted",
   );
-  TestValidator.equals(
+  Assert.equals(
     "with a sandbox that does not write",
     CodeHudAgentPolicy.sandbox(defaults),
     "read-only",
@@ -71,17 +72,17 @@ export async function test_agent_policy(): Promise<void> {
   const writing: ICodeHudAgentAdapter.IPolicy = {
     actions: { ...defaults.actions, write: "unattended" },
   };
-  TestValidator.predicate(
+  Assert.predicate(
     "allowing writes allows the writing tools by name",
     CodeHudAgentPolicy.allowed(writing).includes("Write") &&
       CodeHudAgentPolicy.allowed(writing).includes("Edit"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "and opens the sandbox on the other harness",
     CodeHudAgentPolicy.sandbox(writing),
     "workspace-write",
   );
-  TestValidator.equals(
+  Assert.equals(
     "while still asking about everything else",
     CodeHudAgentPolicy.approval(writing),
     "untrusted",
@@ -111,20 +112,20 @@ export async function test_agent_policy(): Promise<void> {
         actions: { ...defaults.actions, [action]: treatment },
       };
       checked += 1;
-      TestValidator.predicate(
+      Assert.predicate(
         `${action} as ${treatment} never removes the gate on Claude Code`,
         CodeHudAgentPolicy.mode() === "manual",
       );
-      TestValidator.predicate(
+      Assert.predicate(
         `${action} as ${treatment} never removes it on Codex either`,
         CodeHudAgentPolicy.approval(policy) !== ("never" as string),
       );
-      TestValidator.predicate(
+      Assert.predicate(
         `${action} as ${treatment} never opens the sandbox fully`,
         CodeHudAgentPolicy.sandbox(policy) !== ("danger-full-access" as string),
       );
     }
-  TestValidator.predicate("every combination was checked", checked === 24);
+  Assert.predicate("every combination was checked", checked === 24);
 
   // The most permissive policy expressible still asks before leaving the box.
   const permissive: ICodeHudAgentAdapter.IPolicy = {
@@ -132,12 +133,12 @@ export async function test_agent_policy(): Promise<void> {
       actions.map((action) => [action, "unattended"]),
     ) as ICodeHudAgentAdapter.IPolicy["actions"],
   };
-  TestValidator.equals(
+  Assert.equals(
     "an entirely unattended policy is the one case Codex relaxes for",
     CodeHudAgentPolicy.approval(permissive),
     "on-request",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and even that is not the same as no gate",
     CodeHudAgentPolicy.approval(permissive) !== ("never" as string),
     true,
@@ -147,17 +148,17 @@ export async function test_agent_policy(): Promise<void> {
   const doubled: ICodeHudAgentAdapter.IPolicy = {
     actions: { ...defaults.actions, execute: "confirmed" },
   };
-  TestValidator.equals(
+  Assert.equals(
     "a doubly-confirmed action is not allowed by name",
     CodeHudAgentPolicy.allowed(doubled).includes("Bash"),
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and is recognized as needing a second answer on this side",
     CodeHudAgentPolicy.doubled(doubled, "execute"),
     true,
   );
-  TestValidator.equals(
+  Assert.equals(
     "which an attended action does not",
     CodeHudAgentPolicy.doubled(defaults, "write"),
     false,

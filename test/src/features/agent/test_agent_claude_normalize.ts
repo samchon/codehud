@@ -1,7 +1,7 @@
 import { CodeHudClaudeNormalizer } from "@codehud/agent";
 import type { ICodeHudAgentEvent } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Claude } from "../internal/claude";
 
 /**
@@ -50,12 +50,12 @@ export async function test_agent_claude_normalize(): Promise<void> {
 
   for (const { name, stream } of Claude.ALL) {
     const events: ICodeHudAgentEvent[] = run(stream);
-    TestValidator.equals(
+    Assert.equals(
       `${name} counts from zero without a gap`,
       events.map((event) => event.sequence),
       events.map((_, index) => index),
     );
-    TestValidator.predicate(`${name} produced something`, events.length > 0);
+    Assert.predicate(`${name} produced something`, events.length > 0);
   }
 
   // Absorbed rather than translated. Fed alone, each produces nothing.
@@ -67,43 +67,36 @@ export async function test_agent_claude_normalize(): Promise<void> {
     const line: Claude.IEnvelope | undefined = Claude.ALL.flatMap(
       ({ stream }) => stream,
     ).find((candidate) => Claude.kind(candidate) === kind);
-    TestValidator.predicate(
-      `${kind} was actually captured`,
-      line !== undefined,
-    );
-    TestValidator.equals(
-      `${kind} becomes no observation`,
-      run([line!]).length,
-      0,
-    );
+    Assert.predicate(`${kind} was actually captured`, line !== undefined);
+    Assert.equals(`${kind} becomes no observation`, run([line!]).length, 0);
   }
 
   const tooled: ICodeHudAgentEvent[] = run(Claude.TOOL);
   const phases = tooled.filter(
     (event): event is ICodeHudAgentEvent.ITool => event.type === "tool",
   );
-  TestValidator.equals("a tool is reported twice", phases.length, 2);
-  TestValidator.equals(
+  Assert.equals("a tool is reported twice", phases.length, 2);
+  Assert.equals(
     "under one call identifier",
     new Set(phases.map((event) => event.call)).size,
     1,
   );
-  TestValidator.equals(
+  Assert.equals(
     "starting then finishing",
     phases.map((event) => event.phase),
     ["start", "finish"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the finish carries the description the start made",
     phases[1]!.title,
     phases[0]!.title,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "which names the tool and what it acted on",
     phases[0]!.title.startsWith("Read ") &&
       phases[0]!.title.includes("notes.txt"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "a tool that succeeded is not marked failed",
     phases[1]!.failed,
     undefined,
@@ -112,7 +105,7 @@ export async function test_agent_claude_normalize(): Promise<void> {
   const refusedPhases = run(Claude.REFUSE).filter(
     (event): event is ICodeHudAgentEvent.ITool => event.type === "tool",
   );
-  TestValidator.equals(
+  Assert.equals(
     "a tool the wearer refused is marked failed",
     refusedPhases[refusedPhases.length - 1]?.failed,
     true,
@@ -125,22 +118,22 @@ export async function test_agent_claude_normalize(): Promise<void> {
   const asked: Claude.IEnvelope | undefined = Claude.APPROVE.find(
     (line) => line.request?.subtype === "can_use_tool",
   );
-  TestValidator.predicate("an approval was produced", approval !== undefined);
-  TestValidator.equals(
+  Assert.predicate("an approval was produced", approval !== undefined);
+  Assert.equals(
     "quoting the harness's own request identifier",
     approval?.request,
     asked?.request_id,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and naming the tool it is about",
     approval?.title.startsWith("Write ") === true,
   );
-  TestValidator.equals(
+  Assert.equals(
     "exactly one option advances the agent",
     approval?.options.filter((option) => option.affirmative === true).length,
     1,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and none of them persists",
     approval?.options.every((option) => option.persistent === false),
     true,
@@ -150,19 +143,19 @@ export async function test_agent_claude_normalize(): Promise<void> {
     run(stream).find(
       (event): event is ICodeHudAgentEvent.IResult => event.type === "result",
     )?.outcome;
-  TestValidator.equals(
+  Assert.equals(
     "an allowed turn succeeded",
     outcome(Claude.APPROVE),
     "success",
   );
-  TestValidator.equals(
+  Assert.equals(
     "a refused turn is interrupted, not failed",
     outcome(Claude.REFUSE),
     "interrupted",
   );
 
   const reasoning: ICodeHudAgentEvent[] = run(Claude.HOSTED, false);
-  TestValidator.predicate(
+  Assert.predicate(
     "reasoning is its own observation, distinct from prose",
     reasoning.some((event) => event.type === "reasoning") &&
       reasoning.some((event) => event.type === "message"),

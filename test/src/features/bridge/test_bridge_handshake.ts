@@ -8,8 +8,8 @@ import type {
   ICodeHudBridgeProvider,
   ICodeHudGlassesDescriptor,
 } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Harness } from "../internal/harness";
 
 /**
@@ -88,13 +88,13 @@ export async function test_bridge_handshake(): Promise<void> {
     });
 
   const old: unknown = await Harness.refusal(() => hello({ version: 0 }));
-  TestValidator.predicate(
+  Assert.predicate(
     "a disagreeing revision refuses",
     CodeHudBridgeFailure.is(old),
   );
   if (CodeHudBridgeFailure.is(old) === true) {
-    TestValidator.equals("with the version cause", old.cause, "version");
-    TestValidator.predicate(
+    Assert.equals("with the version cause", old.cause, "version");
+    Assert.predicate(
       "naming both revisions",
       old.message.includes("1") && old.message.includes("0"),
     );
@@ -103,18 +103,18 @@ export async function test_bridge_handshake(): Promise<void> {
   const wrong: unknown = await Harness.refusal(() =>
     hello({ token: "guessed" }),
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "a wrong credential refuses",
     CodeHudBridgeFailure.is(wrong),
   );
   if (CodeHudBridgeFailure.is(wrong) === true)
-    TestValidator.equals("with the token cause", wrong.cause, "token");
+    Assert.equals("with the token cause", wrong.cause, "token");
 
   const both: unknown = await Harness.refusal(() =>
     hello({ version: 0, token: "guessed" }),
   );
   if (CodeHudBridgeFailure.is(both) === true)
-    TestValidator.equals(
+    Assert.equals(
       "the revision is reported ahead of the credential",
       both.cause,
       "version",
@@ -130,44 +130,44 @@ export async function test_bridge_handshake(): Promise<void> {
     ["close", (): Promise<unknown> => connection.close("already")],
   ] as const) {
     const barred: unknown = await Harness.refusal(task);
-    TestValidator.predicate(
+    Assert.predicate(
       `${name} is refused before a welcome`,
       CodeHudBridgeFailure.is(barred),
     );
     if (CodeHudBridgeFailure.is(barred) === true)
-      TestValidator.equals(
+      Assert.equals(
         `${name} refuses as a credential refusal`,
         barred.cause,
         "token",
       );
   }
 
-  TestValidator.equals(
+  Assert.equals(
     "no device is recorded before a welcome",
     connection.device,
     null,
   );
 
   const welcome: ICodeHudBridgeProvider.IWelcome = await hello({});
-  TestValidator.equals("the bridge states its revision", welcome.version, 1);
-  TestValidator.equals("and names the machine", welcome.host, "workbench");
-  TestValidator.equals(
+  Assert.equals("the bridge states its revision", welcome.version, 1);
+  Assert.equals("and names the machine", welcome.host, "workbench");
+  Assert.equals(
     "and advertises what is already running",
     welcome.sessions.map((s) => s.id),
     ["already"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "with the identifier a terminal on the host would resume",
     welcome.sessions[0]!.native,
     "codex-42",
   );
-  TestValidator.equals(
+  Assert.equals(
     "the welcomed device is recorded",
     connection.device,
     descriptor,
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "probing works once welcomed",
     await connection.probe(),
     probes,

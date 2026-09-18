@@ -11,8 +11,8 @@ import type {
   ICodeHudAgentEvent,
   ICodeHudGlassesDescriptor,
 } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Claude } from "../internal/claude";
 import { Codex } from "../internal/codex";
 import { Harness } from "../internal/harness";
@@ -55,8 +55,8 @@ export async function test_bridge_handoff(): Promise<void> {
     .find(
       (event): event is ICodeHudAgentEvent.ISession => event.type === "session",
     );
-  TestValidator.predicate("Claude announced a session", opened !== undefined);
-  TestValidator.equals(
+  Assert.predicate("Claude announced a session", opened !== undefined);
+  Assert.equals(
     "naming the conversation in its own terms",
     opened?.native,
     Claude.sent(Claude.PLAIN).find((line) => line.type === "system")
@@ -72,8 +72,8 @@ export async function test_bridge_handoff(): Promise<void> {
     .find(
       (event): event is ICodeHudAgentEvent.ISession => event.type === "session",
     );
-  TestValidator.predicate("Codex announced a session", started !== undefined);
-  TestValidator.equals(
+  Assert.predicate("Codex announced a session", started !== undefined);
+  Assert.equals(
     "naming its thread",
     started?.native,
     Codex.sent(Codex.PLAIN).find((line) => line.method === "thread/started")
@@ -84,7 +84,7 @@ export async function test_bridge_handoff(): Promise<void> {
   const registry: CodeHudSessionRegistry = new CodeHudSessionRegistry();
   const session: Harness.Session = new Harness.Session("s1");
   registry.adopt(session, { kind: "claude-code", directory: "/repo" });
-  TestValidator.equals(
+  Assert.equals(
     "a session not yet named by its harness is advertised without one",
     registry.list()[0]?.native,
     undefined,
@@ -92,7 +92,7 @@ export async function test_bridge_handoff(): Promise<void> {
 
   session.announce("native-conversation-7");
   await Harness.settle();
-  TestValidator.equals(
+  Assert.equals(
     "and carries it once the harness has said",
     registry.list()[0]?.native,
     "native-conversation-7",
@@ -101,7 +101,7 @@ export async function test_bridge_handoff(): Promise<void> {
   session.emit("working");
   session.emit("still working");
   await Harness.settle();
-  TestValidator.equals(
+  Assert.equals(
     "which survives everything that follows",
     registry.list()[0]?.native,
     "native-conversation-7",
@@ -146,7 +146,7 @@ export async function test_bridge_handoff(): Promise<void> {
     token: "any",
     descriptor,
   });
-  TestValidator.equals(
+  Assert.equals(
     "the desk discovers the session the glasses started",
     advertised.sessions.map((entry) => entry.native),
     ["native-conversation-7"],
@@ -157,7 +157,7 @@ export async function test_bridge_handoff(): Promise<void> {
   session.ask("r1", "Write src/index.ts");
   await Harness.settle();
 
-  TestValidator.predicate(
+  Assert.predicate(
     "both surfaces were shown the approval",
     glasses.seen.length > 0 && desk.seen.length === glasses.seen.length,
   );
@@ -167,7 +167,7 @@ export async function test_bridge_handoff(): Promise<void> {
     request: "r1",
     option: "yes",
   });
-  TestValidator.equals(
+  Assert.equals(
     "and the answer from either one reaches the harness once",
     session.received,
     [{ type: "decision", request: "r1", option: "yes" }],

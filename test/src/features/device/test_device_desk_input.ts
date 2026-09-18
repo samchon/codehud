@@ -1,5 +1,6 @@
 import { CodeHudDeskCommand } from "@codehud/simulator";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * Nothing a wearer says while the host is busy is dropped.
@@ -33,12 +34,12 @@ export async function test_device_desk_input(): Promise<void> {
   const iterator: AsyncIterator<string> = early.inputs[Symbol.asyncIterator]();
   read.push(((await iterator.next()) as IteratorYieldResult<string>).value);
   read.push(((await iterator.next()) as IteratorYieldResult<string>).value);
-  TestValidator.equals("both were held, in order", read, ["first", "second"]);
+  Assert.equals("both were held, in order", read, ["first", "second"]);
 
   // 2. Handed over while already waiting.
   const parked: Promise<IteratorResult<string>> = iterator.next();
   early.push("third");
-  TestValidator.equals(
+  Assert.equals(
     "a waiting reader is handed the next line",
     ((await parked) as IteratorYieldResult<string>).value,
     "third",
@@ -46,7 +47,7 @@ export async function test_device_desk_input(): Promise<void> {
 
   // 3. Ending ends the iteration.
   early.end();
-  TestValidator.equals(
+  Assert.equals(
     "and ending finishes it rather than hanging",
     (await iterator.next()).done,
     true,
@@ -57,7 +58,7 @@ export async function test_device_desk_input(): Promise<void> {
   const reader: AsyncIterator<string> = late.inputs[Symbol.asyncIterator]();
   const waiting: Promise<IteratorResult<string>> = reader.next();
   late.end();
-  TestValidator.equals(
+  Assert.equals(
     "a reader parked at the end is released",
     (await waiting).done,
     true,
@@ -65,7 +66,7 @@ export async function test_device_desk_input(): Promise<void> {
 
   // 5. Nothing arrives after the end.
   late.push("too late");
-  TestValidator.equals(
+  Assert.equals(
     "and the stream does not come back",
     (await reader.next()).done,
     true,

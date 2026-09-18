@@ -1,5 +1,6 @@
 import { CodeHudNodeRunner } from "@codehud/agent";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * Path entries are unwrapped before anything is looked for inside them.
@@ -34,34 +35,32 @@ export async function test_agent_path_entries(): Promise<void> {
   const split = (path: string): string[] =>
     CodeHudNodeRunner.directories(path, ";");
 
-  TestValidator.equals(
+  Assert.equals(
     "a quoted entry is unwrapped",
     split(String.raw`C:\a;"C:\Program Files\b";C:\c`),
     [String.raw`C:\a`, String.raw`C:\Program Files\b`, String.raw`C:\c`],
   );
 
-  TestValidator.equals(
-    "an unquoted entry is untouched",
-    split(String.raw`C:\only`),
-    [String.raw`C:\only`],
-  );
+  Assert.equals("an unquoted entry is untouched", split(String.raw`C:\only`), [
+    String.raw`C:\only`,
+  ]);
 
-  TestValidator.equals(
+  Assert.equals(
     "an empty entry is dropped rather than meaning the working directory",
     split(String.raw`C:\a;;C:\b;`),
     [String.raw`C:\a`, String.raw`C:\b`],
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "surrounding space is trimmed",
     split(String.raw`  C:\a  ; C:\b `),
     [String.raw`C:\a`, String.raw`C:\b`],
   );
 
-  TestValidator.equals("an empty path yields nothing", split(""), []);
-  TestValidator.equals("a path of separators yields nothing", split(";;;"), []);
+  Assert.equals("an empty path yields nothing", split(""), []);
+  Assert.equals("a path of separators yields nothing", split(";;;"), []);
 
-  TestValidator.equals(
+  Assert.equals(
     "a quote inside an entry is not a wrapper",
     split(String.raw`C:\od"d`),
     [String.raw`C:\od"d`],

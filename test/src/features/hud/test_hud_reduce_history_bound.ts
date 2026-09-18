@@ -1,7 +1,7 @@
 import type { ICodeHudState } from "@codehud/interface";
 import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -30,7 +30,7 @@ export async function test_hud_reduce_history_bound(): Promise<void> {
       state,
       Stream.tool(`c${i}`, `Edit ${i}.ts`, "finish", false),
     );
-  TestValidator.equals(
+  Assert.equals(
     "below the cap",
     state.history.length,
     CodeHudContext.DEFAULT.history - 1,
@@ -40,7 +40,7 @@ export async function test_hud_reduce_history_bound(): Promise<void> {
     state,
     Stream.tool("edge", "Edit edge.ts", "finish", false),
   );
-  TestValidator.equals(
+  Assert.equals(
     "exactly at the cap",
     state.history.length,
     CodeHudContext.DEFAULT.history,
@@ -50,17 +50,13 @@ export async function test_hud_reduce_history_bound(): Promise<void> {
     state,
     Stream.tool("over", "Edit over.ts", "finish", false),
   );
-  TestValidator.equals(
+  Assert.equals(
     "held at the cap",
     state.history.length,
     CodeHudContext.DEFAULT.history,
   );
-  TestValidator.equals(
-    "newest survives",
-    state.history[0]!.title,
-    "Edit over.ts",
-  );
-  TestValidator.equals(
+  Assert.equals("newest survives", state.history[0]!.title, "Edit over.ts");
+  Assert.equals(
     "oldest is gone",
     state.history.some((e) => e.title === "Edit 0.ts"),
     false,
@@ -72,8 +68,8 @@ export async function test_hud_reduce_history_bound(): Promise<void> {
       state,
       Stream.tool("over", `Edit over.ts (${i})`, "update"),
     );
-  TestValidator.equals("upserts never evict", state.history.length, before);
-  TestValidator.equals(
+  Assert.equals("upserts never evict", state.history.length, before);
+  Assert.equals(
     "and still update in place",
     state.history[0]!.title,
     "Edit over.ts (9)",

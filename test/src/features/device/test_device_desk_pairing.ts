@@ -1,6 +1,5 @@
 import { CodeHudPairingToken } from "@codehud/bridge";
 import { CodeHudDeskCommand } from "@codehud/simulator";
-import { TestValidator } from "@nestia/e2e";
 
 import { Assert } from "../internal/assert";
 
@@ -34,12 +33,12 @@ export async function test_device_desk_pairing(): Promise<void> {
     token: "tDwB0Pf9jahsv55JsdzS0w",
   });
   const read = CodeHudDeskCommand.paired(payload);
-  TestValidator.equals(
+  Assert.equals(
     "the address the bridge named is the one dialled",
     read.address,
     "ws://192.168.0.14:37219/",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the credential comes back whole",
     read.token,
     "tDwB0Pf9jahsv55JsdzS0w",
@@ -50,7 +49,7 @@ export async function test_device_desk_pairing(): Promise<void> {
     port: 37219,
     token: "a-b_c=d+e/f",
   });
-  TestValidator.equals(
+  Assert.equals(
     "a token is not damaged by the address carrying it",
     CodeHudDeskCommand.paired(awkward).token,
     "a-b_c=d+e/f",
@@ -62,11 +61,11 @@ export async function test_device_desk_pairing(): Promise<void> {
   await Assert.throws("and one with an empty token likewise", () =>
     CodeHudDeskCommand.paired("ws://127.0.0.1:37219/?token="),
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and the wrapper that says so would have reported one that did not refuse",
     (await Assert.reports(() => undefined)) === true,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "including one that did not refuse asynchronously",
     (await Assert.reports(async () => undefined)) === true,
   );

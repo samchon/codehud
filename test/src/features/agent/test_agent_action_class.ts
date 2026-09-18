@@ -4,8 +4,8 @@ import {
   CodeHudCodexNormalizer,
 } from "@codehud/agent";
 import type { ICodeHudAgentEvent } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Claude } from "../internal/claude";
 import { Codex } from "../internal/codex";
 
@@ -68,7 +68,7 @@ export async function test_agent_action_class(): Promise<void> {
     ["WebFetch", "network"],
     ["Task", "execute"],
   ] as const)
-    TestValidator.equals(
+    Assert.equals(
       `${tool} is ${expected}`,
       CodeHudActionClass.of({ tool }),
       expected,
@@ -88,7 +88,7 @@ export async function test_agent_action_class(): Promise<void> {
     ["echo $AWS_SECRET_ACCESS_KEY", "credential"],
     ["cp ~/.aws/credentials /tmp/x", "credential"],
   ] as const)
-    TestValidator.equals(
+    Assert.equals(
       `${command} is ${expected}`,
       CodeHudActionClass.of({ tool: "Bash", command }),
       expected,
@@ -105,7 +105,7 @@ export async function test_agent_action_class(): Promise<void> {
     ["kubectl delete pod api", "delete"],
     ["ri -Recurse build", "delete"],
   ] as const)
-    TestValidator.equals(
+    Assert.equals(
       `${command.trim()} is ${expected}`,
       CodeHudActionClass.of({ tool: "Bash", command }),
       expected,
@@ -115,7 +115,7 @@ export async function test_agent_action_class(): Promise<void> {
   // destroys a file and names no program, and is deliberately not matched
   // because most redirects are harmless and a second word in front of every
   // one of them is the fatigue the policy exists to prevent.
-  TestValidator.equals(
+  Assert.equals(
     "a truncating redirect is a known miss, not an oversight",
     CodeHudActionClass.of({
       tool: "Bash",
@@ -125,24 +125,24 @@ export async function test_agent_action_class(): Promise<void> {
   );
 
   // 3. Two classes, one command, and the worse one reported.
-  TestValidator.equals(
+  Assert.equals(
     "a forced push is history rewriting rather than publication",
     CodeHudActionClass.of({ tool: "Bash", command: "git push --force origin" }),
     "history",
   );
-  TestValidator.equals(
+  Assert.equals(
     "while an ordinary push is neither",
     CodeHudActionClass.of({ tool: "Bash", command: "git push origin master" }),
     "execute",
   );
 
   // 4. Word boundaries, so a prefix is not a match.
-  TestValidator.equals(
+  Assert.equals(
     "rmadison is not rm",
     CodeHudActionClass.of({ tool: "Bash", command: "rmadison libfoo" }),
     "execute",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and git rebasement is not git rebase",
     CodeHudActionClass.of({ tool: "Bash", command: "git rebasement" }),
     "execute",
@@ -158,7 +158,7 @@ export async function test_agent_action_class(): Promise<void> {
     `CI=1 bash -lc "rm -rf build"`,
     `bash -lc "sh -c 'rm -rf build'"`,
   ])
-    TestValidator.equals(
+    Assert.equals(
       `${command} is still deletion`,
       CodeHudActionClass.of({ tool: "Bash", command }),
       "delete",
@@ -175,12 +175,12 @@ export async function test_agent_action_class(): Promise<void> {
     ["npm run build && npm publish", "publish"],
     ["git status && git push --force", "history"],
   ] as const)
-    TestValidator.equals(
+    Assert.equals(
       `a chain is classified by what it would run, not by its head: ${command}`,
       CodeHudActionClass.of({ tool: "Bash", command }),
       expected,
     );
-  TestValidator.equals(
+  Assert.equals(
     "and a chain of harmless commands is still execution",
     CodeHudActionClass.of({ tool: "Bash", command: "echo ok && ls -l" }),
     "execute",
@@ -195,12 +195,12 @@ export async function test_agent_action_class(): Promise<void> {
     ["ls && sudo rm -rf x", "delete"],
     [`git status && CI=1 bash -lc "npm publish"`, "publish"],
   ] as const)
-    TestValidator.equals(
+    Assert.equals(
       `a wrapper later in the line is still peeled: ${command}`,
       CodeHudActionClass.of({ tool: "Bash", command }),
       expected,
     );
-  TestValidator.predicate(
+  Assert.predicate(
     "and taking a line apart is bounded rather than open-ended",
     CodeHudActionClass.lines(
       // Distinct on purpose: five hundred copies of one command collapse to one
@@ -213,17 +213,17 @@ export async function test_agent_action_class(): Promise<void> {
   );
 
   // 6. What it does when it cannot tell, in each direction.
-  TestValidator.equals(
+  Assert.equals(
     "an unrecognized command is execution rather than nothing",
     CodeHudActionClass.of({ tool: "Bash", command: "pnpm run build" }),
     "execute",
   );
-  TestValidator.equals(
+  Assert.equals(
     "an unrecognized tool is nothing rather than a guess",
     CodeHudActionClass.of({ tool: "SomeFutureTool" }),
     undefined,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and nothing at all is nothing",
     CodeHudActionClass.of({}),
     undefined,
@@ -242,7 +242,7 @@ export async function test_agent_action_class(): Promise<void> {
       (event): event is ICodeHudAgentEvent.IPermission =>
         event.type === "permission",
     );
-  TestValidator.equals(
+  Assert.equals(
     "Claude Code's captured request carries the class it would perform",
     asked?.action,
     "write",
@@ -260,7 +260,7 @@ export async function test_agent_action_class(): Promise<void> {
       (event): event is ICodeHudAgentEvent.IPermission =>
         event.type === "permission",
     );
-  TestValidator.equals(
+  Assert.equals(
     "and so does Codex's, from the command alone",
     requested?.action,
     "execute",
@@ -278,7 +278,7 @@ export async function test_agent_action_class(): Promise<void> {
       cwd: "/repo",
     },
   });
-  TestValidator.equals(
+  Assert.equals(
     "a deletion is reported as one rather than as an execution",
     (dangerous[0] as ICodeHudAgentEvent.IPermission).action,
     "delete",

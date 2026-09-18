@@ -1,7 +1,7 @@
 import type { ICodeHudState } from "@codehud/interface";
 import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -30,47 +30,43 @@ export async function test_hud_reduce_message(): Promise<void> {
   const fresh: ICodeHudState = reducer.initialize();
 
   const thinking: ICodeHudState = reducer.reduce(fresh, Stream.reasoning("hm"));
-  TestValidator.equals(
-    "reasoning sets thinking",
-    thinking.activity,
-    "thinking",
-  );
-  TestValidator.equals("reasoning leaves the buffer", thinking.message, "");
-  TestValidator.equals("reasoning records nothing", thinking.history.length, 0);
+  Assert.equals("reasoning sets thinking", thinking.activity, "thinking");
+  Assert.equals("reasoning leaves the buffer", thinking.message, "");
+  Assert.equals("reasoning records nothing", thinking.history.length, 0);
 
   const one: ICodeHudState = reducer.reduce(
     thinking,
     Stream.message("The ", false),
   );
-  TestValidator.equals("partial sets working", one.activity, "working");
-  TestValidator.equals("partial accumulates", one.message, "The ");
-  TestValidator.equals("partial records nothing", one.history.length, 0);
+  Assert.equals("partial sets working", one.activity, "working");
+  Assert.equals("partial accumulates", one.message, "The ");
+  Assert.equals("partial records nothing", one.history.length, 0);
 
   const two: ICodeHudState = reducer.reduce(
     one,
     Stream.message("fold  ", false),
   );
-  TestValidator.equals("partials concatenate", two.message, "The fold  ");
+  Assert.equals("partials concatenate", two.message, "The fold  ");
 
   const done: ICodeHudState = reducer.reduce(
     two,
     Stream.message("is pure.", true),
   );
-  TestValidator.equals("completion empties the buffer", done.message, "");
-  TestValidator.equals("completion records one entry", done.history.length, 1);
-  TestValidator.equals("entry kind", done.history[0]!.kind, "message");
-  TestValidator.equals(
+  Assert.equals("completion empties the buffer", done.message, "");
+  Assert.equals("completion records one entry", done.history.length, 1);
+  Assert.equals("entry kind", done.history[0]!.kind, "message");
+  Assert.equals(
     "entry carries the whole message, trimmed",
     done.history[0]!.title,
     "The fold  is pure.",
   );
-  TestValidator.equals("entry is finished", done.history[0]!.done, true);
-  TestValidator.equals("entry did not fail", done.history[0]!.failed, false);
+  Assert.equals("entry is finished", done.history[0]!.done, true);
+  Assert.equals("entry did not fail", done.history[0]!.failed, false);
 
   const solo: ICodeHudState = reducer.reduce(
     reducer.initialize(),
     Stream.message("one shot", true),
   );
-  TestValidator.equals("a lone completion records", solo.history.length, 1);
-  TestValidator.equals("and empties", solo.message, "");
+  Assert.equals("a lone completion records", solo.history.length, 1);
+  Assert.equals("and empties", solo.message, "");
 }

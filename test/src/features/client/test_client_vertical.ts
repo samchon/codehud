@@ -11,8 +11,8 @@ import type {
   ICodeHudGlassesDescriptor,
 } from "@codehud/interface";
 import { CodeHudContext } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Harness } from "../internal/harness";
 
 /**
@@ -118,23 +118,19 @@ export async function test_client_vertical(): Promise<void> {
   });
 
   const welcome = await client.connect();
-  TestValidator.equals(
-    "the bridge accepted the device",
-    welcome.host,
-    "workbench",
-  );
-  TestValidator.equals("with nothing running yet", welcome.sessions.length, 0);
+  Assert.equals("the bridge accepted the device", welcome.host, "workbench");
+  Assert.equals("with nothing running yet", welcome.sessions.length, 0);
 
   const id: string = await client.open({
     kind: "claude-code",
     directory: "/repo",
     policy: { actions: { write: "confirmed" } },
   });
-  TestValidator.equals("the session is open", id, "s1");
+  Assert.equals("the session is open", id, "s1");
 
   session.emit("looking at the tests");
   await Harness.settle();
-  TestValidator.predicate(
+  Assert.predicate(
     "what the agent said reached the device",
     client.frame(id).lines.some((line) => line.text.includes("tests")),
   );
@@ -143,36 +139,32 @@ export async function test_client_vertical(): Promise<void> {
   await Harness.settle();
 
   const asking = client.frame(id);
-  TestValidator.equals(
-    "an approval demands the wearer",
-    asking.kind,
-    "permission",
-  );
-  TestValidator.equals("and says so", asking.urgency, "demand");
-  TestValidator.predicate(
+  Assert.equals("an approval demands the wearer", asking.kind, "permission");
+  Assert.equals("and says so", asking.urgency, "demand");
+  Assert.predicate(
     "naming what is being asked",
     asking.lines[0]!.text.startsWith("Write"),
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "with something to say out loud",
     asking.hint?.includes("Allow") === true,
   );
 
   await client.send(id, { type: "decision", request: "r1", option: "yes" });
-  TestValidator.equals("the answer reached the harness", session.received, [
+  Assert.equals("the answer reached the harness", session.received, [
     { type: "decision", request: "r1", option: "yes" },
   ]);
-  TestValidator.equals(
+  Assert.equals(
     "and the question left the display as soon as it was delivered",
     client.state(id).pending,
     undefined,
   );
-  TestValidator.equals(
+  Assert.equals(
     "leaving a session that is working rather than one that looks idle",
     client.state(id).activity,
     "working",
   );
-  TestValidator.equals(
+  Assert.equals(
     "so the display goes back to the prose still in flight, not to idle",
     client.frame(id).kind,
     "stream",
@@ -181,7 +173,7 @@ export async function test_client_vertical(): Promise<void> {
   // A delivery that fails leaves the wearer with the question they still owe.
   session.ask("r2", "Delete build/", "Removes generated output.");
   await Harness.settle();
-  TestValidator.predicate(
+  Assert.predicate(
     "a second approval is pending",
     client.state(id).pending?.request === "r2",
   );
@@ -189,7 +181,7 @@ export async function test_client_vertical(): Promise<void> {
   await client
     .send(id, { type: "decision", request: "r2", option: "yes" })
     .catch(() => undefined);
-  TestValidator.equals(
+  Assert.equals(
     "an undelivered answer leaves the approval in front of the wearer",
     client.state(id).pending?.request,
     "r2",
@@ -203,25 +195,21 @@ export async function test_client_vertical(): Promise<void> {
   session.emit("still working while nobody watched");
   session.emit("and again");
   await Harness.settle();
-  TestValidator.equals(
-    "a detached device folds nothing",
-    client.counter(id),
-    held,
-  );
+  Assert.equals("a detached device folds nothing", client.counter(id), held);
 
   await client.attach(id);
   await Harness.settle();
-  TestValidator.predicate(
+  Assert.predicate(
     "returning catches up on what it missed",
     client.counter(id) > held,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and the display holds what was said while it was away",
     client.frame(id).lines.some((line) => line.text.includes("again")) ||
       client.state(id).history.some((entry) => entry.title.includes("again")),
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "every attach named exactly the counter the device still needed",
     asked[asked.length - 1],
     held,
@@ -238,7 +226,7 @@ export async function test_client_vertical(): Promise<void> {
     delta: "already folded",
     complete: true,
   });
-  TestValidator.equals(
+  Assert.equals(
     "a duplicate leaves the counter where it was",
     client.counter(id),
     reached,
@@ -248,7 +236,7 @@ export async function test_client_vertical(): Promise<void> {
   const settled = client.state(id);
   await client.attach(id);
   await Harness.settle();
-  TestValidator.equals(
+  Assert.equals(
     "and folding it twice changes nothing",
     client.state(id),
     settled,

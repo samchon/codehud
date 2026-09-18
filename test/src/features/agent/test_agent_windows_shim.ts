@@ -1,5 +1,6 @@
 import { CodeHudNodeRunner } from "@codehud/agent";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * A Windows shim is launched through `cmd.exe`, and nothing else is.
@@ -38,13 +39,13 @@ import { TestValidator } from "@nestia/e2e";
 export async function test_agent_windows_shim(): Promise<void> {
   const rewrite = CodeHudNodeRunner.invocation;
 
-  TestValidator.equals(
+  Assert.equals(
     "a Windows shim goes through cmd.exe",
     rewrite("C:\\npm\\claude.cmd", ["--version"], "win32"),
     ["cmd.exe", ["/d", "/s", "/c", "C:\\npm\\claude.cmd", "--version"]],
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "arguments keep their order behind the executable",
     rewrite("C:\\npm\\codex.cmd", ["exec", "--json", "hello"], "win32"),
     [
@@ -53,30 +54,30 @@ export async function test_agent_windows_shim(): Promise<void> {
     ],
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "a batch file is the same hazard",
     rewrite("C:\\npm\\thing.bat", ["--version"], "win32")[0],
     "cmd.exe",
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "casing does not matter, and the filesystem returned .CMD",
     rewrite("C:\\npm\\claude.CMD", ["--version"], "win32")[0],
     "cmd.exe",
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "a real executable is left alone",
     rewrite("C:\\tools\\claude.exe", ["--version"], "win32"),
     ["C:\\tools\\claude.exe", ["--version"]],
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "and so is the same name away from Windows",
     rewrite("/usr/bin/claude.cmd", ["--version"], "linux"),
     ["/usr/bin/claude.cmd", ["--version"]],
   );
-  TestValidator.equals(
+  Assert.equals(
     "as is an ordinary posix path",
     rewrite("/usr/bin/claude", ["--version"], "darwin"),
     ["/usr/bin/claude", ["--version"]],

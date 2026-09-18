@@ -8,9 +8,9 @@ import type {
   ICodeHudState,
 } from "@codehud/interface";
 import { CodeHudContext } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 import { WebSocketConnector } from "tgrid";
 
+import { Assert } from "../internal/assert";
 import { Harness } from "../internal/harness";
 
 /**
@@ -141,7 +141,7 @@ export async function test_client_reattach(): Promise<void> {
     session.emit("reading the suite");
     await Harness.settle(40);
     const held: number = client.counter(id);
-    TestValidator.predicate(
+    Assert.predicate(
       "the device folded what it was told",
       held > 0 && client.state(id).message.includes("suite"),
     );
@@ -154,7 +154,7 @@ export async function test_client_reattach(): Promise<void> {
     session.emit(" and the fixtures");
     session.ask("r1", "Write src/index.ts", "Creates a new file.");
     await Harness.settle(40);
-    TestValidator.equals(
+    Assert.equals(
       "and the device, being away, folded none of it",
       client.counter(id),
       held,
@@ -163,7 +163,7 @@ export async function test_client_reattach(): Promise<void> {
     // Back.
     await dial();
     const welcome = await client.connect();
-    TestValidator.equals(
+    Assert.equals(
       "the bridge still has the session",
       welcome.sessions.map((entry) => entry.id),
       [id],
@@ -171,16 +171,16 @@ export async function test_client_reattach(): Promise<void> {
     await Harness.settle(40);
 
     const state: ICodeHudState = client.state(id);
-    TestValidator.predicate(
+    Assert.predicate(
       "what happened while it was away arrived",
       state.message.includes("fixtures"),
     );
-    TestValidator.equals(
+    Assert.equals(
       "including the approval, which had been blocking the whole time",
       state.pending?.request,
       "r1",
     );
-    TestValidator.equals(
+    Assert.equals(
       "and the frame a wearer would see demands an answer",
       client.frame(id).urgency,
       "demand",
@@ -188,19 +188,19 @@ export async function test_client_reattach(): Promise<void> {
 
     // Nothing twice: the fold's counter is the harness's last, and the prose
     // that was folded before the drop was not folded onto itself again.
-    TestValidator.equals(
+    Assert.equals(
       "the fold is exactly as far along as the harness",
       state.sequence,
       client.counter(id) - 1,
     );
-    TestValidator.equals(
+    Assert.equals(
       "and the prose folded once rather than twice",
       state.message,
       "reading the suite and the fixtures",
     );
 
     await client.send(id, { type: "decision", request: "r1", option: "yes" });
-    TestValidator.equals(
+    Assert.equals(
       "an answer given after coming back reaches the harness",
       session.received,
       [{ type: "decision", request: "r1", option: "yes" }],

@@ -8,8 +8,8 @@ import {
   CodeHudContext,
   CodeHudReducer,
 } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -63,38 +63,30 @@ export async function test_hud_compose_review(): Promise<void> {
 
   const reviewing: ICodeHudState = reducer.review(state, "back");
   const frame: ICodeHudFrame = composer.compose(reviewing, Stream.NARROW);
-  TestValidator.equals("review outranks the activity", frame.kind, "review");
-  TestValidator.equals("review grade", frame.urgency, "ambient");
-  TestValidator.equals(
+  Assert.equals("review outranks the activity", frame.kind, "review");
+  Assert.equals("review grade", frame.urgency, "ambient");
+  Assert.equals(
     "shows the entry at the cursor",
     frame.lines[0]!.text,
     "Bash pnpm test",
   );
-  TestValidator.equals(
-    "failed entry keeps alert",
-    frame.lines[0]!.tone,
-    "alert",
-  );
-  TestValidator.equals(
-    "position line",
-    frame.lines[1]!.text,
-    `2 ${words.within} 4`,
-  );
-  TestValidator.equals("no hint on two rows", frame.hint, undefined);
+  Assert.equals("failed entry keeps alert", frame.lines[0]!.tone, "alert");
+  Assert.equals("position line", frame.lines[1]!.text, `2 ${words.within} 4`);
+  Assert.equals("no hint on two rows", frame.hint, undefined);
 
   const wide: ICodeHudFrame = composer.compose(reviewing, Stream.WIDE);
-  TestValidator.equals("hint names the review words", wide.hint, words.review);
+  Assert.equals("hint names the review words", wide.hint, words.review);
 
   const newest: ICodeHudFrame = composer.compose(
     { ...state, review: { active: true, offset: 0 } },
     Stream.NARROW,
   );
-  TestValidator.equals(
+  Assert.equals(
     "newest is one of three",
     newest.lines[1]!.text,
     `1 ${words.within} 4`,
   );
-  TestValidator.equals("and is not alert", newest.lines[0]!.tone, "primary");
+  Assert.equals("and is not alert", newest.lines[0]!.tone, "primary");
 
   // Emphasis distinguishes what an entry is. On a monochrome two-line display
   // the text and its weight are all a wearer has to tell a turn summary from a
@@ -106,12 +98,12 @@ export async function test_hud_compose_review(): Promise<void> {
         Stream.NARROW,
       ).lines[0]!.tone,
   );
-  TestValidator.equals("a result is primary", tones[0], "primary");
-  TestValidator.equals("a failure overrides the kind", tones[1], "alert");
-  TestValidator.equals("a message is secondary", tones[2], "secondary");
-  TestValidator.equals("a tool is muted", tones[3], "muted");
+  Assert.equals("a result is primary", tones[0], "primary");
+  Assert.equals("a failure overrides the kind", tones[1], "alert");
+  Assert.equals("a message is secondary", tones[2], "secondary");
+  Assert.equals("a tool is muted", tones[3], "muted");
 
-  TestValidator.equals(
+  Assert.equals(
     "the positional word comes from the vocabulary",
     composer.compose(
       { ...state, review: { active: true, offset: 0 } },
@@ -124,13 +116,13 @@ export async function test_hud_compose_review(): Promise<void> {
     { ...state, review: { active: true, offset: 99 } },
     Stream.NARROW,
   );
-  TestValidator.equals("a cursor past the end falls back", past.kind, "idle");
+  Assert.equals("a cursor past the end falls back", past.kind, "idle");
 
   const interrupted: ICodeHudState = reducer.reduce(
     reviewing,
     Stream.permission("r1", "Write src/index.ts"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "an approval outranks review",
     composer.compose(interrupted, Stream.NARROW).kind,
     "permission",
