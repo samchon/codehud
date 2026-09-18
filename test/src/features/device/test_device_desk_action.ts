@@ -5,8 +5,8 @@ import type {
   ICodeHudVoiceRouting,
 } from "@codehud/interface";
 import { CodeHudDeskAction, CodeHudDeskCommand } from "@codehud/simulator";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -88,7 +88,7 @@ export async function test_device_desk_action(): Promise<void> {
   });
 
   // 1. Words for the agent.
-  TestValidator.equals(
+  Assert.equals(
     "free words are carried to the agent unchanged",
     CodeHudDeskAction.decide(
       { type: "prompt", text: "run the suite" },
@@ -97,14 +97,14 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "prompt", text: "run the suite" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and an empty one is addressed to nothing",
     CodeHudDeskAction.decide({ type: "prompt", text: "" }, idle, policy),
     { type: "none" },
   );
 
   // 2. Questions this device answers itself.
-  TestValidator.equals(
+  Assert.equals(
     "a local question costs no turn",
     CodeHudDeskAction.decide({ type: "query", query: "elapsed" }, idle, policy),
     { type: "answer", query: "elapsed" },
@@ -115,7 +115,7 @@ export async function test_device_desk_action(): Promise<void> {
     { id: "accept", affirmative: true, persistent: false },
     { id: "decline", affirmative: false, persistent: false },
   );
-  TestValidator.equals(
+  Assert.equals(
     "an approval names the harness's own affirmative",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
@@ -124,7 +124,7 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "decision", request: "r1", option: "accept" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and a refusal its own negative",
     CodeHudDeskAction.decide(
       { type: "command", command: "deny" },
@@ -138,7 +138,7 @@ export async function test_device_desk_action(): Promise<void> {
     { id: "approved", affirmative: true, persistent: false },
     { id: "denied", affirmative: false, persistent: false },
   );
-  TestValidator.equals(
+  Assert.equals(
     "the other harness's spelling is found the same way",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
@@ -148,7 +148,7 @@ export async function test_device_desk_action(): Promise<void> {
     { type: "decision", request: "r1", option: "approved" },
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "answering nothing does nothing",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
@@ -163,7 +163,7 @@ export async function test_device_desk_action(): Promise<void> {
     affirmative: false,
     persistent: false,
   });
-  TestValidator.equals(
+  Assert.equals(
     "a request with no affirmative cannot be allowed",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
@@ -172,7 +172,7 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "say", reason: "unoffered" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "though it can still be refused",
     CodeHudDeskAction.decide(
       { type: "command", command: "deny" },
@@ -186,7 +186,7 @@ export async function test_device_desk_action(): Promise<void> {
     { id: "acceptForSession", affirmative: true, persistent: true },
     { id: "decline", affirmative: false, persistent: false },
   );
-  TestValidator.equals(
+  Assert.equals(
     "a persisting option is never what an answer picks",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
@@ -209,14 +209,14 @@ export async function test_device_desk_action(): Promise<void> {
     ["sessions", { type: "list" }],
     ["switch", { type: "list" }],
   ] as [ICodeHudVoiceRouting.ICommand.Kind, CodeHudDeskAction.IAction][])
-    TestValidator.equals(
+    Assert.equals(
       `${command} has exactly one effect`,
       CodeHudDeskAction.decide({ type: "command", command }, idle, policy),
       expected,
     );
 
   // 8. What is reported rather than acted on.
-  TestValidator.equals(
+  Assert.equals(
     "an ambiguous utterance names its candidates",
     CodeHudDeskAction.decide(
       { type: "ambiguous", candidates: ["back", "stop"] },
@@ -225,7 +225,7 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "say", reason: "ambiguous", candidates: ["back", "stop"] },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and one below the floor says so, carrying what was reported",
     CodeHudDeskAction.decide(
       { type: "unheard", confidence: 0.2 },
@@ -234,14 +234,14 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "say", reason: "unheard", confidence: 0.2 },
   );
-  TestValidator.equals(
+  Assert.equals(
     "or nothing, when the recognizer reported nothing",
     CodeHudDeskAction.decide({ type: "unheard" }, idle, policy),
     { type: "say", reason: "unheard" },
   );
 
   // Selection is by ordinal, never by pronouncing a path.
-  TestValidator.equals(
+  Assert.equals(
     "a number selects a session",
     CodeHudDeskAction.decide(
       { type: "command", command: "switch", ordinal: 2 },
@@ -250,7 +250,7 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "focus", ordinal: 2 },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the word without a number states what there is to select from",
     CodeHudDeskAction.decide(
       { type: "command", command: "switch" },
@@ -270,7 +270,7 @@ export async function test_device_desk_action(): Promise<void> {
   };
   irreversible.pending = { ...irreversible.pending!, action: "delete" };
 
-  TestValidator.equals(
+  Assert.equals(
     "the affirmative does not answer a doubly-confirmed request",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
@@ -279,7 +279,7 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "confirm", request: "r1", confirming: true },
   );
-  TestValidator.equals(
+  Assert.equals(
     "while the same words on an ordinary one answer it",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
@@ -293,7 +293,7 @@ export async function test_device_desk_action(): Promise<void> {
   );
 
   const confirming: ICodeHudState = { ...irreversible, confirming: true };
-  TestValidator.equals(
+  Assert.equals(
     "the confirmation token answers it",
     CodeHudDeskAction.decide(
       { type: "command", command: "confirm" },
@@ -302,7 +302,7 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "decision", request: "r1", option: "accept" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "repeating the affirmative answers nothing and undoes nothing",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
@@ -311,7 +311,7 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "none" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "nor does a prompt, which leaves the request waiting for a first answer",
     CodeHudDeskAction.decide(
       { type: "prompt", text: "actually never mind" },
@@ -320,7 +320,7 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "confirm", request: "r1", confirming: false },
   );
-  TestValidator.equals(
+  Assert.equals(
     "refusing still takes one word, because refusing is the recoverable way",
     CodeHudDeskAction.decide(
       { type: "command", command: "deny" },
@@ -329,7 +329,7 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "decision", request: "r1", option: "decline" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "stopping the turn is not swallowed either, because it is a brake",
     CodeHudDeskAction.decide(
       { type: "command", command: "stop" },
@@ -338,12 +338,12 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "interrupt" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and an utterance nobody heard leaves it exactly where it was",
     CodeHudDeskAction.decide({ type: "unheard" }, confirming, policy),
     { type: "say", reason: "unheard" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "the token means nothing outside a confirming request",
     CodeHudDeskAction.decide(
       { type: "command", command: "confirm" },
@@ -358,7 +358,7 @@ export async function test_device_desk_action(): Promise<void> {
     ...irreversible,
     pending: { ...irreversible.pending!, action: undefined },
   };
-  TestValidator.equals(
+  Assert.equals(
     "an unclassified request is asked twice under a policy that asks twice",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
@@ -367,7 +367,7 @@ export async function test_device_desk_action(): Promise<void> {
     ),
     { type: "confirm", request: "r1", confirming: true },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and once under one that never does",
     CodeHudDeskAction.decide(
       { type: "command", command: "allow" },
@@ -378,7 +378,7 @@ export async function test_device_desk_action(): Promise<void> {
   );
 
   // 9. One decision, two spellings, pinned against each other.
-  TestValidator.equals(
+  Assert.equals(
     "the desk states the partition the harness defaults to",
     CodeHudDeskCommand.POLICY.actions,
     CodeHudAgentPolicy.DEFAULT.actions,

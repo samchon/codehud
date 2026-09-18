@@ -4,8 +4,8 @@ import type {
   ICodeHudGlassesDescriptor,
 } from "@codehud/interface";
 import { CodeHudContext } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -84,7 +84,7 @@ export async function test_client_review(): Promise<void> {
       ...Stream.tool(call, title, "finish", false),
       session: "s1",
     });
-  TestValidator.equals(
+  Assert.equals(
     "three entries, newest first",
     client.state("s1").history.map((entry) => entry.title),
     ["Edit three.ts", "Edit two.ts", "Edit one.ts"],
@@ -92,60 +92,52 @@ export async function test_client_review(): Promise<void> {
 
   const before: number = asked.length;
   client.review("s1", "back");
-  TestValidator.equals(
+  Assert.equals(
     "moving back enters review",
     client.state("s1").review.active,
     true,
   );
-  TestValidator.equals(
+  Assert.equals(
     "on the entry behind the newest",
     client.state("s1").history[client.state("s1").review.offset]?.title,
     "Edit two.ts",
   );
-  TestValidator.equals(
-    "and the frame says so",
-    client.frame("s1").kind,
-    "review",
-  );
+  Assert.equals("and the frame says so", client.frame("s1").kind, "review");
 
   client.review("s1", "back");
-  TestValidator.equals(
+  Assert.equals(
     "again walks to the oldest",
     client.state("s1").history[client.state("s1").review.offset]?.title,
     "Edit one.ts",
   );
   client.review("s1", "forward");
-  TestValidator.equals(
+  Assert.equals(
     "forward walks back toward the newest",
     client.state("s1").history[client.state("s1").review.offset]?.title,
     "Edit two.ts",
   );
   client.review("s1", "latest");
-  TestValidator.equals(
+  Assert.equals(
     "and latest leaves review entirely",
     client.state("s1").review.active,
     false,
   );
 
-  TestValidator.equals(
-    "none of which the bridge heard about",
-    asked.length,
-    before,
-  );
+  Assert.equals("none of which the bridge heard about", asked.length, before);
 
   // A session with nothing in it, which is what an unheld one reads as.
   client.review("unknown", "back");
-  TestValidator.equals(
+  Assert.equals(
     "a session with no history does not enter review",
     client.state("unknown").review,
     { active: false, offset: 0 },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and is still owed every observation from the first",
     client.counter("unknown"),
     0,
   );
-  TestValidator.equals(
+  Assert.equals(
     "so what it would show is what it showed before",
     client.frame("unknown").kind,
     "status",

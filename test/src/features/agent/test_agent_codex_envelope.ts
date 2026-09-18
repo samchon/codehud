@@ -1,5 +1,4 @@
-import { TestValidator } from "@nestia/e2e";
-
+import { Assert } from "../internal/assert";
 import { Codex } from "../internal/codex";
 
 /**
@@ -52,7 +51,7 @@ export async function test_agent_codex_envelope(): Promise<void> {
 
   for (const { name, stream } of Codex.ALL) {
     const sent: Codex.IMessage[] = Codex.sent(stream);
-    TestValidator.predicate(`${name} is not empty`, sent.length > 0);
+    Assert.predicate(`${name} is not empty`, sent.length > 0);
 
     for (const line of sent) {
       if (line.method !== undefined)
@@ -64,12 +63,8 @@ export async function test_agent_codex_envelope(): Promise<void> {
     const completed: Codex.IMessage[] = sent.filter(
       (line) => line.method === "turn/completed",
     );
-    TestValidator.equals(
-      `${name} ends a turn exactly once`,
-      completed.length,
-      1,
-    );
-    TestValidator.equals(
+    Assert.equals(`${name} ends a turn exactly once`, completed.length, 1);
+    Assert.equals(
       `${name} ends with that notification`,
       sent[sent.length - 1]?.method,
       "turn/completed",
@@ -82,38 +77,36 @@ export async function test_agent_codex_envelope(): Promise<void> {
     const finished: string[] = sent
       .filter((line) => line.method === "item/completed")
       .map((line) => line.params?.item?.id ?? "");
-    TestValidator.equals(
+    Assert.equals(
       `${name} completes every item it starts`,
       ordered(started),
       ordered(finished),
     );
-    TestValidator.predicate(
+    Assert.predicate(
       `${name} identifies each of them`,
       started.every((id) => id.length > 0),
     );
   }
 
   for (const seen of notifications)
-    TestValidator.predicate(
+    Assert.predicate(
       `${seen} is a notification the adapter is on notice for`,
       Codex.NOTIFICATIONS.includes(seen),
     );
   for (const declared of Codex.NOTIFICATIONS)
-    TestValidator.predicate(
+    Assert.predicate(
       `${declared} was actually observed`,
       notifications.has(declared),
     );
 
-  TestValidator.equals(
+  Assert.equals(
     "the server asked exactly what was expected of it",
     ordered(requests),
     [...Codex.REQUESTS],
   );
-  TestValidator.equals(
-    "and produced exactly these item kinds",
-    ordered(items),
-    [...Codex.ITEMS],
-  );
+  Assert.equals("and produced exactly these item kinds", ordered(items), [
+    ...Codex.ITEMS,
+  ]);
 
   // Prose arrives twice, as deltas and as the completed item. An adapter that
   // forwarded both would double every sentence on the display.
@@ -128,15 +121,15 @@ export async function test_agent_codex_envelope(): Promise<void> {
     )
     .map((line) => line.params?.item?.text ?? "")
     .join("");
-  TestValidator.predicate("there were deltas to fold", deltas.length > 0);
-  TestValidator.equals("folded deltas equal the completed item", deltas, whole);
+  Assert.predicate("there were deltas to fold", deltas.length > 0);
+  Assert.equals("folded deltas equal the completed item", deltas, whole);
 
   const blocked: Codex.IMessage | undefined = Codex.sent(Codex.APPROVE).find(
     (line) =>
       line.method === "thread/status/changed" &&
       (line.params?.status?.activeFlags ?? []).includes("waitingOnApproval"),
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "an approval blocks the thread, and the server says so",
     blocked !== undefined,
   );
@@ -151,16 +144,13 @@ export async function test_agent_codex_envelope(): Promise<void> {
     const resolved: Codex.IMessage[] = Codex.sent(stream).filter(
       (line) => line.method === "serverRequest/resolved",
     );
-    TestValidator.predicate(
-      `${name} was asked at least once`,
-      asked.length > 0,
-    );
-    TestValidator.equals(
+    Assert.predicate(`${name} was asked at least once`, asked.length > 0);
+    Assert.equals(
       `${name} resolves every request it makes`,
       resolved.length,
       asked.length,
     );
-    TestValidator.predicate(
+    Assert.predicate(
       `${name} identifies each question it asks`,
       asked.every((line) => typeof line.id === "number"),
     );
@@ -168,27 +158,27 @@ export async function test_agent_codex_envelope(): Promise<void> {
 
   // The distinction the fixtures are named for, and the one that has to be
   // checked explicitly because nothing else here would notice its absence.
-  TestValidator.equals(
+  Assert.equals(
     "an allowed command ran",
     Codex.command(Codex.APPROVE)?.status,
     "completed",
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and its output came back",
     (Codex.command(Codex.APPROVE)?.aggregatedOutput ?? "").includes("hello"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "a declined command did not run",
     Codex.command(Codex.REFUSE)?.status,
     "declined",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and produced no output",
     Codex.command(Codex.REFUSE)?.aggregatedOutput,
     null,
   );
 
-  TestValidator.predicate(
+  Assert.predicate(
     "a refused command still completes its item",
     Codex.sent(Codex.REFUSE).some(
       (line) =>
@@ -196,7 +186,7 @@ export async function test_agent_codex_envelope(): Promise<void> {
         Codex.item(line) === "commandExecution",
     ),
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the turn still ends",
     Codex.sent(Codex.REFUSE).filter((line) => line.method === "turn/completed")
       .length,

@@ -7,9 +7,9 @@ import type {
   ICodeHudGlassesDescriptor,
 } from "@codehud/interface";
 import { CodeHudContext } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 import { type Driver, WebSocketConnector } from "tgrid";
 
+import { Assert } from "../internal/assert";
 import { Harness } from "../internal/harness";
 
 /**
@@ -114,11 +114,11 @@ export async function test_client_socket(): Promise<void> {
       .hello({ version: 1, token: "guessed", descriptor })
       .then((): unknown => undefined)
       .catch((thrown: unknown) => thrown);
-    TestValidator.predicate(
+    Assert.predicate(
       "a wrong pairing code is refused",
       rejection !== undefined,
     );
-    TestValidator.equals(
+    Assert.equals(
       "with the credential cause, in the one refusal shape",
       (rejection as { cause?: string } | undefined)?.cause,
       "token",
@@ -147,19 +147,19 @@ export async function test_client_socket(): Promise<void> {
     });
 
     const welcome = await client.connect();
-    TestValidator.equals("the bridge welcomed the device", welcome.version, 1);
-    TestValidator.equals("naming the machine", welcome.host, "workbench");
+    Assert.equals("the bridge welcomed the device", welcome.version, 1);
+    Assert.equals("naming the machine", welcome.host, "workbench");
 
     const id: string = await client.open({
       kind: "claude-code",
       directory: "/repo",
       policy: { actions: { write: "confirmed" } },
     });
-    TestValidator.equals("the session opened over the socket", id, "s1");
+    Assert.equals("the session opened over the socket", id, "s1");
 
     session.emit("reading the suite");
     await Harness.settle(40);
-    TestValidator.predicate(
+    Assert.predicate(
       "and what the agent said crossed it",
       client.frame(id).lines.some((line) => line.text.includes("suite")),
     );
@@ -167,19 +167,19 @@ export async function test_client_socket(): Promise<void> {
     session.ask("r1", "Write src/index.ts", "Creates a new file.");
     await Harness.settle(40);
     const asking = client.frame(id);
-    TestValidator.equals("an approval arrived", asking.kind, "permission");
-    TestValidator.equals("demanding an answer", asking.urgency, "demand");
+    Assert.equals("an approval arrived", asking.kind, "permission");
+    Assert.equals("demanding an answer", asking.urgency, "demand");
 
     await client.send(id, { type: "decision", request: "r1", option: "yes" });
     await Harness.settle(40);
-    TestValidator.equals(
+    Assert.equals(
       "and the wearer's answer crossed back to the harness",
       session.received,
       [{ type: "decision", request: "r1", option: "yes" }],
     );
 
     await client.close(id);
-    TestValidator.equals("closing ends the harness", session.closed, 1);
+    Assert.equals("closing ends the harness", session.closed, 1);
     await connector.close();
   } finally {
     await bridge.close();

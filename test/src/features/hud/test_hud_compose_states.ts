@@ -8,8 +8,8 @@ import {
   CodeHudContext,
   CodeHudReducer,
 } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -56,27 +56,23 @@ export async function test_hud_compose_states(): Promise<void> {
   const words: ICodeHudContext.IVocabulary = CodeHudContext.DEFAULT.vocabulary;
 
   const connecting: ICodeHudFrame = composer.compose(fresh, Stream.NARROW);
-  TestValidator.equals("connecting kind", connecting.kind, "status");
-  TestValidator.equals("connecting grade", connecting.urgency, "ambient");
+  Assert.equals("connecting kind", connecting.kind, "status");
+  Assert.equals("connecting grade", connecting.urgency, "ambient");
 
   const bare: ICodeHudFrame = composer.compose(
     { ...fresh, activity: "idle" },
     Stream.NARROW,
   );
-  TestValidator.equals(
-    "idle with no session",
-    bare.lines[0]!.text,
-    words.ready,
-  );
+  Assert.equals("idle with no session", bare.lines[0]!.text, words.ready);
 
   const opened: ICodeHudState = reducer.reduce(
     fresh,
     Stream.session("/home/dev/projects/codehud"),
   );
   const idle: ICodeHudFrame = composer.compose(opened, Stream.NARROW);
-  TestValidator.equals("idle kind", idle.kind, "idle");
-  TestValidator.equals("idle grade", idle.urgency, "ambient");
-  TestValidator.predicate(
+  Assert.equals("idle kind", idle.kind, "idle");
+  Assert.equals("idle grade", idle.urgency, "ambient");
+  Assert.predicate(
     "idle names the directory",
     idle.lines[0]!.text.includes("codehud"),
   );
@@ -86,9 +82,9 @@ export async function test_hud_compose_states(): Promise<void> {
     Stream.message("the newest words are the ones that matter", false),
   );
   const stream: ICodeHudFrame = composer.compose(streaming, Stream.NARROW);
-  TestValidator.equals("stream kind", stream.kind, "stream");
-  TestValidator.equals("stream grade", stream.urgency, "ambient");
-  TestValidator.predicate(
+  Assert.equals("stream kind", stream.kind, "stream");
+  Assert.equals("stream grade", stream.urgency, "ambient");
+  Assert.predicate(
     "stream shows the newest words",
     stream.lines
       .map((l) => l.text)
@@ -100,7 +96,7 @@ export async function test_hud_compose_states(): Promise<void> {
     { ...opened, activity: "working" },
     Stream.NARROW,
   );
-  TestValidator.equals(
+  Assert.equals(
     "working with no history",
     started.lines[0]!.text,
     words.working,
@@ -110,7 +106,7 @@ export async function test_hud_compose_states(): Promise<void> {
     { ...opened, activity: "thinking" },
     Stream.NARROW,
   );
-  TestValidator.equals(
+  Assert.equals(
     "thinking with no history",
     musing.lines[0]!.text,
     words.thinking,
@@ -121,21 +117,17 @@ export async function test_hud_compose_states(): Promise<void> {
     Stream.tool("c1", "Edit a.ts", "start"),
   );
   const status: ICodeHudFrame = composer.compose(tooling, Stream.NARROW);
-  TestValidator.equals("status kind", status.kind, "status");
-  TestValidator.equals(
-    "status shows the tool",
-    status.lines[0]!.text,
-    "Edit a.ts",
-  );
+  Assert.equals("status kind", status.kind, "status");
+  Assert.equals("status shows the tool", status.lines[0]!.text, "Edit a.ts");
 
   const ok: ICodeHudFrame = composer.compose(
     reducer.reduce(opened, Stream.result("Edited two files", "success")),
     Stream.NARROW,
   );
-  TestValidator.equals("success kind", ok.kind, "result");
-  TestValidator.equals("success grade", ok.urgency, "notice");
-  TestValidator.equals("success tone", ok.lines[0]!.tone, "primary");
-  TestValidator.predicate(
+  Assert.equals("success kind", ok.kind, "result");
+  Assert.equals("success grade", ok.urgency, "notice");
+  Assert.equals("success tone", ok.lines[0]!.tone, "primary");
+  Assert.predicate(
     "success verdict",
     ok.lines[1]!.text.startsWith(words.succeeded),
   );
@@ -144,9 +136,9 @@ export async function test_hud_compose_states(): Promise<void> {
     reducer.reduce(opened, Stream.result("The suite failed", "error")),
     Stream.NARROW,
   );
-  TestValidator.equals("failure grade", bad.urgency, "demand");
-  TestValidator.equals("failure tone", bad.lines[0]!.tone, "alert");
-  TestValidator.predicate(
+  Assert.equals("failure grade", bad.urgency, "demand");
+  Assert.equals("failure tone", bad.lines[0]!.tone, "alert");
+  Assert.predicate(
     "failure verdict",
     bad.lines[1]!.text.startsWith(words.failed),
   );
@@ -155,13 +147,9 @@ export async function test_hud_compose_states(): Promise<void> {
     reducer.reduce(opened, Stream.result("Stopped by you", "interrupted")),
     Stream.NARROW,
   );
-  TestValidator.equals(
-    "interruption is not a failure",
-    stopped.urgency,
-    "notice",
-  );
-  TestValidator.equals("interruption tone", stopped.lines[0]!.tone, "primary");
-  TestValidator.predicate(
+  Assert.equals("interruption is not a failure", stopped.urgency, "notice");
+  Assert.equals("interruption tone", stopped.lines[0]!.tone, "primary");
+  Assert.predicate(
     "interruption verdict",
     stopped.lines[1]!.text.startsWith(words.stopped),
   );
@@ -170,9 +158,9 @@ export async function test_hud_compose_states(): Promise<void> {
     reducer.reduce(opened, Stream.error("claude exited", true)),
     Stream.NARROW,
   );
-  TestValidator.equals("fault kind", fault.kind, "fault");
-  TestValidator.equals("fault grade", fault.urgency, "demand");
-  TestValidator.equals(
+  Assert.equals("fault kind", fault.kind, "fault");
+  Assert.equals("fault grade", fault.urgency, "demand");
+  Assert.equals(
     "fault shows the message",
     fault.lines[0]!.text,
     "claude exited",
@@ -182,5 +170,5 @@ export async function test_hud_compose_states(): Promise<void> {
     { ...opened, activity: "done" },
     Stream.NARROW,
   );
-  TestValidator.equals("done with no result falls back", empty.kind, "idle");
+  Assert.equals("done with no result falls back", empty.kind, "idle");
 }

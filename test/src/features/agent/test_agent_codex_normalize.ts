@@ -1,7 +1,7 @@
 import { CodeHudCodexNormalizer } from "@codehud/agent";
 import type { ICodeHudAgentEvent } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Codex } from "../internal/codex";
 
 /**
@@ -54,13 +54,13 @@ export async function test_agent_codex_normalize(): Promise<void> {
 
   for (const { name, stream } of Codex.ALL) {
     const events: ICodeHudAgentEvent[] = run(stream);
-    TestValidator.equals(
+    Assert.equals(
       `${name} counts from zero without a gap`,
       events.map((event) => event.sequence),
       events.map((_, index) => index),
     );
-    TestValidator.predicate(`${name} produced something`, events.length > 0);
-    TestValidator.equals(
+    Assert.predicate(`${name} produced something`, events.length > 0);
+    Assert.equals(
       `${name} ends with a result`,
       events[events.length - 1]?.type,
       "result",
@@ -82,21 +82,14 @@ export async function test_agent_codex_normalize(): Promise<void> {
     const line: Codex.IMessage | undefined = Codex.ALL.flatMap(
       ({ stream }) => stream,
     ).find((candidate) => candidate.method === method);
-    TestValidator.predicate(
-      `${method} was actually captured`,
-      line !== undefined,
-    );
-    TestValidator.equals(
-      `${method} becomes no observation`,
-      run([line!]).length,
-      0,
-    );
+    Assert.predicate(`${method} was actually captured`, line !== undefined);
+    Assert.equals(`${method} becomes no observation`, run([line!]).length, 0);
   }
 
   const echoed: Codex.IMessage | undefined = Codex.sent(Codex.PLAIN).find(
     (line) => Codex.item(line) === "userMessage",
   );
-  TestValidator.equals(
+  Assert.equals(
     "the wearer's own message is not handed back to them",
     run([echoed!]).length,
     0,
@@ -105,28 +98,28 @@ export async function test_agent_codex_normalize(): Promise<void> {
   const phases = run(Codex.APPROVE).filter(
     (event): event is ICodeHudAgentEvent.ITool => event.type === "tool",
   );
-  TestValidator.predicate("a command was reported", phases.length >= 2);
-  TestValidator.equals(
+  Assert.predicate("a command was reported", phases.length >= 2);
+  Assert.equals(
     "under one identifier",
     new Set(phases.map((event) => event.call)).size,
     phases.length / 2,
   );
-  TestValidator.equals(
+  Assert.equals(
     "starting then finishing",
     phases.slice(0, 2).map((event) => event.phase),
     ["start", "finish"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the finish carries the description the start made",
     phases[1]!.title,
     phases[0]!.title,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "which names what was run rather than the interpreter that ran it",
     phases[0]!.title.includes("echo hello") &&
       phases[0]!.title.includes("powershell") === false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "a command that ran is not marked failed",
     phases[1]!.failed,
     undefined,
@@ -135,7 +128,7 @@ export async function test_agent_codex_normalize(): Promise<void> {
   const declined = run(Codex.REFUSE).filter(
     (event): event is ICodeHudAgentEvent.ITool => event.type === "tool",
   );
-  TestValidator.equals(
+  Assert.equals(
     "a command the wearer declined is marked failed",
     declined[1]?.failed,
     true,
@@ -148,23 +141,23 @@ export async function test_agent_codex_normalize(): Promise<void> {
   const asked: Codex.IMessage | undefined = Codex.sent(Codex.APPROVE).find(
     (line) => line.method === "item/commandExecution/requestApproval",
   );
-  TestValidator.predicate("an approval was produced", approval !== undefined);
-  TestValidator.equals(
+  Assert.predicate("an approval was produced", approval !== undefined);
+  Assert.equals(
     "quoting the server's own request identifier",
     approval?.request,
     String(asked?.id),
   );
-  TestValidator.equals(
+  Assert.equals(
     "and offering the server's own decision words",
     approval?.options.map((option) => option.id),
     ["accept", "decline"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "exactly one of which advances the agent",
     approval?.options.filter((option) => option.affirmative === true).length,
     1,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and neither persists",
     approval?.options.every((option) => option.persistent === false),
     true,
@@ -181,17 +174,14 @@ export async function test_agent_codex_normalize(): Promise<void> {
     )
     .map((event) => event.delta)
     .join("");
-  TestValidator.predicate("the agent said something", spoken.length > 0);
-  TestValidator.equals("and it reaches the fold once", folded, spoken);
+  Assert.predicate("the agent said something", spoken.length > 0);
+  Assert.equals("and it reaches the fold once", folded, spoken);
 
   const reasoning: Codex.IMessage | undefined = Codex.sent(Codex.REFUSE).find(
     (line) => Codex.item(line) === "reasoning",
   );
-  TestValidator.predicate(
-    "a reasoning item was captured",
-    reasoning !== undefined,
-  );
-  TestValidator.equals(
+  Assert.predicate("a reasoning item was captured", reasoning !== undefined);
+  Assert.equals(
     "and an empty one produces no observation",
     run([reasoning!]).length,
     0,

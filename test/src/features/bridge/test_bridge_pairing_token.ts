@@ -1,5 +1,6 @@
 import { CodeHudPairingToken } from "@codehud/bridge";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * The one credential admits exactly what the bridge issued, and nothing near it.
@@ -33,36 +34,36 @@ import { TestValidator } from "@nestia/e2e";
  */
 export async function test_bridge_pairing_token(): Promise<void> {
   const issued: string = CodeHudPairingToken.issue();
-  TestValidator.predicate(
+  Assert.predicate(
     "an issued token matches itself",
     CodeHudPairingToken.matches(issued, issued),
   );
-  TestValidator.equals(
+  Assert.equals(
     "two issues differ",
     CodeHudPairingToken.matches(issued, CodeHudPairingToken.issue()),
     false,
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "a prefix is refused",
     CodeHudPairingToken.matches(issued, issued.slice(0, -1)),
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and so is anything longer",
     CodeHudPairingToken.matches(issued, `${issued}x`),
     false,
   );
 
   const near: string = `${issued.slice(0, -1)}${issued.endsWith("A") ? "B" : "A"}`;
-  TestValidator.equals(
+  Assert.equals(
     "a same-length near miss is refused",
     CodeHudPairingToken.matches(issued, near),
     false,
   );
 
   for (const value of [undefined, null, 42, {}, [issued]])
-    TestValidator.equals(
+    Assert.equals(
       `a ${typeof value} is refused rather than coerced`,
       CodeHudPairingToken.matches(issued, value),
       false,
@@ -74,25 +75,21 @@ export async function test_bridge_pairing_token(): Promise<void> {
     token: issued,
   });
   const parsed: URL = new URL(payload);
-  TestValidator.equals(
-    "the payload names the host",
-    parsed.hostname,
-    "192.168.0.14",
-  );
-  TestValidator.equals("and the port", parsed.port, "37219");
-  TestValidator.equals(
+  Assert.equals("the payload names the host", parsed.hostname, "192.168.0.14");
+  Assert.equals("and the port", parsed.port, "37219");
+  Assert.equals(
     "and carries the credential",
     parsed.searchParams.get("token"),
     issued,
   );
-  TestValidator.equals(
+  Assert.equals(
     "over the transport's own scheme, so a device connects rather than browses",
     parsed.protocol,
     "ws:",
   );
 
   const awkward: string = "a+b/c=d&e";
-  TestValidator.equals(
+  Assert.equals(
     "a token a query string would otherwise eat survives",
     new URL(
       CodeHudPairingToken.payload({

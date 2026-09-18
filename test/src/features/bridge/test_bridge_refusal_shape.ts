@@ -1,6 +1,6 @@
 import { CodeHudBridgeFailure, CodeHudSessionRegistry } from "@codehud/bridge";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Harness } from "../internal/harness";
 
 /**
@@ -38,29 +38,26 @@ import { Harness } from "../internal/harness";
  */
 export async function test_bridge_refusal_shape(): Promise<void> {
   const short = CodeHudBridgeFailure.create("token", "the code does not match");
-  TestValidator.equals("cause is carried", short.cause, "token");
-  TestValidator.equals(
+  Assert.equals("cause is carried", short.cause, "token");
+  Assert.equals(
     "a short message is unchanged",
     short.message,
     "the code does not match",
   );
 
   const long = CodeHudBridgeFailure.create("launch", "x".repeat(5_000));
-  TestValidator.equals(
+  Assert.equals(
     "a long message is bounded",
     long.message.length,
     CodeHudBridgeFailure.LIMIT,
   );
-  TestValidator.predicate(
-    "and says it was shortened",
-    long.message.endsWith("…"),
-  );
+  Assert.predicate("and says it was shortened", long.message.endsWith("…"));
 
   const exact = CodeHudBridgeFailure.create(
     "launch",
     "y".repeat(CodeHudBridgeFailure.LIMIT),
   );
-  TestValidator.equals(
+  Assert.equals(
     "a message at the limit is left alone",
     exact.message,
     "y".repeat(CodeHudBridgeFailure.LIMIT),
@@ -70,7 +67,7 @@ export async function test_bridge_refusal_shape(): Promise<void> {
     "launch",
     "  claude exited\n\n  code 127  ",
   );
-  TestValidator.equals(
+  Assert.equals(
     "wrapping is collapsed",
     wrapped.message,
     "claude exited code 127",
@@ -81,7 +78,7 @@ export async function test_bridge_refusal_shape(): Promise<void> {
     kind: "claude-code",
     directory: "/repo",
   });
-  // Captured rather than asserted through TestValidator.error, which reports
+  // Captured rather than asserted through Assert.throws, which reports
   // that something was thrown but does not hand back what. The refusal's own
   // contents are the point here.
   const refused: unknown = ((): unknown => {
@@ -93,26 +90,23 @@ export async function test_bridge_refusal_shape(): Promise<void> {
     }
   })();
 
-  TestValidator.predicate("an unknown session refuses", refused !== undefined);
-  TestValidator.predicate(
-    "and it is a refusal",
-    CodeHudBridgeFailure.is(refused),
-  );
+  Assert.predicate("an unknown session refuses", refused !== undefined);
+  Assert.predicate("and it is a refusal", CodeHudBridgeFailure.is(refused));
   if (CodeHudBridgeFailure.is(refused) === true) {
-    TestValidator.equals("with the session cause", refused.cause, "session");
-    TestValidator.predicate(
+    Assert.equals("with the session cause", refused.cause, "session");
+    Assert.predicate(
       "naming what was asked for",
       refused.message.includes("nope"),
     );
   }
 
   for (const cause of ["token", "version", "session", "launch"] as const)
-    TestValidator.predicate(
+    Assert.predicate(
       `${cause} is recognized`,
       CodeHudBridgeFailure.is({ cause, message: "any" }),
     );
 
-  TestValidator.equals(
+  Assert.equals(
     "an Error as the transport renders one is not a refusal",
     CodeHudBridgeFailure.is({
       name: "Error",
@@ -121,19 +115,15 @@ export async function test_bridge_refusal_shape(): Promise<void> {
     }),
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "nor is an unknown cause",
     CodeHudBridgeFailure.is({ cause: "timeout", message: "boom" }),
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "nor a refusal missing its message",
     CodeHudBridgeFailure.is({ cause: "token" }),
     false,
   );
-  TestValidator.equals(
-    "nor nothing at all",
-    CodeHudBridgeFailure.is(null),
-    false,
-  );
+  Assert.equals("nor nothing at all", CodeHudBridgeFailure.is(null), false);
 }

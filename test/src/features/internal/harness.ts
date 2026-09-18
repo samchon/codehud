@@ -265,7 +265,7 @@ export namespace Harness {
   /**
    * Runs a call and hands back what it refused with, or undefined if it did not.
    *
-   * TestValidator.error reports that something was thrown but does not return
+   * `Assert.throws` reports that something was thrown but does not return
    * it, and every refusal case here is about the refusal's own contents: which
    * of the four causes it carries and whether its message is something a wearer
    * could act on.

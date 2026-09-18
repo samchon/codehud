@@ -5,8 +5,8 @@ import {
   CodeHudNotifier,
   CodeHudReducer,
 } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -68,34 +68,22 @@ export async function test_hud_notify(): Promise<void> {
   const frame = (state: ICodeHudState): ICodeHudFrame =>
     composer.compose(state, Stream.WIDE);
 
-  TestValidator.equals(
-    "an approval is demand",
-    frame(asking).urgency,
-    "demand",
-  );
-  TestValidator.equals(
-    "a finished turn is notice",
-    frame(done).urgency,
-    "notice",
-  );
-  TestValidator.equals(
-    "progress is ambient",
-    frame(working).urgency,
-    "ambient",
-  );
+  Assert.equals("an approval is demand", frame(asking).urgency, "demand");
+  Assert.equals("a finished turn is notice", frame(done).urgency, "notice");
+  Assert.equals("progress is ambient", frame(working).urgency, "ambient");
 
   const notifier: CodeHudNotifier = new CodeHudNotifier();
-  TestValidator.equals(
+  Assert.equals(
     "demand may wake and speak",
     notifier.present(frame(asking), asking),
     { wake: true, speak: true },
   );
-  TestValidator.equals(
+  Assert.equals(
     "notice may wake and may not speak",
     notifier.present(frame(done), done),
     { wake: true, speak: false },
   );
-  TestValidator.equals(
+  Assert.equals(
     "ambient may do neither",
     notifier.present(frame(working), working),
     { wake: false, speak: false },
@@ -104,33 +92,29 @@ export async function test_hud_notify(): Promise<void> {
   // Quiet mode, including over demand.
   const quiet: CodeHudNotifier = new CodeHudNotifier();
   quiet.silence(true);
-  TestValidator.equals("quiet mode is on", quiet.silenced, true);
+  Assert.equals("quiet mode is on", quiet.silenced, true);
 
   const suppressed = quiet.present(frame(asking), asking);
-  TestValidator.equals(
-    "a suppressed approval wakes nothing",
-    suppressed.wake,
-    false,
-  );
-  TestValidator.equals("and says nothing", suppressed.speak, false);
-  TestValidator.equals(
+  Assert.equals("a suppressed approval wakes nothing", suppressed.wake, false);
+  Assert.equals("and says nothing", suppressed.speak, false);
+  Assert.equals(
     "but is routed to the host, naming why",
     suppressed.fallback?.reason,
     "quiet",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the session is untouched: it is still pending",
     suppressed.fallback?.notification.pending,
     true,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and still says which session it concerns",
     suppressed.fallback?.notification.directory?.includes("codehud") === true,
   );
 
   // A notice has nowhere else to go, because missing it costs nothing.
   const ignored = quiet.present(frame(done), done);
-  TestValidator.equals(
+  Assert.equals(
     "a suppressed notice is not routed",
     ignored.fallback,
     undefined,
@@ -143,71 +127,59 @@ export async function test_hud_notify(): Promise<void> {
   quiet.present(frame(second), second);
 
   const released = quiet.silence(false);
-  TestValidator.equals(
-    "leaving quiet mode is leaving it",
-    quiet.silenced,
-    false,
-  );
-  TestValidator.equals("everything held comes back", released.length, 2);
-  TestValidator.equals(
+  Assert.equals("leaving quiet mode is leaving it", quiet.silenced, false);
+  Assert.equals("everything held comes back", released.length, 2);
+  Assert.equals(
     "in the order it arrived, with nothing coalesced",
     released.map((item) => item.frame.lines[0]!.text.slice(0, 6)),
     ["Write ", "Delete"],
   );
-  TestValidator.equals(
-    "and nothing is left behind",
-    quiet.waiting.deferred,
-    [],
-  );
-  TestValidator.equals(
-    "leaving it again returns nothing",
-    quiet.silence(false),
-    [],
-  );
+  Assert.equals("and nothing is left behind", quiet.waiting.deferred, []);
+  Assert.equals("leaving it again returns nothing", quiet.silence(false), []);
 
   // Unreachable, with the two reasons distinguished.
   const away: CodeHudNotifier = new CodeHudNotifier();
-  TestValidator.equals(
+  Assert.equals(
     "a lost connection says so",
     away.present(frame(asking), asking, { reachable: false }).fallback?.reason,
     "disconnected",
   );
-  TestValidator.equals(
+  Assert.equals(
     "a sleeping display says something else",
     away.present(frame(asking), asking, { reachable: false, asleep: true })
       .fallback?.reason,
     "asleep",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and an unreachable device is permitted nothing",
     away.present(frame(asking), asking, { reachable: false }).wake,
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "while a reachable one is permitted everything demand allows",
     away.present(frame(asking), asking).wake,
     true,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and has nowhere else to send it",
     away.present(frame(asking), asking).fallback,
     undefined,
   );
 
   // What being away leaves behind, which is nothing.
-  TestValidator.equals(
+  Assert.equals(
     "an unreachable device holds nothing for later",
     away.waiting.deferred,
     [],
   );
   away.silence(true);
-  TestValidator.equals(
+  Assert.equals(
     "so a quiet mode entered afterwards starts empty",
     away.waiting.deferred,
     [],
   );
   away.present(frame(asking), asking);
-  TestValidator.equals(
+  Assert.equals(
     "and returns only what it suppressed itself",
     away.silence(false).length,
     1,

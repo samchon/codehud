@@ -1,5 +1,6 @@
 import { CodeHudHarnessProbe } from "@codehud/agent";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * A refusal reaching the display says something a wearer can act on.
@@ -23,43 +24,39 @@ import { TestValidator } from "@nestia/e2e";
 export async function test_agent_failure_reason(): Promise<void> {
   const render = CodeHudHarnessProbe.reason;
 
-  TestValidator.equals(
+  Assert.equals(
     "an Error contributes its message",
     render(new Error("EACCES: permission denied")),
     "EACCES: permission denied",
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "a thrown string contributes itself",
     render("PATH was unreadable"),
     "PATH was unreadable",
   );
 
   const stated: string = render({ code: "ENOENT" });
-  TestValidator.equals(
+  Assert.equals(
     "an object yields a stated phrase",
     stated,
     "the reason was not reported",
   );
-  TestValidator.equals(
-    "and never a coerced one",
-    stated.includes("object"),
-    false,
-  );
+  Assert.equals("and never a coerced one", stated.includes("object"), false);
 
-  TestValidator.equals(
+  Assert.equals(
     "null is the same case",
     render(null),
     "the reason was not reported",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and so is undefined",
     render(undefined),
     "the reason was not reported",
   );
 
   const deep: Error = new Error("the message only");
-  TestValidator.equals(
+  Assert.equals(
     "the stack does not come along",
     render(deep).includes("at "),
     false,

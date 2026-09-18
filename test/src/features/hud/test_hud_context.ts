@@ -4,8 +4,8 @@ import {
   CodeHudContext,
   CodeHudReducer,
 } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -34,7 +34,7 @@ import { Stream } from "../internal/stream";
  *    the fold rather than the projection consumes.
  */
 export async function test_hud_context(): Promise<void> {
-  TestValidator.equals(
+  Assert.equals(
     "stating nothing yields the defaults",
     CodeHudContext.create(),
     CodeHudContext.DEFAULT,
@@ -43,24 +43,24 @@ export async function test_hud_context(): Promise<void> {
   const partial: ICodeHudContext = CodeHudContext.create({
     vocabulary: { ready: "Idle" },
   });
-  TestValidator.equals("stated word applied", partial.vocabulary.ready, "Idle");
-  TestValidator.equals(
+  Assert.equals("stated word applied", partial.vocabulary.ready, "Idle");
+  Assert.equals(
     "siblings survive a partial section",
     partial.vocabulary.working,
     CodeHudContext.DEFAULT.vocabulary.working,
   );
-  TestValidator.equals(
+  Assert.equals(
     "untouched sections survive",
     partial.consent,
     CodeHudContext.DEFAULT.consent,
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "the default is frozen",
     Object.isFrozen(CodeHudContext.DEFAULT),
     true,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and so are its sections",
     Object.isFrozen(CodeHudContext.DEFAULT.vocabulary),
     true,
@@ -83,7 +83,7 @@ export async function test_hud_context(): Promise<void> {
 
   // The standing label appears only when there is no session to name instead,
   // which is the whole reason it exists.
-  TestValidator.equals(
+  Assert.equals(
     "a changed standing label reaches the frame",
     composer.compose(
       { ...reducer.initialize(), activity: "idle" },
@@ -91,7 +91,7 @@ export async function test_hud_context(): Promise<void> {
     ).lines[0]!.text,
     "NOTHING DOING",
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and a session outranks it",
     composer.compose(opened, Stream.NARROW).lines[0]!.text.includes("codehud"),
   );
@@ -100,7 +100,7 @@ export async function test_hud_context(): Promise<void> {
     reducer.reduce(opened, Stream.result("The suite failed", "error")),
     Stream.NARROW,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "a changed verdict reaches the frame",
     failed.lines[1]!.text.startsWith("BROKE"),
   );
@@ -109,7 +109,7 @@ export async function test_hud_context(): Promise<void> {
     reducer.reduce(opened, Stream.permission("r1", "Write a.ts")),
     Stream.WIDE,
   );
-  TestValidator.equals(
+  Assert.equals(
     "a changed hint vocabulary reaches the hint",
     asked.hint,
     "SPEAK Allow OTHERWISE Deny",
@@ -121,7 +121,7 @@ export async function test_hud_context(): Promise<void> {
       bounded,
       Stream.tool(`c${i}`, `Edit ${i}.ts`, "finish", false),
     );
-  TestValidator.equals(
+  Assert.equals(
     "a changed history cap reaches the reducer",
     bounded.history.length,
     2,

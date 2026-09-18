@@ -8,8 +8,8 @@ import {
   CodeHudContext,
   CodeHudReducer,
 } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -60,38 +60,38 @@ export async function test_hud_compose_permission(): Promise<void> {
   );
 
   const narrow: ICodeHudFrame = composer.compose(asked, Stream.NARROW);
-  TestValidator.equals("kind", narrow.kind, "permission");
-  TestValidator.equals("grade", narrow.urgency, "demand");
-  TestValidator.equals("alert tone", narrow.lines[0]!.tone, "alert");
-  TestValidator.equals("one content row", narrow.lines.length, 1);
-  TestValidator.predicate(
+  Assert.equals("kind", narrow.kind, "permission");
+  Assert.equals("grade", narrow.urgency, "demand");
+  Assert.equals("alert tone", narrow.lines[0]!.tone, "alert");
+  Assert.equals("one content row", narrow.lines.length, 1);
+  Assert.predicate(
     "which still says which session is asking",
     narrow.lines[0]!.text.includes("codehud"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "hint names both answers",
     narrow.hint,
     `${words.say} Allow ${words.or} Deny`,
   );
-  TestValidator.equals(
+  Assert.equals(
     "hint never names the persisting option",
     narrow.hint?.includes("Always"),
     false,
   );
 
   const wide: ICodeHudFrame = composer.compose(asked, Stream.WIDE);
-  TestValidator.equals(
+  Assert.equals(
     "the question, the session, and the detail, in that order",
     wide.lines.length,
     3,
   );
-  TestValidator.equals("the session is named", wide.lines[1]!.tone, "muted");
-  TestValidator.predicate(
+  Assert.equals("the session is named", wide.lines[1]!.tone, "muted");
+  Assert.predicate(
     "by the trailing part of its directory",
     wide.lines[1]!.text.includes("codehud"),
   );
-  TestValidator.equals("detail tone", wide.lines[2]!.tone, "secondary");
-  TestValidator.equals(
+  Assert.equals("detail tone", wide.lines[2]!.tone, "secondary");
+  Assert.equals(
     "hint still present",
     wide.hint,
     `${words.say} Allow ${words.or} Deny`,
@@ -106,7 +106,7 @@ export async function test_hud_compose_permission(): Promise<void> {
       ],
     },
   };
-  TestValidator.equals(
+  Assert.equals(
     "no negative answer means no hint",
     composer.compose(onesided, Stream.NARROW).hint,
     undefined,
@@ -121,7 +121,7 @@ export async function test_hud_compose_permission(): Promise<void> {
       ],
     },
   };
-  TestValidator.equals(
+  Assert.equals(
     "a refusal alone is still named",
     composer.compose(refusing, Stream.NARROW).hint,
     `${words.say} Deny`,
@@ -148,7 +148,7 @@ export async function test_hud_compose_permission(): Promise<void> {
     },
   };
   const fallback: ICodeHudFrame = composer.compose(verbose, Stream.NARROW);
-  TestValidator.predicate(
+  Assert.predicate(
     "an over-long hint falls back and still fits",
     fallback.hint !== undefined &&
       fallback.hint.length <= Stream.NARROW.columns,
@@ -157,34 +157,34 @@ export async function test_hud_compose_permission(): Promise<void> {
   // The second ask.
   const confirming: ICodeHudState = { ...asked, confirming: true };
   const second: ICodeHudFrame = composer.compose(confirming, Stream.WIDE);
-  TestValidator.predicate(
+  Assert.predicate(
     "the second ask says it is one",
     second.lines[0]!.text.startsWith(words.again),
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and still says what is being asked",
     second.lines[0]!.text.includes("Write src/index.ts"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "naming the differently worded token and the refusal",
     second.hint,
     `${words.say} Confirm ${words.or} Deny`,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "which is the configured token, presented as the labels beside it are",
     second.hint
       ?.toLowerCase()
       .includes(CodeHudContext.DEFAULT.consent.confirmation.toLowerCase()) ===
       true,
   );
-  TestValidator.equals(
+  Assert.equals(
     "which is not the token that got it here",
     second.hint?.includes(CodeHudContext.DEFAULT.consent.affirmative),
     false,
   );
-  TestValidator.equals("and it is still a demand", second.urgency, "demand");
+  Assert.equals("and it is still a demand", second.urgency, "demand");
   const narrow2: ICodeHudFrame = composer.compose(confirming, Stream.NARROW);
-  TestValidator.predicate(
+  Assert.predicate(
     "at the smallest geometry it still fits",
     narrow2.lines.every((line) => line.text.length <= Stream.NARROW.columns) &&
       (narrow2.hint?.length ?? 0) <= Stream.NARROW.columns,
@@ -205,7 +205,7 @@ export async function test_hud_compose_permission(): Promise<void> {
     },
   };
   const trimmed: ICodeHudFrame = composer.compose(wordy, Stream.NARROW);
-  TestValidator.predicate(
+  Assert.predicate(
     "and a refusal alone falls back the same way",
     trimmed.hint !== undefined && trimmed.hint.length <= Stream.NARROW.columns,
   );

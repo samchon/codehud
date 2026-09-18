@@ -7,8 +7,8 @@ import type {
   ICodeHudAgentAdapter,
   ICodeHudAgentDescriptor,
 } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Codex } from "../internal/codex";
 
 /**
@@ -99,12 +99,8 @@ export async function test_agent_codex_resume(): Promise<void> {
   };
 
   const fresh = await opened({});
-  TestValidator.equals(
-    "a fresh open starts a thread",
-    fresh.method,
-    "thread/start",
-  );
-  TestValidator.equals(
+  Assert.equals("a fresh open starts a thread", fresh.method, "thread/start");
+  Assert.equals(
     "and names no prior conversation",
     fresh.params["threadId"],
     undefined,
@@ -113,17 +109,17 @@ export async function test_agent_codex_resume(): Promise<void> {
   const again = await opened({
     resume: "01a0b02c-d409-7ca0-96a6-3db790fb15d7",
   });
-  TestValidator.equals(
+  Assert.equals(
     "an open carrying one resumes it instead",
     again.method,
     "thread/resume",
   );
-  TestValidator.equals(
+  Assert.equals(
     "by the identifier the harness itself uses",
     again.params["threadId"],
     "01a0b02c-d409-7ca0-96a6-3db790fb15d7",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and never starts a thread as well",
     [fresh.method, again.method].filter((name) => name === "thread/start")
       .length,
@@ -135,7 +131,7 @@ export async function test_agent_codex_resume(): Promise<void> {
     const schema: Codex.ISchema | undefined =
       Codex.THREADS[sent.method]?.params;
     if (schema === undefined) throw new Error(`no schema for ${sent.method}`);
-    TestValidator.equals(
+    Assert.equals(
       `${sent.method} is a request the server would accept`,
       Codex.admits(schema, sent.params, schema),
       [],
@@ -149,26 +145,26 @@ export async function test_agent_codex_resume(): Promise<void> {
     ["sandbox", "read-only"],
     ["approvalsReviewer", "user"],
   ] as const)
-    TestValidator.equals(
+    Assert.equals(
       `a resumed thread states its ${name} as a fresh one does`,
       [fresh.params[name], again.params[name]],
       [expected, expected],
     );
 
   const chosen = await opened({ resume: "native-7", model: "gpt-5-codex" });
-  TestValidator.equals(
+  Assert.equals(
     "and a chosen model reaches a resume too",
     chosen.params["model"],
     "gpt-5-codex",
   );
 
   // 5. History is not hydrated into the opening reply.
-  TestValidator.equals(
+  Assert.equals(
     "a resume excludes the turns it would otherwise carry",
     again.params["excludeTurns"],
     true,
   );
-  TestValidator.equals(
+  Assert.equals(
     "which a fresh open has no occasion to say",
     fresh.params["excludeTurns"],
     undefined,
@@ -180,12 +176,12 @@ export async function test_agent_codex_resume(): Promise<void> {
     policy,
     resume: "01a0b02c-d409-7ca0-96a6-3db790fb15d7",
   });
-  TestValidator.equals(
+  Assert.equals(
     "Claude Code is handed the same conversation identifier",
     claude[claude.indexOf("--resume") + 1],
     "01a0b02c-d409-7ca0-96a6-3db790fb15d7",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and resumes nothing when nothing was named",
     CodeHudClaudeAdapter.args({ directory: "/repo", policy }).includes(
       "--resume",

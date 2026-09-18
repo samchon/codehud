@@ -3,8 +3,8 @@ import {
   CodeHudCodexSession,
   type ICodeHudHarnessChannel,
 } from "@codehud/agent";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Codex } from "../internal/codex";
 
 /**
@@ -50,12 +50,9 @@ export async function test_agent_codex_no_timeout(): Promise<void> {
   const offered: string[] = CodeHudCodexNormalizer.OPTIONS.modern.map(
     (option) => option.id,
   );
-  TestValidator.equals("two answers are offered", offered, [
-    "accept",
-    "decline",
-  ]);
+  Assert.equals("two answers are offered", offered, ["accept", "decline"]);
   for (const vocabulary of ["modern", "legacy", "profile"] as const)
-    TestValidator.equals(
+    Assert.equals(
       `and none of ${vocabulary}'s is a timeout`,
       CodeHudCodexNormalizer.OPTIONS[vocabulary].some(
         (option) =>
@@ -100,7 +97,7 @@ export async function test_agent_codex_no_timeout(): Promise<void> {
       request: String(asked),
       option,
     });
-    TestValidator.equals(
+    Assert.equals(
       `answering ${option} puts that word on the wire and no other`,
       (channel.written[0] as { result: { decision: string } }).result.decision,
       option,
@@ -120,14 +117,14 @@ export async function test_agent_codex_no_timeout(): Promise<void> {
   // legacy method and meaningless against this one. They are refused here for
   // the same reason a timeout is: the request in hand does not take them.
   for (const forbidden of ["timed_out", "approved", "denied", "abort"])
-    await TestValidator.error(`${forbidden} is not an answer this takes`, () =>
+    await Assert.throws(`${forbidden} is not an answer this takes`, () =>
       session.send({
         type: "decision",
         request: String(asked),
         option: forbidden,
       }),
     );
-  TestValidator.equals(
+  Assert.equals(
     "and none of them reached the server",
     refusing.written.length,
     0,

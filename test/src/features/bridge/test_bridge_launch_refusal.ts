@@ -8,8 +8,8 @@ import type {
   ICodeHudAgentDescriptor,
   ICodeHudGlassesDescriptor,
 } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Harness } from "../internal/harness";
 
 /**
@@ -99,16 +99,13 @@ export async function test_bridge_launch_refusal(): Promise<void> {
       policy,
     }),
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "an unadapted family refuses",
     CodeHudBridgeFailure.is(absent),
   );
   if (CodeHudBridgeFailure.is(absent) === true) {
-    TestValidator.equals("as a launch failure", absent.cause, "launch");
-    TestValidator.predicate(
-      "naming the family",
-      absent.message.includes("codex"),
-    );
+    Assert.equals("as a launch failure", absent.cause, "launch");
+    Assert.predicate("naming the family", absent.message.includes("codex"));
   }
 
   const thrown = await build((): never => {
@@ -118,18 +115,18 @@ export async function test_bridge_launch_refusal(): Promise<void> {
     thrown.connection.open({ kind: "claude-code", directory: "/repo", policy }),
   );
   if (CodeHudBridgeFailure.is(reported) === true) {
-    TestValidator.equals(
+    Assert.equals(
       "a thrown Error is a launch failure",
       reported.cause,
       "launch",
     );
-    TestValidator.equals(
+    Assert.equals(
       "carrying what the adapter said",
       reported.message,
       "claude exited with code 127",
     );
   }
-  TestValidator.equals(
+  Assert.equals(
     "a refused open leaves no session behind",
     thrown.registry.list().length,
     0,
@@ -142,11 +139,11 @@ export async function test_bridge_launch_refusal(): Promise<void> {
     odd.connection.open({ kind: "claude-code", directory: "/repo", policy }),
   );
   if (CodeHudBridgeFailure.is(stated) === true) {
-    TestValidator.predicate(
+    Assert.predicate(
       "a non-Error still yields a readable sentence",
       stated.message.length > 0,
     );
-    TestValidator.equals(
+    Assert.equals(
       "and never a coerced one",
       stated.message.includes("object"),
       false,
@@ -161,20 +158,16 @@ export async function test_bridge_launch_refusal(): Promise<void> {
     policy,
     resume: "native-7",
   });
-  TestValidator.equals("the session identifier comes back", id, "s9");
-  TestValidator.equals(
-    "registered with what the wearer chose",
-    good.registry.list(),
-    [
-      {
-        id: "s9",
-        kind: "claude-code",
-        directory: "/repo/codehud",
-        sequence: 0,
-      },
-    ],
-  );
-  TestValidator.equals(
+  Assert.equals("the session identifier comes back", id, "s9");
+  Assert.equals("registered with what the wearer chose", good.registry.list(), [
+    {
+      id: "s9",
+      kind: "claude-code",
+      directory: "/repo/codehud",
+      sequence: 0,
+    },
+  ]);
+  Assert.equals(
     "and the adapter was handed the resume identifier",
     good.adapter.opened[0]!.resume,
     "native-7",
@@ -183,7 +176,7 @@ export async function test_bridge_launch_refusal(): Promise<void> {
   session.emit("first words");
   session.emit("second words");
   await Harness.settle();
-  TestValidator.equals(
+  Assert.equals(
     "the opener receives observations without attaching, from the first",
     good.device.seen,
     [0, 1],

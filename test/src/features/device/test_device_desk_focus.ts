@@ -1,7 +1,8 @@
 import type { ICodeHudGlassesDescriptor } from "@codehud/interface";
 import { CodeHudContext } from "@codehud/projection";
 import { CodeHudDeskFocus } from "@codehud/simulator";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * Several agents, one display, and a wearer who must never pronounce a path.
@@ -57,27 +58,27 @@ export async function test_device_desk_focus(): Promise<void> {
     }));
 
   // 1-4. Whose content wins.
-  TestValidator.equals(
+  Assert.equals(
     "with nothing demanding, the session in focus is shown",
     CodeHudDeskFocus.showing(sessions("ambient", "ambient", "ambient"), 1)?.id,
     "s2",
   );
-  TestValidator.equals(
+  Assert.equals(
     "a demand elsewhere takes the display",
     CodeHudDeskFocus.showing(sessions("ambient", "ambient", "demand"), 1)?.id,
     "s3",
   );
-  TestValidator.equals(
+  Assert.equals(
     "the first one in opening order wins",
     CodeHudDeskFocus.showing(sessions("demand", "ambient", "demand"), 1)?.id,
     "s1",
   );
-  TestValidator.equals(
+  Assert.equals(
     "a notice elsewhere does not",
     CodeHudDeskFocus.showing(sessions("ambient", "ambient", "notice"), 1)?.id,
     "s2",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and nothing at all shows nothing",
     CodeHudDeskFocus.showing([], 0),
     undefined,
@@ -90,26 +91,26 @@ export async function test_device_desk_focus(): Promise<void> {
     geometry,
     words,
   );
-  TestValidator.equals("the list introduces itself", listed[0], words.listing);
-  TestValidator.predicate(
+  Assert.equals("the list introduces itself", listed[0], words.listing);
+  Assert.predicate(
     "numbered from one, which is the number they will say back",
     listed[1]?.startsWith("1. ") === true &&
       listed[2]?.startsWith("2. ") === true,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "named by what tells two checkouts apart",
     listed[1]?.includes("repo-1") === true,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "with the one on the display marked, and only that one",
     listed[2]?.includes(words.showing) === true &&
       listed[1]?.includes(words.showing) === false,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and no line wider than the display it is read on",
     listed.every((line) => line.length <= geometry.columns + 8),
   );
-  TestValidator.equals(
+  Assert.equals(
     "an empty list says so rather than reading out nothing",
     CodeHudDeskFocus.listing([], 0, geometry, words),
     [words.nosuch],
@@ -121,13 +122,13 @@ export async function test_device_desk_focus(): Promise<void> {
     "ambient",
     "ambient",
   );
-  TestValidator.equals(
+  Assert.equals(
     "the second session is the one at ordinal two",
     CodeHudDeskFocus.selected(three, 2),
     1,
   );
   for (const ordinal of [0, -1, 4, 99])
-    TestValidator.equals(
+    Assert.equals(
       `${ordinal} names no session`,
       CodeHudDeskFocus.selected(three, ordinal),
       undefined,

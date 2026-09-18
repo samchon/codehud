@@ -1,7 +1,7 @@
 import type { ICodeHudAgentEvent, ICodeHudState } from "@codehud/interface";
 import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -38,28 +38,28 @@ export async function test_hud_reduce_replay(): Promise<void> {
   ];
 
   const fresh: ICodeHudState = reducer.initialize();
-  TestValidator.equals("starts before everything", fresh.sequence, -1);
-  TestValidator.equals("starts connecting", fresh.activity, "connecting");
+  Assert.equals("starts before everything", fresh.sequence, -1);
+  Assert.equals("starts connecting", fresh.activity, "connecting");
 
   const once: ICodeHudState = events.reduce(
     (acc, e) => reducer.reduce(acc, e),
     fresh,
   );
-  TestValidator.equals("activity", once.activity, "done");
-  TestValidator.equals("sequence", once.sequence, 5);
-  TestValidator.equals("message cleared by the result", once.message, "");
+  Assert.equals("activity", once.activity, "done");
+  Assert.equals("sequence", once.sequence, 5);
+  Assert.equals("message cleared by the result", once.message, "");
 
   const twice: ICodeHudState = [...events, ...events].reduce(
     (acc, e) => reducer.reduce(acc, e),
     fresh,
   );
-  TestValidator.equals("replay converges", twice, once);
+  Assert.equals("replay converges", twice, once);
 
   const rewound: ICodeHudState = reducer.reduce(once, events[1]!);
-  TestValidator.equals("a stale observation is discarded", rewound, once);
+  Assert.equals("a stale observation is discarded", rewound, once);
 
   const sameCounter: ICodeHudAgentEvent = { ...Stream.session(), sequence: 5 };
-  TestValidator.equals(
+  Assert.equals(
     "an observation at the held counter is discarded",
     reducer.reduce(once, sameCounter),
     once,

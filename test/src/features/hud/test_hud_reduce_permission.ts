@@ -1,7 +1,7 @@
 import type { ICodeHudState } from "@codehud/interface";
 import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -43,24 +43,20 @@ export async function test_hud_reduce_permission(): Promise<void> {
     opened,
     Stream.permission("r1", "Write src/index.ts", "Creates a new file."),
   );
-  TestValidator.equals("waiting", asked.activity, "waiting");
-  TestValidator.equals("request held", asked.pending?.request, "r1");
-  TestValidator.equals(
-    "title held",
-    asked.pending?.title,
-    "Write src/index.ts",
-  );
-  TestValidator.equals("options held", asked.pending?.options.length, 3);
+  Assert.equals("waiting", asked.activity, "waiting");
+  Assert.equals("request held", asked.pending?.request, "r1");
+  Assert.equals("title held", asked.pending?.title, "Write src/index.ts");
+  Assert.equals("options held", asked.pending?.options.length, 3);
 
   const answered: ICodeHudState = reducer.settle(asked, "r1");
-  TestValidator.equals("cleared", answered.pending, undefined);
-  TestValidator.equals("resumes working", answered.activity, "working");
+  Assert.equals("cleared", answered.pending, undefined);
+  Assert.equals("resumes working", answered.activity, "working");
 
   const wrong: ICodeHudState = reducer.settle(asked, "r2");
-  TestValidator.equals("a foreign answer changes nothing", wrong, asked);
+  Assert.equals("a foreign answer changes nothing", wrong, asked);
 
   const none: ICodeHudState = reducer.settle(opened, "r1");
-  TestValidator.equals("answering nothing changes nothing", none, opened);
+  Assert.equals("answering nothing changes nothing", none, opened);
 
   Stream.reset();
   const asked2: ICodeHudState = reducer.reduce(
@@ -71,29 +67,29 @@ export async function test_hud_reduce_permission(): Promise<void> {
     asked2,
     Stream.result("Nothing changed", "interrupted"),
   );
-  TestValidator.equals("a result clears the request", ended.pending, undefined);
-  TestValidator.equals("and ends the turn", ended.activity, "done");
+  Assert.equals("a result clears the request", ended.pending, undefined);
+  Assert.equals("and ends the turn", ended.activity, "done");
 
   // The second answer, and everything that must not survive into another
   // request.
   const confirming: ICodeHudState = reducer.confirm(asked, "r1", true);
-  TestValidator.equals(
+  Assert.equals(
     "a request can be moved to waiting for its second answer",
     confirming.confirming,
     true,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and is still pending, because nothing has been answered",
     confirming.pending?.request,
     "r1",
   );
-  TestValidator.equals("still blocking, too", confirming.activity, "waiting");
-  TestValidator.equals(
+  Assert.equals("still blocking, too", confirming.activity, "waiting");
+  Assert.equals(
     "moving back leaves it waiting for a first answer",
     reducer.confirm(confirming, "r1", false).confirming,
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "confirming a request that is not the pending one changes nothing",
     reducer.confirm(confirming, "r2", false),
     confirming,
@@ -103,28 +99,28 @@ export async function test_hud_reduce_permission(): Promise<void> {
     confirming,
     Stream.permission("r2", "Delete node_modules"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "the new request is the pending one",
     next.pending?.request,
     "r2",
   );
-  TestValidator.equals(
+  Assert.equals(
     "a new request is waiting for its own first answer",
     next.confirming,
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "answering clears it as well as the request",
     reducer.settle(confirming, "r1").confirming,
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "a result clears it",
     reducer.reduce(confirming, Stream.result("Stopped", "interrupted"))
       .confirming,
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and so does a fault",
     reducer.reduce(confirming, Stream.error("the harness died", true))
       .confirming,

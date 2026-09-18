@@ -1,7 +1,7 @@
 import type { ICodeHudState } from "@codehud/interface";
 import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -28,48 +28,40 @@ export async function test_hud_reduce_tool(): Promise<void> {
   let state: ICodeHudState = reducer.initialize();
 
   state = reducer.reduce(state, Stream.tool("c1", "Edit a.ts", "start"));
-  TestValidator.equals("start records one", state.history.length, 1);
-  TestValidator.equals("start sets working", state.activity, "working");
-  TestValidator.equals("start is unfinished", state.history[0]!.done, false);
+  Assert.equals("start records one", state.history.length, 1);
+  Assert.equals("start sets working", state.activity, "working");
+  Assert.equals("start is unfinished", state.history[0]!.done, false);
 
   state = reducer.reduce(
     state,
     Stream.tool("c1", "Edit a.ts (2 of 5)", "update"),
   );
-  TestValidator.equals("update does not add", state.history.length, 1);
-  TestValidator.equals(
+  Assert.equals("update does not add", state.history.length, 1);
+  Assert.equals(
     "update replaces in place",
     state.history[0]!.title,
     "Edit a.ts (2 of 5)",
   );
-  TestValidator.equals(
-    "update is still unfinished",
-    state.history[0]!.done,
-    false,
-  );
+  Assert.equals("update is still unfinished", state.history[0]!.done, false);
 
   state = reducer.reduce(
     state,
     Stream.tool("c1", "Edit a.ts", "finish", false),
   );
-  TestValidator.equals("finish does not add", state.history.length, 1);
-  TestValidator.equals("finish marks done", state.history[0]!.done, true);
-  TestValidator.equals("finish did not fail", state.history[0]!.failed, false);
+  Assert.equals("finish does not add", state.history.length, 1);
+  Assert.equals("finish marks done", state.history[0]!.done, true);
+  Assert.equals("finish did not fail", state.history[0]!.failed, false);
 
   state = reducer.reduce(state, Stream.tool("c2", "Bash pnpm test", "start"));
-  TestValidator.equals("a second call adds", state.history.length, 2);
-  TestValidator.equals(
-    "newest is first",
-    state.history[0]!.title,
-    "Bash pnpm test",
-  );
-  TestValidator.equals("older survives", state.history[1]!.title, "Edit a.ts");
+  Assert.equals("a second call adds", state.history.length, 2);
+  Assert.equals("newest is first", state.history[0]!.title, "Bash pnpm test");
+  Assert.equals("older survives", state.history[1]!.title, "Edit a.ts");
 
   state = reducer.reduce(
     state,
     Stream.tool("c2", "Bash pnpm test", "finish", true),
   );
-  TestValidator.equals("failure is recorded", state.history[0]!.failed, true);
-  TestValidator.equals("failure still finishes", state.history[0]!.done, true);
-  TestValidator.equals("failure does not add", state.history.length, 2);
+  Assert.equals("failure is recorded", state.history[0]!.failed, true);
+  Assert.equals("failure still finishes", state.history[0]!.done, true);
+  Assert.equals("failure does not add", state.history.length, 2);
 }

@@ -1,5 +1,6 @@
 import { CodeHudText } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * `tail` wraps to the column budget and keeps only the newest lines.
@@ -19,17 +20,13 @@ import { TestValidator } from "@nestia/e2e";
  *    the branch an unbroken identifier reaches.
  */
 export async function test_hud_text_tail(): Promise<void> {
-  TestValidator.equals("zero rows", CodeHudText.tail("hello", 10, 0), []);
-  TestValidator.equals("zero columns", CodeHudText.tail("hello", 0, 2), []);
+  Assert.equals("zero rows", CodeHudText.tail("hello", 10, 0), []);
+  Assert.equals("zero columns", CodeHudText.tail("hello", 0, 2), []);
 
-  TestValidator.equals("empty text", CodeHudText.tail("", 10, 2), []);
-  TestValidator.equals(
-    "whitespace only",
-    CodeHudText.tail("   \n  ", 10, 2),
-    [],
-  );
+  Assert.equals("empty text", CodeHudText.tail("", 10, 2), []);
+  Assert.equals("whitespace only", CodeHudText.tail("   \n  ", 10, 2), []);
 
-  TestValidator.equals("short text", CodeHudText.tail("hi there", 20, 2), [
+  Assert.equals("short text", CodeHudText.tail("hi there", 20, 2), [
     "hi there",
   ]);
 
@@ -39,27 +36,23 @@ export async function test_hud_text_tail(): Promise<void> {
     10,
   );
   for (const l of wrapped)
-    TestValidator.predicate(`line within budget: ${l}`, l.length <= 12);
-  TestValidator.predicate("wrapped into several", wrapped.length > 1);
+    Assert.predicate(`line within budget: ${l}`, l.length <= 12);
+  Assert.predicate("wrapped into several", wrapped.length > 1);
 
   const tailed: string[] = CodeHudText.tail(
     "alpha bravo charlie delta echo foxtrot golf hotel",
     12,
     2,
   );
-  TestValidator.equals("kept only two rows", tailed.length, 2);
-  TestValidator.predicate(
+  Assert.equals("kept only two rows", tailed.length, 2);
+  Assert.predicate(
     "kept the newest, not the oldest",
     tailed.join(" ").includes("hotel") && !tailed.join(" ").includes("alpha"),
   );
 
   const split: string[] = CodeHudText.tail("supercalifragilistic", 6, 10);
   for (const l of split)
-    TestValidator.predicate(`split line within budget: ${l}`, l.length <= 6);
-  TestValidator.predicate("long word was split", split.length > 1);
-  TestValidator.equals(
-    "split loses nothing",
-    split.join(""),
-    "supercalifragilistic",
-  );
+    Assert.predicate(`split line within budget: ${l}`, l.length <= 6);
+  Assert.predicate("long word was split", split.length > 1);
+  Assert.equals("split loses nothing", split.join(""), "supercalifragilistic");
 }

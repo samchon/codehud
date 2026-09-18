@@ -1,7 +1,7 @@
 import type { ICodeHudState } from "@codehud/interface";
 import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -33,22 +33,18 @@ export async function test_hud_reduce_error(): Promise<void> {
     asked,
     Stream.error("claude exited with code 1", true),
   );
-  TestValidator.equals("fault", dead.activity, "fault");
-  TestValidator.equals("message held", dead.fault, "claude exited with code 1");
-  TestValidator.equals("pending cleared", dead.pending, undefined);
+  Assert.equals("fault", dead.activity, "fault");
+  Assert.equals("message held", dead.fault, "claude exited with code 1");
+  Assert.equals("pending cleared", dead.pending, undefined);
 
   const noisy: ICodeHudState = reducer.reduce(
     asked,
     Stream.error("tool retried", false),
   );
-  TestValidator.equals("non-fatal keeps waiting", noisy.activity, "waiting");
-  TestValidator.equals(
-    "non-fatal keeps the request",
-    noisy.pending?.request,
-    "r1",
-  );
-  TestValidator.equals("non-fatal sets no fault", noisy.fault, undefined);
-  TestValidator.predicate(
+  Assert.equals("non-fatal keeps waiting", noisy.activity, "waiting");
+  Assert.equals("non-fatal keeps the request", noisy.pending?.request, "r1");
+  Assert.equals("non-fatal sets no fault", noisy.fault, undefined);
+  Assert.predicate(
     "non-fatal still advances the counter",
     noisy.sequence > asked.sequence,
   );
@@ -57,6 +53,6 @@ export async function test_hud_reduce_error(): Promise<void> {
     dead,
     Stream.error("still noisy", false),
   );
-  TestValidator.equals("a fault is not revived", after.activity, "fault");
-  TestValidator.equals("and its message stands", after.fault, dead.fault);
+  Assert.equals("a fault is not revived", after.activity, "fault");
+  Assert.equals("and its message stands", after.fault, dead.fault);
 }

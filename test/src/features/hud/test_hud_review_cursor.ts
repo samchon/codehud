@@ -1,7 +1,7 @@
 import type { ICodeHudState } from "@codehud/interface";
 import { CodeHudContext, CodeHudReducer } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -43,7 +43,7 @@ export async function test_hud_review_cursor(): Promise<void> {
   Stream.reset();
   let state: ICodeHudState = reducer.initialize();
 
-  TestValidator.equals(
+  Assert.equals(
     "back on empty history changes nothing",
     reducer.review(state, "back"),
     state,
@@ -54,50 +54,46 @@ export async function test_hud_review_cursor(): Promise<void> {
       state,
       Stream.tool(name, `Edit ${name}.ts`, "finish", false),
     );
-  TestValidator.equals("three entries", state.history.length, 3);
-  TestValidator.equals(
-    "newest first",
-    state.history[0]!.title,
-    "Edit third.ts",
-  );
+  Assert.equals("three entries", state.history.length, 3);
+  Assert.equals("newest first", state.history[0]!.title, "Edit third.ts");
 
   const back1: ICodeHudState = reducer.review(state, "back");
-  TestValidator.equals("review entered", back1.review.active, true);
-  TestValidator.equals("moved one back", back1.review.offset, 1);
+  Assert.equals("review entered", back1.review.active, true);
+  Assert.equals("moved one back", back1.review.offset, 1);
 
   const back2: ICodeHudState = reducer.review(back1, "back");
-  TestValidator.equals("moved to the oldest", back2.review.offset, 2);
+  Assert.equals("moved to the oldest", back2.review.offset, 2);
 
   const clampedBack: ICodeHudState = reducer.review(back2, "back");
-  TestValidator.equals("clamps at the oldest", clampedBack.review.offset, 2);
+  Assert.equals("clamps at the oldest", clampedBack.review.offset, 2);
 
   const forward: ICodeHudState = reducer.review(back2, "forward");
-  TestValidator.equals("moved forward", forward.review.offset, 1);
+  Assert.equals("moved forward", forward.review.offset, 1);
 
   const clampedForward: ICodeHudState = reducer.review(
     reducer.review(forward, "forward"),
     "forward",
   );
-  TestValidator.equals("clamps at the newest", clampedForward.review.offset, 0);
-  TestValidator.equals("still reviewing", clampedForward.review.active, true);
+  Assert.equals("clamps at the newest", clampedForward.review.offset, 0);
+  Assert.equals("still reviewing", clampedForward.review.active, true);
 
-  TestValidator.equals(
+  Assert.equals(
     "forward while following does not freeze the display",
     reducer.review(state, "forward"),
     state,
   );
 
   const left: ICodeHudState = reducer.review(back2, "latest");
-  TestValidator.equals("latest leaves review", left.review.active, false);
-  TestValidator.equals("and resets the offset", left.review.offset, 0);
+  Assert.equals("latest leaves review", left.review.active, false);
+  Assert.equals("and resets the offset", left.review.offset, 0);
 
   const held: string = back2.history[back2.review.offset]!.title;
   const shifted: ICodeHudState = reducer.reduce(
     back2,
     Stream.tool("fourth", "Edit fourth.ts", "finish", false),
   );
-  TestValidator.equals("offset followed the entry", shifted.review.offset, 3);
-  TestValidator.equals(
+  Assert.equals("offset followed the entry", shifted.review.offset, 3);
+  Assert.equals(
     "and the entry under the cursor is unchanged",
     shifted.history[shifted.review.offset]!.title,
     held,
@@ -107,18 +103,14 @@ export async function test_hud_review_cursor(): Promise<void> {
     state,
     Stream.tool("fifth", "Edit fifth.ts", "finish", false),
   );
-  TestValidator.equals(
-    "not reviewing, offset unmoved",
-    following.review.offset,
-    0,
-  );
-  TestValidator.equals("and still following", following.review.active, false);
+  Assert.equals("not reviewing, offset unmoved", following.review.offset, 0);
+  Assert.equals("and still following", following.review.active, false);
 
   const upserted: ICodeHudState = reducer.reduce(
     back2,
     Stream.tool("third", "Edit third.ts (again)", "finish", false),
   );
-  TestValidator.equals(
+  Assert.equals(
     "an upsert does not move the cursor",
     upserted.review.offset,
     2,
@@ -135,7 +127,7 @@ export async function test_hud_review_cursor(): Promise<void> {
       Stream.tool(name, `Edit ${name}.ts`, "finish", false),
     );
   for (let i: number = 0; i < 3; ++i) capped = small.review(capped, "back");
-  TestValidator.equals(
+  Assert.equals(
     "the wearer walked to the oldest entry",
     capped.history[capped.review.offset]?.title,
     "Edit a.ts",
@@ -145,21 +137,21 @@ export async function test_hud_review_cursor(): Promise<void> {
     capped,
     Stream.tool("d", "Edit d.ts", "finish", false),
   );
-  TestValidator.equals(
+  Assert.equals(
     "the entry the cursor was on is gone",
     evicted.history.some((entry) => entry.title === "Edit a.ts"),
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "so the cursor stops at the oldest that survived",
     evicted.review.offset,
     evicted.history.length - 1,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "which is an entry rather than nothing",
     evicted.history[evicted.review.offset] !== undefined,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the wearer is still in review",
     evicted.review.active,
     true,

@@ -7,7 +7,6 @@ import type {
   ICodeHudAgentEvent,
   ICodeHudAgentPermission,
 } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
 import { Assert } from "../internal/assert";
 import { Codex } from "../internal/codex";
@@ -95,16 +94,16 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
 
   // 1. The checker rejects what the server would reject. Without this, the
   // scenario below would pass just as well with a validator admitting anything.
-  TestValidator.predicate(
+  Assert.predicate(
     "a legacy word is not an answer to a modern request",
     judge("item/commandExecution/requestApproval", { decision: "approved" })
       .length > 0,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "nor a modern word to a legacy one",
     judge("execCommandApproval", { decision: "accept" }).length > 0,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and a decision is no answer at all to a permissions request",
     judge("item/permissions/requestApproval", { decision: "accept" }).length >
       0,
@@ -141,17 +140,15 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
   ).params;
   const wrong = (patch: Record<string, unknown>): string[] =>
     Codex.admits(params, { ...escalation, ...patch }, params);
-  TestValidator.equals(
-    "a path that is a number is not a path",
-    wrong({ cwd: 7 }),
-    ["value.cwd is not of type string"],
-  );
-  TestValidator.equals(
+  Assert.equals("a path that is a number is not a path", wrong({ cwd: 7 }), [
+    "value.cwd is not of type string",
+  ]);
+  Assert.equals(
     "a timestamp that is a string is not a timestamp",
     wrong({ startedAtMs: "0" }),
     ["value.startedAtMs is not of type integer"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "a flag that is a word is not a flag",
     Codex.admits(
       schemas("item/permissions/requestApproval").result,
@@ -160,17 +157,17 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
     ),
     ["value.strictAutoReview is not of type boolean or null"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "and an alternative satisfied by none of its branches says so once",
     wrong({ permissions: { network: { enabled: "yes" }, fileSystem: null } }),
     ["value.permissions.network matches none of the alternatives"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "and a profile that is a number is not a profile",
     wrong({ permissions: 5 }),
     ["value.permissions is not of type object"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "a command that is one string is not an argument vector",
     Codex.admits(
       schemas("execCommandApproval").params,
@@ -179,7 +176,7 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
     ),
     ["value.command is not of type array"],
   );
-  TestValidator.equals(
+  Assert.equals(
     "a schema constraining nothing admits anything",
     Codex.admits({}, 1, {}),
     [],
@@ -191,7 +188,7 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
   // 2. Every answer, against the schema of the method that speaks for it.
   for (const [method, vocabulary] of CodeHudCodexNormalizer.APPROVALS)
     for (const offered of CodeHudCodexNormalizer.OPTIONS[vocabulary])
-      TestValidator.equals(
+      Assert.equals(
         `${method} admits its own ${offered.label.toLowerCase()}`,
         judge(method, CodeHudCodexNormalizer.answer(vocabulary, offered)),
         [],
@@ -241,7 +238,7 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
     request: modern.pending.request,
     option: must("modern", true).id,
   });
-  TestValidator.equals(
+  Assert.equals(
     "a captured command request is answered in the modern vocabulary",
     modern.channel.written[0]?.result,
     { decision: "accept" },
@@ -251,7 +248,7 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
     ["execCommandApproval", older],
     ["item/permissions/requestApproval", escalation],
   ] as const)
-    TestValidator.equals(
+    Assert.equals(
       `the synthesized ${method} is a request the server could send`,
       Codex.admits(schemas(method).params, params, schemas(method).params),
       [],
@@ -265,7 +262,7 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
     request: legacy.pending.request,
     option: must("legacy", false).id,
   });
-  TestValidator.equals(
+  Assert.equals(
     "a legacy request is answered in the legacy vocabulary",
     legacy.channel.written[0]?.result,
     { decision: { denied: { rejection: CodeHudCodexNormalizer.REJECTION } } },
@@ -274,12 +271,12 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
   const wider = await asked([
     { id: 9, method: "item/permissions/requestApproval", params: escalation },
   ]);
-  TestValidator.equals(
+  Assert.equals(
     "a permissions request offers no affirmative answer at all",
     wider.pending.options.map((offered) => offered.affirmative),
     [false],
   );
-  TestValidator.equals(
+  Assert.equals(
     "and says what it is, since it names no command",
     wider.pending.title,
     "Read outside the workspace",
@@ -292,12 +289,12 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
       params: { ...escalation, reason: null },
     },
   ]);
-  TestValidator.equals(
+  Assert.equals(
     "a request that gave no reason still says something",
     silent.pending.title,
     CodeHudCodexNormalizer.ESCALATION,
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "which never spells out the profile it asked for",
     silent.pending.title.includes("network") === false &&
       silent.pending.title.includes("/") === false,
@@ -307,7 +304,7 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
     request: wider.pending.request,
     option: must("profile", false).id,
   });
-  TestValidator.equals(
+  Assert.equals(
     "and is answered by granting nothing, for the turn",
     wider.channel.written[0]?.result,
     { permissions: {}, scope: "turn" },
@@ -315,14 +312,14 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
 
   // 6. The session refuses a word belonging to another method's vocabulary.
   const crossed = await asked(Codex.sent(Codex.APPROVE));
-  await TestValidator.error("a legacy word answers no modern request", () =>
+  await Assert.throws("a legacy word answers no modern request", () =>
     crossed.session.send({
       type: "decision",
       request: crossed.pending.request,
       option: "approved",
     }),
   );
-  TestValidator.equals(
+  Assert.equals(
     "and nothing reached the server",
     crossed.channel.written.length,
     0,
@@ -331,14 +328,14 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
   const backwards = await asked([
     { id: 7, method: "execCommandApproval", params: older },
   ]);
-  await TestValidator.error("nor a modern word a legacy request", () =>
+  await Assert.throws("nor a modern word a legacy request", () =>
     backwards.session.send({
       type: "decision",
       request: backwards.pending.request,
       option: "accept",
     }),
   );
-  TestValidator.equals(
+  Assert.equals(
     "in that direction either",
     backwards.channel.written.length,
     0,
@@ -348,12 +345,12 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
   for (const vocabulary of ["modern", "legacy", "profile"] as const) {
     const options: readonly ICodeHudAgentPermission[] =
       CodeHudCodexNormalizer.OPTIONS[vocabulary];
-    TestValidator.equals(
+    Assert.equals(
       `${vocabulary} offers nothing that persists`,
       options.some((offered) => offered.persistent === true),
       false,
     );
-    TestValidator.equals(
+    Assert.equals(
       `${vocabulary} offers nothing that amends a policy or lasts a session`,
       options.some(
         (offered) =>
@@ -362,7 +359,7 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
       ),
       false,
     );
-    TestValidator.equals(
+    Assert.equals(
       `${vocabulary} always offers a refusal`,
       options.some((offered) => offered.affirmative === false),
       true,
@@ -374,14 +371,14 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
   const proposal = Codex.sent(Codex.APPROVE).find(
     (line) => line.method === "item/commandExecution/requestApproval",
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "the captured request did offer a policy amendment",
     JSON.stringify(
       (proposal?.params as { availableDecisions?: unknown } | undefined)
         ?.availableDecisions,
     ).includes("acceptWithExecpolicyAmendment"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the wearer was offered only the two narrow answers",
     modern.pending.options.map((offered) => offered.id),
     ["accept", "decline"],
@@ -389,7 +386,7 @@ export async function test_agent_codex_answer_vocabulary(): Promise<void> {
 
   // 8. The schema is a floor. The binary sends a field it does not declare, so
   // a later reader knows the generated description trails its own server.
-  TestValidator.equals(
+  Assert.equals(
     "the captured request carries one field the schema omits",
     Codex.admits(
       schemas("item/commandExecution/requestApproval").params,

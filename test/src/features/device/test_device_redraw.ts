@@ -1,6 +1,7 @@
 import type { ICodeHudFrame } from "@codehud/interface";
 import { CodeHudTerminalGlasses } from "@codehud/simulator";
-import { TestValidator } from "@nestia/e2e";
+
+import { Assert } from "../internal/assert";
 
 /**
  * A device draws what changed, and nothing else.
@@ -67,12 +68,9 @@ export async function test_device_redraw(): Promise<void> {
   };
 
   await glasses.connect();
-  TestValidator.predicate(
-    "the first frame is drawn",
-    (await drawn(frame())) > 0,
-  );
-  TestValidator.equals("the same frame again is not", await drawn(frame()), 0);
-  TestValidator.equals(
+  Assert.predicate("the first frame is drawn", (await drawn(frame())) > 0);
+  Assert.equals("the same frame again is not", await drawn(frame()), 0);
+  Assert.equals(
     "however many times it arrives",
     (await drawn(frame())) + (await drawn(frame())),
     0,
@@ -82,17 +80,14 @@ export async function test_device_redraw(): Promise<void> {
     lines: [{ text: "Working harder", tone: "primary" }],
     key: "second",
   });
-  TestValidator.predicate(
-    "a frame that differs is drawn",
-    (await drawn(moved)) > 0,
-  );
+  Assert.predicate("a frame that differs is drawn", (await drawn(moved)) > 0);
 
   const graded: ICodeHudFrame = frame({
     lines: [{ text: "Working harder", tone: "primary" }],
     urgency: "demand",
     key: "third",
   });
-  TestValidator.predicate(
+  Assert.predicate(
     "and so is one that differs only in grade",
     (await drawn(graded)) > 0,
   );
@@ -100,31 +95,27 @@ export async function test_device_redraw(): Promise<void> {
   // Sleeping, and what a display owes when it wakes. The frame is deliberately
   // the one already on screen: a display that blanked and then skipped the
   // redraw as unchanged would wake to nothing, which is the whole failure.
-  TestValidator.equals(
+  Assert.equals(
     "the graded frame is now what is shown",
     await drawn(graded),
     0,
   );
   await glasses.sleep();
-  TestValidator.equals(
-    "a sleeping display draws nothing",
-    await drawn(graded),
-    0,
-  );
+  Assert.equals("a sleeping display draws nothing", await drawn(graded), 0);
   await glasses.connect();
-  TestValidator.equals(
+  Assert.equals(
     "reconnecting is not waking, because the display is not the transport",
     await drawn(graded),
     0,
   );
   await glasses.wake();
-  TestValidator.predicate(
+  Assert.predicate(
     "waking redraws the unchanged frame rather than showing nothing",
     (await drawn(graded)) > 0,
   );
 
   await glasses.listen();
-  TestValidator.predicate(
+  Assert.predicate(
     "beginning capture redraws it again, because the display now says so",
     (await drawn(graded)) > 0,
   );

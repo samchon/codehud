@@ -1,6 +1,5 @@
 import { CodeHudCodexNormalizer } from "@codehud/agent";
 import type { ICodeHudAgentEvent } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
 import { Assert } from "../internal/assert";
 import { Codex } from "../internal/codex";
@@ -78,10 +77,10 @@ import { Codex } from "../internal/codex";
  *    table rather than mapped, because a request the desk host cannot classify
  *    is the one it confirms twice.
  *
- * Every comparison of a whole value goes through {@link Assert.equals}, which
- * scenario 0 arms. `TestValidator.equals` accepts a member the expected value
- * declares and the actual one does not, and the members this case exists to
- * pin — the title on an approval, the line under it — are optional ones.
+ * Scenario 0 arms {@link Assert.equals} rather than trusting it. The library
+ * assertion underneath accepts a member the expected value declares and the
+ * actual one does not, and the members this case exists to pin — the title on
+ * an approval, the line under it — are exactly those optional ones.
  */
 export async function test_agent_codex_file_change(): Promise<void> {
   const run = (stream: Codex.IMessage[]): ICodeHudAgentEvent[] => {
@@ -97,7 +96,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
   // 0. The assertion this case leans on, armed rather than trusted. Without
   // this wrapper the two comparisons that matter most below are green whatever
   // the adapter does, which is how the gap was found in the first place.
-  TestValidator.predicate(
+  Assert.predicate(
     "a member the expected value declares and the actual one lacks is reported",
     Assert.compares({ title: "x" }, { title: "x", detail: "y" }) === true &&
       Assert.compares(
@@ -141,7 +140,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
     { itemId: written?.params?.item?.id, command: undefined, reason: null },
   );
   const named: string = written?.params?.item?.id ?? "";
-  TestValidator.predicate("and identifies it at all", named.length !== 0);
+  Assert.predicate("and identifies it at all", named.length !== 0);
 
   const events: ICodeHudAgentEvent[] = run(Codex.WRITE);
 
@@ -165,7 +164,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
     tools.map((tool) => tool.title),
     ["add repo/note.txt", "add repo/note.txt"],
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and a change that was applied is not marked as having failed",
     tools.every((tool) => tool.failed === undefined),
   );
@@ -175,17 +174,17 @@ export async function test_agent_codex_file_change(): Promise<void> {
     (event): event is ICodeHudAgentEvent.IPermission =>
       event.type === "permission",
   );
-  TestValidator.equals(
+  Assert.equals(
     "the approval is titled from the item it names",
     permission?.title,
     "add repo/note.txt",
   );
-  TestValidator.notEquals(
+  Assert.differs(
     "rather than from the phrase reserved for a request about access",
     permission?.title,
     CodeHudCodexNormalizer.ESCALATION,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and still says what class of action it would perform",
     permission?.action,
     "write",
@@ -196,7 +195,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
     "s2",
     () => 0,
   );
-  TestValidator.equals(
+  Assert.equals(
     "a permissions request naming nothing still asks about access",
     (
       escalating.normalize({
@@ -228,7 +227,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
       },
     },
   });
-  TestValidator.equals(
+  Assert.equals(
     "a permissions request naming a remembered item still asks about access",
     (
       widening.normalize({
@@ -245,7 +244,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
     "s3",
     () => 0,
   );
-  TestValidator.equals(
+  Assert.equals(
     "an approval for an item that never arrived falls back rather than guessing",
     (
       orphan.normalize({
@@ -453,7 +452,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
       },
     },
   });
-  TestValidator.equals(
+  Assert.equals(
     "a change set containing a removal is a deletion, not a write",
     (
       removing.normalize({
@@ -469,7 +468,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
     "s6",
     () => 0,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and so is a legacy patch that removes one, read from the request itself",
     (
       removed.normalize({
@@ -487,7 +486,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
     "s7",
     () => 0,
   );
-  TestValidator.equals(
+  Assert.equals(
     "a file change nothing was remembered for keeps the floor it always had",
     (
       unknown.normalize({
@@ -515,7 +514,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
       ["item/fileChange/requestApproval", "write"],
     ],
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and a permissions request is absent from that table rather than mapped",
     CodeHudCodexNormalizer.PERFORMS.has("item/permissions/requestApproval") ===
       false &&
@@ -528,7 +527,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
     "s8",
     () => 0,
   );
-  TestValidator.equals(
+  Assert.equals(
     "and a permissions request still performs no action to classify",
     (
       escalation.normalize({
@@ -559,7 +558,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
     ],
     [[], "write"],
   ] as const)
-    TestValidator.equals(
+    Assert.equals(
       `a change of that shape performs ${expected}`,
       CodeHudCodexNormalizer.performed(changes),
       expected,
@@ -593,7 +592,7 @@ export async function test_agent_codex_file_change(): Promise<void> {
     ],
     [[], "file change"],
   ] as const)
-    TestValidator.equals(
+    Assert.equals(
       `a change is described as ${expected}`,
       CodeHudCodexNormalizer.changed(changes),
       expected,

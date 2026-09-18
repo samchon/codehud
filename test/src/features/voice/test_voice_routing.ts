@@ -4,8 +4,8 @@ import {
   CodeHudReducer,
   CodeHudVoiceRouter,
 } from "@codehud/projection";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Stream } from "../internal/stream";
 
 /**
@@ -51,47 +51,47 @@ export async function test_voice_routing(): Promise<void> {
   );
   const consent = CodeHudContext.DEFAULT.consent;
 
-  TestValidator.equals("a command is a command", router.route("stop"), {
+  Assert.equals("a command is a command", router.route("stop"), {
     type: "command",
     command: "stop",
   });
-  TestValidator.equals(
+  Assert.equals(
     "and so is a second phrase for the same one",
     router.route("halt"),
     { type: "command", command: "stop" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "the affirmative consent word is the approval",
     router.route(consent.affirmative, { confidence: 1 }),
     { type: "command", command: "allow" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the negative one is the refusal",
     router.route(consent.negative, { confidence: 1 }),
     { type: "command", command: "deny" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "while a recognizer that reported no confidence answers neither",
     router.route(consent.affirmative),
     { type: "unheard" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "not even to refuse, which would also be an answer",
     router.route(consent.negative).type,
     "unheard",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the refusal carries no number, because none was reported",
     (router.route(consent.affirmative) as { confidence?: number }).confidence,
     undefined,
   );
 
-  TestValidator.equals(
+  Assert.equals(
     "anything else is a prompt, verbatim",
     router.route("  refactor the reducer so it reads better  "),
     { type: "prompt", text: "refactor the reducer so it reads better" },
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "with the wearer's own casing kept, because the agent reads it",
     (
       router.route("Rename CodeHudText to something shorter") as {
@@ -106,12 +106,8 @@ export async function test_voice_routing(): Promise<void> {
     consent: { ...consent, affirmative: "stop" },
   });
   const ambiguous = collided.route("stop");
-  TestValidator.equals(
-    "a double match is ambiguous",
-    ambiguous.type,
-    "ambiguous",
-  );
-  TestValidator.equals(
+  Assert.equals("a double match is ambiguous", ambiguous.type, "ambiguous");
+  Assert.equals(
     "naming every candidate, and resolving to none of them",
     (ambiguous as { candidates: string[] }).candidates.sort((a, b) =>
       a.localeCompare(b),
@@ -131,47 +127,47 @@ export async function test_voice_routing(): Promise<void> {
     Stream.result("Edited two files", "success"),
   );
 
-  TestValidator.equals("a question is a query", router.route("how long"), {
+  Assert.equals("a question is a query", router.route("how long"), {
     type: "query",
     query: "elapsed",
   });
-  TestValidator.equals(
+  Assert.equals(
     "and never a prompt, so it costs no turn",
     router.route("what happened").type,
     "query",
   );
-  TestValidator.equals(
+  Assert.equals(
     "answered from state alone",
     router.answer("result", finished),
     "Edited two files",
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "including which session is in focus",
     router.answer("session", finished).includes("codehud"),
   );
-  TestValidator.equals(
+  Assert.equals(
     "and a question about a session that has done nothing still answers",
     router.answer("result", reducer.initialize()),
     CodeHudContext.DEFAULT.vocabulary.ready,
   );
 
   // Silence, which a wearer has to be able to ask for out loud.
-  TestValidator.equals(
+  Assert.equals(
     "the product can be silenced by saying so",
     router.route("quiet", { confidence: 1 }),
     { type: "command", command: "mute" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and un-silenced by a different word, not by repeating the same one",
     router.route("unmute", { confidence: 1 }),
     { type: "command", command: "unmute" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "saying it twice asks for the same thing twice",
     router.route("quiet", { confidence: 1 }),
     router.route("silence", { confidence: 1 }),
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and neither word is close to a consent token",
     [consent.affirmative, consent.negative].includes("mute") === false &&
       [consent.affirmative, consent.negative].includes("unmute") === false,
@@ -179,17 +175,17 @@ export async function test_voice_routing(): Promise<void> {
 
   // The second confirmation's own token, which is a consent answer and is
   // guarded like one.
-  TestValidator.equals(
+  Assert.equals(
     "the confirmation token routes to its own command",
     router.route(consent.confirmation, { confidence: 1 }),
     { type: "command", command: "confirm" },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and is worded differently from the affirmative, or one mishearing does both",
     consent.confirmation === consent.affirmative,
     false,
   );
-  TestValidator.equals(
+  Assert.equals(
     "below the floor it is unheard, like every other consent answer",
     router.route(consent.confirmation, { confidence: consent.floor - 0.01 })
       .type,
@@ -198,39 +194,39 @@ export async function test_voice_routing(): Promise<void> {
 
   // The floor, and what it does and does not guard.
   const floor: number = consent.floor;
-  TestValidator.equals(
+  Assert.equals(
     "a consent answer below the floor is unheard",
     router.route(consent.affirmative, { confidence: floor - 0.01 }),
     { type: "unheard", confidence: floor - 0.01 },
   );
-  TestValidator.equals(
+  Assert.equals(
     "and so is a refusal below it",
     router.route(consent.negative, { confidence: floor - 0.01 }).type,
     "unheard",
   );
-  TestValidator.equals(
+  Assert.equals(
     "at the floor it is heard",
     router.route(consent.affirmative, { confidence: floor }).type,
     "command",
   );
-  TestValidator.equals(
+  Assert.equals(
     "a navigation word below the floor is still acted on",
     router.route("back", { confidence: 0 }),
     { type: "command", command: "back" },
   );
 
   // Selection by ordinal, never by pronouncing a name.
-  TestValidator.equals("a wearer picks by number", router.route("switch 2"), {
+  Assert.equals("a wearer picks by number", router.route("switch 2"), {
     type: "command",
     command: "switch",
     ordinal: 2,
   });
-  TestValidator.equals("or by the word for it", router.route("switch three"), {
+  Assert.equals("or by the word for it", router.route("switch three"), {
     type: "command",
     command: "switch",
     ordinal: 3,
   });
-  TestValidator.predicate(
+  Assert.predicate(
     "and no phrase in the grammar asks for a path, a branch, or a symbol",
     CodeHudVoiceRouter.phrases(consent).every(
       (phrase) => /[/\\.]/u.test(phrase) === false,
@@ -238,7 +234,7 @@ export async function test_voice_routing(): Promise<void> {
   );
 
   const grammar: string[] = router.help();
-  TestValidator.predicate(
+  Assert.predicate(
     "the grammar states itself in full",
     grammar.includes("stop") &&
       grammar.includes("how long") &&
@@ -262,7 +258,7 @@ export async function test_voice_routing(): Promise<void> {
     "unmute",
     "confirm",
   ];
-  TestValidator.equals(
+  Assert.equals(
     "every command in the vocabulary has a phrase that reaches it",
     kinds.filter(
       (kind) =>
@@ -273,7 +269,7 @@ export async function test_voice_routing(): Promise<void> {
     ),
     [],
   );
-  TestValidator.predicate(
+  Assert.predicate(
     "and every phrase in it routes to something other than a prompt",
     grammar.every((phrase) => router.route(phrase).type !== "prompt"),
   );

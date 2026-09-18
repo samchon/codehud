@@ -1,6 +1,6 @@
 import { CodeHudSessionRegistry } from "@codehud/bridge";
-import { TestValidator } from "@nestia/e2e";
 
+import { Assert } from "../internal/assert";
 import { Harness } from "../internal/harness";
 
 /**
@@ -50,8 +50,8 @@ export async function test_bridge_replay_order(): Promise<void> {
   session.emit("two");
   await Harness.settle();
 
-  TestValidator.equals("counters start at zero and ascend", early.seen, [0, 1]);
-  TestValidator.equals(
+  Assert.equals("counters start at zero and ascend", early.seen, [0, 1]);
+  Assert.equals(
     "the bridge stamps its own session identifier",
     registry.list()[0]!.sequence,
     2,
@@ -60,7 +60,7 @@ export async function test_bridge_replay_order(): Promise<void> {
   const late: Harness.Device = new Harness.Device();
   registry.attach("s1", 1, late);
   await Harness.settle();
-  TestValidator.equals("replay starts where the device asked", late.seen, [1]);
+  Assert.equals("replay starts where the device asked", late.seen, [1]);
 
   // The race: a device attaches and the harness speaks in the same turn, before
   // anything the attach queued has been delivered. Its replayed observations
@@ -76,17 +76,17 @@ export async function test_bridge_replay_order(): Promise<void> {
   session.emit("four");
   await Harness.settle();
 
-  TestValidator.equals(
+  Assert.equals(
     "a device attaching mid-stream receives a gapless ascending run",
     racing.seen,
     [0, 1, 2, 3],
   );
-  TestValidator.equals(
+  Assert.equals(
     "and so does the device that was there all along",
     early.seen,
     [0, 1, 2, 3],
   );
-  TestValidator.equals(
+  Assert.equals(
     "and the one that joined late, from where it asked",
     late.seen,
     [1, 2, 3],
@@ -95,12 +95,12 @@ export async function test_bridge_replay_order(): Promise<void> {
   const beyond: Harness.Device = new Harness.Device();
   registry.attach("s1", 99, beyond);
   await Harness.settle();
-  TestValidator.equals("asking beyond the end yields nothing", beyond.seen, []);
+  Assert.equals("asking beyond the end yields nothing", beyond.seen, []);
 
   const everything: Harness.Device = new Harness.Device();
   registry.attach("s1", 0, everything);
   await Harness.settle();
-  TestValidator.equals(
+  Assert.equals(
     "replaying does not consume what was retained",
     everything.seen,
     [0, 1, 2, 3],

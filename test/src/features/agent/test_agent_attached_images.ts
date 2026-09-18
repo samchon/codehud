@@ -3,7 +3,6 @@ import {
   CodeHudCodexSession,
   type ICodeHudHarnessChannel,
 } from "@codehud/agent";
-import { TestValidator } from "@nestia/e2e";
 
 import { Assert } from "../internal/assert";
 
@@ -49,12 +48,12 @@ export async function test_agent_attached_images(): Promise<void> {
   const jpeg: string = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ==";
 
   // 1-2. What the Claude session's message carries.
-  TestValidator.equals(
+  Assert.equals(
     "a prompt with nothing attached is a plain string",
     CodeHudClaudeSession.content({ type: "prompt", text: "look at this" }),
     "look at this",
   );
-  TestValidator.equals(
+  Assert.equals(
     "and one with a photograph is the text and a block for it",
     CodeHudClaudeSession.content({
       type: "prompt",
@@ -73,7 +72,7 @@ export async function test_agent_attached_images(): Promise<void> {
       },
     ],
   );
-  TestValidator.equals(
+  Assert.equals(
     "with the media type read from each URL rather than assumed",
     (
       CodeHudClaudeSession.content({
@@ -113,7 +112,7 @@ export async function test_agent_attached_images(): Promise<void> {
     text: "what is wrong here",
     images: [png, jpeg],
   });
-  TestValidator.equals(
+  Assert.equals(
     "Codex is handed the data URLs whole, because its input takes a URL",
     (channel.written[0] as { params: { input: unknown[] } }).params.input,
     [

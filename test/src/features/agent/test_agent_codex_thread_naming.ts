@@ -3,7 +3,6 @@ import {
   type ICodeHudHarnessChannel,
 } from "@codehud/agent";
 import type { ICodeHudAgentEvent } from "@codehud/interface";
-import { TestValidator } from "@nestia/e2e";
 
 import { Assert } from "../internal/assert";
 
@@ -95,7 +94,7 @@ export async function test_agent_codex_thread_naming(): Promise<void> {
   await new Promise<undefined>((resolve) => {
     setTimeout(() => resolve(undefined), 10);
   });
-  TestValidator.equals(
+  Assert.equals(
     "nothing is written while there is nothing to address it to",
     channel.written.length,
     0,
@@ -103,12 +102,12 @@ export async function test_agent_codex_thread_naming(): Promise<void> {
 
   channel.speak();
   await sending;
-  TestValidator.equals(
+  Assert.equals(
     "and then it goes out, addressed to the name the server chose",
     (channel.written[0] as { params?: { threadId?: string } }).params?.threadId,
     "01a0-the-server-named-this",
   );
-  TestValidator.equals(
+  Assert.equals(
     "as a turn rather than anything else",
     (channel.written[0] as { method?: string }).method,
     "turn/start",
@@ -123,7 +122,7 @@ export async function test_agent_codex_thread_naming(): Promise<void> {
     naming: 2_000,
   });
   await known.send({ type: "prompt", text: "carry on" });
-  TestValidator.equals(
+  Assert.equals(
     "an instruction on a named thread is written immediately",
     (resumed.written[0] as { params?: { threadId?: string } }).params?.threadId,
     "thread-from-a-resume",
@@ -141,7 +140,7 @@ export async function test_agent_codex_thread_naming(): Promise<void> {
     "a session nobody is reading refuses rather than hanging",
     () => orphan.send({ type: "prompt", text: "anyone there" }),
   );
-  TestValidator.equals(
+  Assert.equals(
     "and wrote nothing on the way to refusing",
     unread.written.length,
     0,
