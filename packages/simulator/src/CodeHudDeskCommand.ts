@@ -52,12 +52,12 @@ import { CodeHudTerminalGlasses } from "./CodeHudTerminalGlasses";
  * there is no push-to-talk. A wearer of the real device gets both; a reader of
  * this terminal must not conclude either has been tested.
  *
- * A third belongs here. This host does not reconnect: a dropped socket ends the
- * run rather than reattaching from the counter its fold reached. The client can
- * do it — reattaching from a remembered counter is what it was built around —
- * and the phone shell will, because a wearer walks out of range and back. A
- * desk does not, so nothing here exercises that path and nobody should read
- * this as having tested it.
+ * A third belongs here. This host runs on a desk, so it never learns what
+ * backgrounding does to a connection — the operating system that suspends a
+ * phone is the one that decides whether a socket survives being put away, and
+ * nothing here can stand in for that. Reconnection itself is exercised: the
+ * socket drops, this dials again and reattaches each session from the counter
+ * its own fold reached.
  *
  * @evidence requirements/product/charter.md#product-two-adapter-axes Runs one device adapter against one harness family without either knowing the other, which is the arrangement the axes exist to make possible.
  * @evidence specifications/device-surface/capability-and-input.md#spec-device-adapter-authority Drives an adapter that renders what it is handed and reports what it observes, keeping composition and the meaning of input outside it.
@@ -121,9 +121,6 @@ export class CodeHudDeskCommand {
    */
   private closing: boolean = false;
 
-  /** Whether a reconnection is already in flight, so two do not race. */
-  private recovering: boolean = false;
-
   /** Constructs a desk host bound to one set of options. */
   public constructor(private readonly props: CodeHudDeskCommand.IProps) {
     this.context = props.context ?? CodeHudContext.DEFAULT;
@@ -168,6 +165,8 @@ export class CodeHudDeskCommand {
       await this.glasses.connect();
       await this.dial();
       await client.connect();
+      const connector = this.driver;
+      if (connector !== null) this.watch(client, connector);
       for (const directory of this.props.directories) {
         const id: string = await client.open({
           kind: this.props.kind,
@@ -212,14 +211,28 @@ export class CodeHudDeskCommand {
     });
     await connector.connect(this.props.address);
     this.driver = connector;
-    // The connection ending is the signal to reconnect. It ends for two
-    // reasons and only one of them is a reason to come back.
+  }
+
+  /**
+   * Watches one established connection, and reconnects when it ends.
+   *
+   * Armed by whoever established the connection rather than by the dial, so it
+   * is armed once per connection that actually carries a session and never for
+   * one that was opened and then failed its handshake. A connection ends for
+   * two reasons and only one of them is a reason to come back.
+   */
+  private watch(
+    client: CodeHudSessionClient,
+    connector: WebSocketConnector<
+      null,
+      ICodeHudClientProvider,
+      ICodeHudBridgeProvider
+    >,
+  ): void {
     void connector.join().then(async (): Promise<void> => {
-      if (this.closing === true || this.recovering === true) return;
+      if (this.closing === true) return;
       this.say(this.context.vocabulary.dropped);
-      this.recovering = true;
-      await this.recover();
-      this.recovering = false;
+      await this.recover(client);
     });
   }
 
@@ -236,7 +249,7 @@ export class CodeHudDeskCommand {
    * not, and a host retrying a dead machine forever is a display that lies
    * about being connected.
    */
-  private async recover(): Promise<boolean> {
+  private async recover(client: CodeHudSessionClient): Promise<boolean> {
     for (
       let attempt: number = 0;
       attempt < CodeHudDeskCommand.ATTEMPTS;
@@ -247,11 +260,13 @@ export class CodeHudDeskCommand {
         .then(() => true)
         .catch(() => false);
       if (reached === false) continue;
-      const welcomed: boolean = await (this.client as CodeHudSessionClient)
+      const welcomed: boolean = await client
         .connect()
         .then(() => true)
         .catch(() => false);
       if (welcomed === true) {
+        const connector = this.driver;
+        if (connector !== null) this.watch(client, connector);
         this.shown = "";
         await this.draw();
         return true;
@@ -315,13 +330,25 @@ export class CodeHudDeskCommand {
           ? {}
           : { confidence: input.confidence }),
       });
+      // The session the wearer is looking at, decided once and carried
+      // through. A wearer answers the question in front of them, and the
+      // question in front of them is not always the one in focus: a demand from
+      // another session takes the display. Reading the focused session's state
+      // here and delivering to the focused session is how *allow* becomes a
+      // word that does nothing while an approval is on screen — or, with two
+      // requests outstanding, lands on the other one.
+      //
+      // Passed as an argument rather than read again, so there is no second
+      // way to name the session and no way for the two to disagree.
+      const addressed: string = this.addressed();
       await this.perform(
         client,
         CodeHudDeskAction.decide(
           routing,
-          client.state(this.current),
+          client.state(addressed),
           this.props.policy,
         ),
+        addressed,
       );
     }
   }
@@ -330,38 +357,39 @@ export class CodeHudDeskCommand {
   private async perform(
     client: CodeHudSessionClient,
     action: CodeHudDeskAction.IAction,
+    session: string,
   ): Promise<void> {
     switch (action.type) {
       case "prompt":
-        await client.send(this.current, {
+        await client.send(session, {
           type: "prompt",
           text: action.text,
         });
         break;
       case "decision":
-        await client.send(this.current, {
+        await client.send(session, {
           type: "decision",
           request: action.request,
           option: action.option,
         });
         break;
       case "interrupt":
-        await client.send(this.current, { type: "interrupt" });
+        await client.send(session, { type: "interrupt" });
         break;
       case "review":
-        client.review(this.current, action.move);
+        client.review(session, action.move);
         break;
       case "redraw":
         this.shown = "";
         break;
       case "answer":
-        this.say(this.router.answer(action.query, client.state(this.current)));
+        this.say(this.router.answer(action.query, client.state(session)));
         break;
       case "silence":
         this.silence(action.active);
         break;
       case "confirm":
-        client.confirm(this.current, action.request, action.confirming);
+        client.confirm(session, action.request, action.confirming);
         break;
       case "list":
         for (const line of this.listing()) this.say(line);
@@ -378,9 +406,19 @@ export class CodeHudDeskCommand {
     await this.draw();
   }
 
-  /** The session every instruction is addressed to, which is the one shown. */
-  private get current(): string {
-    return this.sessions[this.focus]?.id ?? "";
+  /**
+   * The session an utterance is addressed to, which is the one being shown.
+   *
+   * Not the one in focus. A demand from elsewhere takes the display, and an
+   * answer belongs to the question the wearer can read rather than to the
+   * session they were reading before it interrupted them.
+   */
+  private addressed(): string {
+    return (
+      CodeHudDeskFocus.showing(this.described(), this.focus)?.id ??
+      this.sessions[this.focus]?.id ??
+      ""
+    );
   }
 
   /** States what there is to select from, and which one is on the display. */
@@ -448,10 +486,8 @@ export class CodeHudDeskCommand {
   private async draw(): Promise<void> {
     const client: CodeHudSessionClient | null = this.client;
     if (client === null || this.sessions.length === 0) return;
-    const chosen: CodeHudDeskFocus.ISession | undefined =
-      CodeHudDeskFocus.showing(this.described(), this.focus);
-    if (chosen === undefined) return;
-    const showing: string = chosen.id;
+    const showing: string = this.addressed();
+    if (showing.length === 0) return;
     const frame: ICodeHudFrame = client.frame(showing);
     if (frame.key === this.shown) return;
     this.shown = frame.key;
