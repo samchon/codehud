@@ -114,6 +114,7 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
     const source: AsyncIterable<unknown> = this.channel.lines;
     const normalizer: CodeHudCodexNormalizer = this.normalizer;
     const waiting: Map<string, string> = this.waiting;
+    const closed = (): boolean => this.ended;
     const names = (thread: string): void => {
       const resolve = this.names;
       this.names = null;
@@ -144,6 +145,14 @@ export class CodeHudCodexSession implements ICodeHudAgentSession {
               yield event;
             }
           }
+          // The stream ended. This server has an `error` notification, but that
+          // reports a protocol failure on a process that is still there; a
+          // process that is gone sends nothing, and until now that reached the
+          // wearer as a session sitting idle rather than as one that is over.
+          // The bridge is written against the assumption that the adapter says
+          // so on this stream, so nothing else was going to.
+          if (closed() === false)
+            yield normalizer.broken("the harness stopped");
         },
     };
   }

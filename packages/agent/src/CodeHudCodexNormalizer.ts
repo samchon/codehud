@@ -385,6 +385,26 @@ export class CodeHudCodexNormalizer {
     ];
   }
 
+  /**
+   * The one observation this normalizer makes that no line produced.
+   *
+   * A harness that dies writes nothing to say so: its output simply stops, and
+   * from here that is indistinguishable from a harness still thinking. The
+   * session is the layer that knows whether the stop was asked for, so it
+   * decides; the counter and the clock live here, so the stamping does.
+   *
+   * Fatal, because it is: no further line can arrive from a process that is
+   * gone, and a client is owed the difference between a session to go back to
+   * and one to restart.
+   */
+  public broken(message: string): ICodeHudAgentEvent.IError {
+    return this.base<ICodeHudAgentEvent.IError>({
+      type: "error",
+      message,
+      fatal: true,
+    });
+  }
+
   private base<T extends ICodeHudAgentEvent>(
     props: Omit<T, "session" | "sequence" | "at">,
   ): T {

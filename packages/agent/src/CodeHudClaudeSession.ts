@@ -70,6 +70,7 @@ export class CodeHudClaudeSession implements ICodeHudAgentSession {
     const source: AsyncIterable<unknown> = this.channel.lines;
     const normalizer: CodeHudClaudeNormalizer = this.normalizer;
     const waiting: Set<string> = this.waiting;
+    const closed = (): boolean => this.ended;
     return {
       [Symbol.asyncIterator]:
         async function* (): AsyncGenerator<ICodeHudAgentEvent> {
@@ -81,6 +82,20 @@ export class CodeHudClaudeSession implements ICodeHudAgentSession {
               if (event.type === "result") waiting.clear();
               yield event;
             }
+          // The stream ended. A harness that dies writes nothing to say so,
+          // and the bridge deliberately says nothing either — it is written
+          // against the assumption that the adapter reports a dead harness on
+          // this same stream, which neither adapter did. So the wearer was
+          // shown a session still working on something that no longer existed,
+          // which is the failure this product is for preventing.
+          //
+          // Measured rather than assumed: `claude 2.1.274` with `--print
+          // --input-format stream-json` stays alive after a result and takes a
+          // second turn on the same stdin. The process does not exit when a
+          // turn ends, so a stream that ends on its own is a harness that is
+          // gone rather than one that finished.
+          if (closed() === false)
+            yield normalizer.broken("the harness stopped");
         },
     };
   }
