@@ -180,17 +180,53 @@ export namespace CodeHudActionClass {
    * classifier that read only the outermost program would call every one of
    * those a shell invocation and file the whole class under execution.
    */
-  export const begins = (command: string, shape: string): boolean => {
-    for (const candidate of unwrap(command))
-      for (const segment of segments(candidate))
-        if (
-          segment === shape ||
-          segment.startsWith(`${shape} `) === true ||
-          segment.startsWith(`${shape}\t`) === true
-        )
-          return true;
-    return false;
+  export const begins = (command: string, shape: string): boolean =>
+    lines(command).some(
+      (line) =>
+        line === shape ||
+        line.startsWith(`${shape} `) === true ||
+        line.startsWith(`${shape}\t`) === true,
+    );
+
+  /**
+   * Every command line hiding inside one command line.
+   *
+   * Splitting and peeling are the same problem and have to be done together.
+   * Peeling first and splitting after misses `echo hi && bash -lc "rm -rf x"`,
+   * because the wrapper is not at the front of the line. Splitting first and
+   * peeling after misses `bash -lc "ls && rm -rf x"`, because the chain is
+   * inside the wrapper. Both are what an agent actually writes, and the second
+   * was covered while the first was being called a listing.
+   *
+   * So it is a worklist: every line contributes its segments and its
+   * unwrapping, and each of those is fed back in until nothing new appears.
+   * Bounded, because a pathological line should cost a classifier some time
+   * rather than all of it.
+   */
+  export const lines = (command: string): string[] => {
+    const found: Set<string> = new Set<string>();
+    const queue: string[] = [command];
+    while (queue.length !== 0 && found.size < BREADTH) {
+      const line: string = queue.shift() as string;
+      if (found.has(line) === true) continue;
+      found.add(line);
+      for (const piece of segments(line))
+        if (found.has(piece) === false) queue.push(piece);
+      const peeled: string | undefined = inner(line);
+      if (peeled !== undefined && found.has(peeled) === false)
+        queue.push(peeled);
+    }
+    return [...found];
   };
+
+  /**
+   * How many lines one command may be taken apart into.
+   *
+   * A limit rather than a tuning. The shapes this recognizes are a handful of
+   * words at the front of a line, and a command that produced hundreds of
+   * candidates is not a command an agent wrote.
+   */
+  export const BREADTH: number = 64;
 
   /**
    * One command line cut into the commands it would actually run.
@@ -211,25 +247,6 @@ export namespace CodeHudActionClass {
       .split(/&&|[;|\n]/u)
       .map((part) => part.trim())
       .filter((part) => part.length !== 0);
-
-  /**
-   * The command lines hiding inside one command line.
-   *
-   * The line itself, and then whatever a recognized wrapper was given to run.
-   * Quotes are stripped where a wrapper's argument is quoted whole, which is
-   * how a harness writes it.
-   */
-  const unwrap = (command: string): string[] => {
-    const found: string[] = [command];
-    let current: string = command;
-    for (let depth: number = 0; depth < 6; ++depth) {
-      const next: string | undefined = inner(current);
-      if (next === undefined || next === current) break;
-      found.push(next);
-      current = next;
-    }
-    return found;
-  };
 
   /**
    * One layer of wrapper removed, if the line has one.

@@ -47,7 +47,10 @@ import { Codex } from "../internal/codex";
  *    classified by every command in the chain rather than by its head — which
  *    is not hypothetical: a real harness asked about
  *    `ls -l hello.txt && rm hello.txt && ls -l`, the head was a listing, and
- *    the deletion went through on one spoken word.
+ *    the deletion went through on one spoken word. Splitting and peeling happen
+ *    together rather than in sequence, because a wrapper can sit after a
+ *    separator (`echo hi && bash -lc "rm -rf x"`) as easily as a chain can sit
+ *    inside a wrapper, and doing either one first misses the other.
  * 6. An unrecognized command is execution rather than nothing, and an
  *    unrecognized *tool* is nothing rather than a guess.
  * 7. Both adapters put the class on the observation they produce, so it reaches
@@ -149,6 +152,32 @@ export async function test_agent_action_class(): Promise<void> {
     "and a chain of harmless commands is still execution",
     CodeHudActionClass.of({ tool: "Bash", command: "echo ok && ls -l" }),
     "execute",
+  );
+
+  // 5c. A wrapper that is not at the front of the line. Splitting and peeling
+  // have to happen together: peeling first misses these, splitting first misses
+  // the wrapped chain above, and an agent writes both.
+  for (const [command, expected] of [
+    [`echo hi && bash -lc "rm -rf build"`, "delete"],
+    ["cd /tmp; sudo rm -rf build", "delete"],
+    ["ls && sudo rm -rf x", "delete"],
+    [`git status && CI=1 bash -lc "npm publish"`, "publish"],
+  ] as const)
+    TestValidator.equals(
+      `a wrapper later in the line is still peeled: ${command}`,
+      CodeHudActionClass.of({ tool: "Bash", command }),
+      expected,
+    );
+  TestValidator.predicate(
+    "and taking a line apart is bounded rather than open-ended",
+    CodeHudActionClass.lines(
+      // Distinct on purpose: five hundred copies of one command collapse to one
+      // line and would pass whether or not anything bounded them.
+      new Array(500)
+        .fill(0)
+        .map((_, index) => `echo ${index}`)
+        .join(" && "),
+    ).length <= CodeHudActionClass.BREADTH,
   );
 
   // 6. What it does when it cannot tell, in each direction.
