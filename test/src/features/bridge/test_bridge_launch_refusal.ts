@@ -159,21 +159,17 @@ export async function test_bridge_launch_refusal(): Promise<void> {
     resume: "native-7",
   });
   Assert.equals("the session identifier comes back", id, "s9");
-  Assert.equals(
-    // The policy among them: it is the wearer's statement about this session,
-    // and a device that joins later has nothing else to learn it from.
-    "registered with what the wearer chose",
-    good.registry.list(),
-    [
-      {
-        id: "s9",
-        kind: "claude-code",
-        directory: "/repo/codehud",
-        policy,
-        sequence: 0,
-      },
-    ],
-  );
+  // The policy among them: it is the wearer's statement about this session, and
+  // a device that joins later has nothing else to learn it from.
+  Assert.equals("registered with what the wearer chose", good.registry.list(), [
+    {
+      id: "s9",
+      kind: "claude-code",
+      directory: "/repo/codehud",
+      policy,
+      sequence: 0,
+    },
+  ]);
   Assert.equals(
     "and the adapter was handed the resume identifier",
     good.adapter.opened[0]!.resume,
