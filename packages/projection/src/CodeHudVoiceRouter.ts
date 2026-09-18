@@ -123,7 +123,7 @@ export class CodeHudVoiceRouter {
           : CodeHudText.path(state.session.directory, 64);
       case "result":
         return state.last === undefined ? words.ready : state.last.summary;
-      case "policy":
+      case "pending":
         return state.pending === undefined ? words.ready : state.pending.title;
     }
     void now;
@@ -197,7 +197,7 @@ export namespace CodeHudVoiceRouter {
     elapsed: Object.freeze(["how long", "elapsed"]),
     session: Object.freeze(["which session", "where am i"]),
     result: Object.freeze(["what happened", "last result"]),
-    policy: Object.freeze(["what is it asking", "what is pending"]),
+    pending: Object.freeze(["what is it asking", "what is pending"]),
   });
 
   /**

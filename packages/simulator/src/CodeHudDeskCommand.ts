@@ -601,12 +601,18 @@ export namespace CodeHudDeskCommand {
     });
 
   /**
-   * The policy a desk session runs under when the wearer states none.
+   * The policy a desk session runs under when nobody states one.
    *
    * The partition the specification fixes, written as data because a device
    * states a policy and cannot reach the harness axis that translates one. The
    * suite pins it against the harness's own defaults, so the two spellings of
    * one decision cannot drift apart unnoticed.
+   *
+   * A default rather than the only answer, which it used to be. The contract
+   * types the policy as a property of one session and says the right answer
+   * differs between a scratch repository and one that deploys; this constant
+   * was the whole of what a wearer could have, so that sentence was true and
+   * unreachable. {@link RUNGS} is what they can say instead.
    */
   export const POLICY: ICodeHudBridgeProvider.IOpen["policy"] = Object.freeze({
     actions: Object.freeze({
@@ -620,6 +626,75 @@ export namespace CodeHudDeskCommand {
       credential: "confirmed",
     }),
   });
+
+  /**
+   * The policies a session can be started under, named rather than composed.
+   *
+   * Three, because a wearer cannot compose a partition by voice and a person
+   * at a terminal should not have to either. The four irreversible classes are
+   * confirmed on every rung: they are what the second confirmation exists for,
+   * and a rung that loosened them would be a rung that removes the promise
+   * rather than trading it for speed.
+   *
+   * - `careful` is #106's proposal, available on demand rather than imposed.
+   *   Measured at about two extra spoken words per session on a small project.
+   * - `standard` is the partition the specification fixes, and the default, so
+   *   a session started without a word behaves as it always has.
+   * - `flowing` is for a scratch repository or a desk, where the wearer can see
+   *   what is happening and the cost of being asked outweighs the cost of not
+   *   being.
+   *
+   * Reads are unattended on all three. A read is recoverable by definition and
+   * asking about one spends the budget the other classes need.
+   */
+  export const RUNGS: Readonly<
+    Record<string, ICodeHudBridgeProvider.IOpen["policy"]>
+  > = Object.freeze({
+    careful: Object.freeze({
+      actions: Object.freeze({
+        read: "unattended",
+        write: "confirmed",
+        execute: "confirmed",
+        network: "confirmed",
+        delete: "confirmed",
+        history: "confirmed",
+        publish: "confirmed",
+        credential: "confirmed",
+      }),
+    }),
+    standard: POLICY,
+    flowing: Object.freeze({
+      actions: Object.freeze({
+        read: "unattended",
+        write: "attended",
+        execute: "unattended",
+        network: "unattended",
+        delete: "confirmed",
+        history: "confirmed",
+        publish: "confirmed",
+        credential: "confirmed",
+      }),
+    }),
+  });
+
+  /**
+   * The rung a command line named, refusing a name that is not one.
+   *
+   * Refuses rather than falling back, because a wearer who asked for `careful`
+   * and silently got `standard` has been told their statement took effect when
+   * it did not — which is the failure #123 measured one layer down.
+   */
+  export const rung = (
+    name: string | undefined,
+  ): ICodeHudBridgeProvider.IOpen["policy"] => {
+    if (name === undefined) return RUNGS["standard"]!;
+    const found = RUNGS[name];
+    if (found === undefined)
+      throw new Error(
+        `--policy takes one of ${Object.keys(RUNGS).join(", ")}, not "${name}"`,
+      );
+    return found;
+  };
 
   /** What the host needs to run. */
   export interface IProps {
@@ -781,7 +856,7 @@ export namespace CodeHudDeskCommand {
       kind: (flag("kind") ??
         "claude-code") as ICodeHudBridgeProvider.IOpen["kind"],
       directories: directories(argv),
-      policy: POLICY,
+      policy: rung(flag("policy")),
       geometry: {
         columns: Number.parseInt(flag("columns") ?? "40", 10),
         rows: Number.parseInt(flag("rows") ?? "3", 10),

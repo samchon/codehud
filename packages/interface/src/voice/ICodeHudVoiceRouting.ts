@@ -93,8 +93,19 @@ export namespace ICodeHudVoiceRouting {
      * Questions resolved entirely from reducer state.
      *
      * Routing any of these to the agent is a defect rather than a slow path.
+     *
+     * `pending` was called `policy` and answered with the title of the request
+     * in front of the wearer, which is not the policy and never was. Its two
+     * phrases — *what is it asking*, *what is pending* — always described the
+     * member it is now named for. A closed vocabulary with a member named for
+     * something it does not do is worse than a shorter one.
+     *
+     * There is no question here that reports the policy in force, and a wearer
+     * who cannot see it cannot rely on it. Answering that one needs the policy
+     * to reach the fold, which it does not today.
      */
-    export type Kind = "activity" | "elapsed" | "session" | "result" | "policy";
+    export type Kind =
+      "activity" | "elapsed" | "session" | "result" | "pending";
   }
 
   /**
