@@ -183,6 +183,18 @@ export namespace ICodeHudContext {
     unmuted: string;
 
     /**
+     * What a host says when the connection to the bridge has gone.
+     *
+     * Said rather than drawn: the display is still showing the last frame it
+     * had, which is true of the session and no longer true of the connection,
+     * and a wearer needs to know which of the two they are reading.
+     */
+    dropped: string;
+
+    /** What a host says when it has stopped trying to reach the bridge. */
+    unreachable: string;
+
+    /**
      * What a host says when a demand went somewhere the wearer is not looking.
      *
      * Names the redirection rather than the content: the content already went,
