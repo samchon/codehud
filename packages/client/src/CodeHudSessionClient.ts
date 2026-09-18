@@ -138,7 +138,7 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
           type: "error",
           session,
           sequence: this.counters.get(session) ?? 0,
-          at: Date.now(),
+          at: (this.props.now ?? Date.now)(),
           message,
           fatal: true,
         }),
@@ -306,5 +306,14 @@ export namespace CodeHudSessionClient {
      * simulator and is the shape a device adapter overrides.
      */
     liveness?: () => ICodeHudClientProvider.ILiveness;
+
+    /**
+     * The clock, for the one observation this device produces itself.
+     *
+     * Everything else it folds was stamped by the bridge. Injected for the
+     * same reason the adapters inject theirs: a case that has to reason about
+     * a timestamp should not have to reason about when it ran.
+     */
+    now?: () => number;
   }
 }
