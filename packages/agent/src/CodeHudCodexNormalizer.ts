@@ -481,10 +481,12 @@ export namespace CodeHudCodexNormalizer {
    * be given is a class the session policy would then apply to it.
    *
    * Absence is the safe direction, which is why the table may stay short. A
-   * request the desk host cannot classify is doubly confirmed — `doubled`
-   * answers true for an unclassified request whenever any class in the policy
-   * is confirmed at all — so a method this table has not met costs a wearer one
-   * extra spoken word rather than one unasked question.
+   * request carrying no class is doubly confirmed whenever the policy marks
+   * any class that way, so a method this table has not met costs a wearer one
+   * extra spoken word rather than one unasked question. That is the
+   * specification's rule rather than this file's inference —
+   * `specifications/agent-harness/control-and-approval.md`,
+   * *A doubly-confirmed request is asked twice*.
    *
    * A map rather than an object, for the reason {@link APPROVALS} states.
    */

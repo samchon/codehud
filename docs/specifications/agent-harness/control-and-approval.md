@@ -70,6 +70,8 @@ The four irreversible classes are reached by inspecting the command a request wo
 
 A request whose class the session's policy marks doubly-confirmed is not answered by the affirmative alone. The affirmative moves the request into a confirming state, and only the confirmation token — worded differently from the affirmative — answers it.
 
+A request carrying **no class** is treated as doubly-confirmed whenever the policy marks any class that way. An adapter reports no class when it cannot tell, and the classification tables are stated as floors rather than ceilings, so "unclassified" and "harmless" are different facts and the system must not confuse them. The cost of the strict reading is one extra spoken word on a request that turns out to be ordinary; the cost of the lenient one is the question the wearer was never asked.
+
 Repeating the affirmative does not answer a confirming request, and does not leave the confirming state either. Any other utterance leaves it: the request returns to waiting for a first answer, so a wearer who began confirming and changed their mind has not half-answered anything.
 
 Refusing the request and stopping the turn are the exceptions, and they take effect rather than merely leaving the state. Both are the wearer taking something back, and a confirmation standing between a wearer and their own brake is the state doing the opposite of what it is for.

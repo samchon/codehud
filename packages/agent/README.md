@@ -122,7 +122,7 @@ Three neighbours of that rule are not the same rule:
 
 `CommandExecutionRequestApprovalParams` declares `command?: string | null`, and says why: a stdin approval and a zsh-exec-bridge subcommand approval are command executions that carry no command line. Read as a string, that null threw out of the normalizer — which is the session's read loop, so the whole conversation went with it.
 
-It is now the same case as an approval that names nothing else: the item the request points at supplies the description, and the class falls to what the method itself performs. A command execution executes whether or not it spelled out what it would run; a patch writes. A method this table has not met is reported with no class at all, which the desk host treats as needing the second confirmation — so an unknown request costs a wearer one extra word rather than one unasked question.
+It is now the same case as an approval that names nothing else: the item the request points at supplies the description, and the class falls to what the method itself performs. A command execution executes whether or not it spelled out what it would run; a patch writes. A method this table has not met is reported with no class at all, and a request carrying no class is doubly confirmed whenever the policy marks any class that way — so an unknown request costs a wearer one extra word rather than one unasked question. The code and the case had that rule; the specification did not say it, and now does.
 
 ## The default that is not ours to rely on
 
