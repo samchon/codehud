@@ -84,6 +84,14 @@ The harness discards an answer it is not waiting on without complaint. A session
 
 With partial messages on, the harness reports the same prose twice, once as deltas and once as the completed message. The fold appends whatever it is handed, so passing both through would show every sentence written out twice. The completed block is therefore emitted as a terminator carrying nothing. With partial messages off there are no deltas and the same terminator carries the whole text, and both routes land on the same state.
 
+## The line that ends the turn had no newline after it
+
+A pipe delivers bytes, so `CodeHudNodeChannel` reassembles lines: a chunk boundary is not a line boundary, a chunk can carry several lines, and a partial one waits for the next chunk. That much was right.
+
+What was not: whatever sat in the buffer when the process's output ended was discarded with it. A harness that writes its last line and exits without a trailing newline owes nothing more — the byte it did not write carries no information — and that last line is the one that ends the turn on both families, `result` on Claude Code and `turn/completed` on Codex. Every observation of the turn arrived, and then no result: a display resting on the last thing the agent said, about work that had already finished.
+
+The file's own documentation said no unit test covered it and that this was acceptable, in the paragraph before the one naming the framing as the rule it owns. Both sentences were true of everything except each other.
+
 ## Two harnesses, one observation vocabulary
 
 Claude Code streams NDJSON with a control round-trip bolted alongside; Codex is JSON-RPC in both directions. Downstream of the adapters neither difference exists.
