@@ -38,16 +38,37 @@ export namespace CodeHudAgentPolicy {
    *
    * Read from `claude --help` and from what a real session reported it had
    * available, rather than from documentation. A tool this repository has not
-   * seen is absent rather than guessed: an allowance for a tool that does not
-   * exist is harmless, but a *missing* allowance only costs a wearer an extra
-   * question, and a guessed one could let something through unasked.
+   * seen is absent rather than guessed, because a guessed one could let
+   * something through unasked.
+   *
+   * What the first version of this sentence also said is that a missing
+   * allowance "only costs a wearer an extra question". That was wrong in the
+   * direction that matters, and it was measured wrong rather than argued wrong.
+   * `execute` was allowed as `Bash` and `Task`; the harness on Windows runs
+   * commands through a tool called `PowerShell` and says so in its own
+   * `system/init`, naming a `powershell_path`. One instruction that ran the
+   * test suite twice:
+   *
+   * ```text
+   * --allowedTools=Bash,Task              the wearer is asked   2 times
+   * --allowedTools=Bash,Task,PowerShell   the wearer is asked   0 times
+   * ```
+   *
+   * A missing allowance on an execute-class tool does not cost one question. It
+   * costs one per command, for the life of the session, and it costs it while
+   * the wearer believes they said otherwise — which is the failure
+   * `#agent-approval-budget` names as the one that makes the product unusable.
+   *
+   * So the two directions are not symmetric and are not treated as such. An
+   * allowance for a tool that is gone is harmless and stays. A tool that is
+   * *seen* goes in, and `PowerShell` is seen.
    */
   export const CLAUDE_TOOLS: Readonly<
     Record<ICodeHudAgentAdapter.IPolicy.Action, readonly string[]>
   > = Object.freeze({
     read: Object.freeze(["Read", "Glob", "Grep", "NotebookRead"]),
     write: Object.freeze(["Write", "Edit", "NotebookEdit"]),
-    execute: Object.freeze(["Bash", "Task"]),
+    execute: Object.freeze(["Bash", "PowerShell", "Task"]),
     network: Object.freeze(["WebFetch", "WebSearch"]),
     delete: Object.freeze([]),
     history: Object.freeze([]),

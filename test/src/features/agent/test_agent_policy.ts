@@ -153,6 +153,33 @@ export async function test_agent_policy(): Promise<void> {
     CodeHudAgentPolicy.allowed(doubled).includes("Bash"),
     false,
   );
+
+  // The shell the harness actually uses, which is not always the one this
+  // table was first written from. `execute` was allowed as `Bash` and `Task`
+  // while Claude Code on Windows ran commands through `PowerShell` and said so
+  // in its own `system/init`. Measured on `claude 2.1.276` with one instruction
+  // that ran the test suite twice: the wearer was asked twice under
+  // `Bash,Task` and not at all under `Bash,Task,PowerShell`.
+  //
+  // A missing allowance on an execute-class tool is not one extra question. It
+  // is one per command, while the wearer believes they said otherwise, which is
+  // the approval budget's stated failure rather than a rounding error on it.
+  const running: ICodeHudAgentAdapter.IPolicy = {
+    actions: { ...defaults.actions, execute: "unattended" },
+  };
+  Assert.predicate(
+    "an unattended execution allows every shell this harness is known to use",
+    ["Bash", "PowerShell", "Task"].every((tool) =>
+      CodeHudAgentPolicy.allowed(running).includes(tool),
+    ),
+  );
+  Assert.equals(
+    "and a doubly-confirmed one allows none of them",
+    ["Bash", "PowerShell", "Task"].filter((tool) =>
+      CodeHudAgentPolicy.allowed(doubled).includes(tool),
+    ),
+    [],
+  );
   Assert.equals(
     "and is recognized as needing a second answer on this side",
     CodeHudAgentPolicy.doubled(doubled, "execute"),
