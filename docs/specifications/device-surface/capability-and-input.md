@@ -38,6 +38,8 @@ Touch and head gestures are optional accelerators bound only to operations speec
 
 <!-- @evidence requirements/glasses-device/device-abstraction.md#glasses-adapter-renders-only Refines the render-only rule into an upper bound on the adapter's operation set. -->
 
-A device adapter's operations are limited to transport connect and disconnect, drawing the content it was handed, putting the display to sleep, and the optional operations matching the channels it declared. Composing, eliding, rearranging display content, and assigning meaning to input or to an utterance are not the adapter's authority.
+A device adapter's operations are limited to transport connect and disconnect, drawing the content it was handed, putting the display to sleep and lighting it again, beginning capture, and the optional operations matching the channels it declared. Composing, eliding, rearranging display content, and assigning meaning to input or to an utterance are not the adapter's authority.
+
+Sleeping and waking are separate from connecting and disconnecting, because on a wearable the display and the transport are separate things: a device stays paired and reachable for hours while showing nothing. Which content may wake a sleeping display is decided by its grade and carried to the adapter by the host; an adapter that read the grade itself would be assigning meaning to content it was told to render.
 
 The adapter compares handed content against what it currently shows and skips a redundant draw. That is the only adapter-side optimization permitted, and it never alters the content itself.

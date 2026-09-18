@@ -69,6 +69,23 @@ export interface ICodeHudGlassesAdapter {
   sleep(): Promise<void>;
 
   /**
+   * Lights the display again, without reconnecting anything.
+   *
+   * The operation behind the permission a grade carries. Two of the three
+   * grades may wake a sleeping display, and until this existed there was
+   * nothing for a host to call when one did: reconnecting was the only thing
+   * that happened to work, on the one adapter where the transport and the
+   * display are the same terminal. On hardware they are not, and a host that
+   * reconnected to light a display would tear down a session to show a line.
+   *
+   * Called by the host that holds the permission, never decided by the adapter:
+   * which grades may wake a display is a rule about attention, and an adapter
+   * that read the grade would be assigning meaning to content it was told to
+   * render. A device whose display cannot sleep implements it as nothing.
+   */
+  wake(): Promise<void>;
+
+  /**
    * Starts speech recognition and reports results on {@link inputs}.
    *
    * Mandatory, because speech is the only instruction channel. Recognition is

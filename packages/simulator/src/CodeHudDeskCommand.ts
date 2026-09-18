@@ -5,6 +5,7 @@ import type {
   ICodeHudClientProvider,
   ICodeHudContext,
   ICodeHudFrame,
+  ICodeHudGlassesAdapter,
   ICodeHudGlassesDescriptor,
   ICodeHudNotification,
   ICodeHudVoiceRouting,
@@ -58,7 +59,15 @@ export class CodeHudDeskCommand {
   private readonly context: ICodeHudContext;
   private readonly router: CodeHudVoiceRouter;
   private readonly notifier: CodeHudNotifier = new CodeHudNotifier();
-  private readonly glasses: CodeHudTerminalGlasses;
+  /**
+   * The device this host drives.
+   *
+   * Held as the contract rather than as the terminal it happens to be, so the
+   * optional operations are optional here too: a host that called `speak` on a
+   * concrete adapter would be asking a class rather than a device, and the one
+   * class it has does not speak.
+   */
+  private readonly glasses: ICodeHudGlassesAdapter;
   private readonly lines: CodeHudDeskCommand.ILines =
     CodeHudDeskCommand.queue();
 
@@ -225,11 +234,14 @@ export class CodeHudDeskCommand {
       frame,
       client.state(this.session),
     );
-    // A device that cannot speak does less than the grade permits, which is the
-    // rule this terminal demonstrates by being one: it has no speaker, so a
-    // grade that may speak is drawn and not spoken.
-    if (permission.wake === true) await this.glasses.connect();
+    // The two permissions, each obeyed through the operation that belongs to
+    // it. Speaking is optional on the contract, so a device without a speaker
+    // needs no test here: it does not implement the method, and the grade that
+    // permitted speech is drawn and not spoken. This terminal is one.
+    if (permission.wake === true) await this.glasses.wake();
     await this.glasses.render(frame);
+    if (permission.speak === true)
+      await this.glasses.speak?.(frame.lines[0]?.text ?? "");
     const fallback: ICodeHudNotification.IFallback | undefined =
       permission.fallback;
     if (fallback !== undefined)
