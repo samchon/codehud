@@ -31,8 +31,25 @@ export class CodeHudVoiceRouter {
   private heard: number = 0;
   private measured: number = 0;
 
-  /** Constructs a router bound to one configuration. */
-  public constructor(private readonly context: ICodeHudContext) {}
+  /**
+   * Constructs a router bound to one configuration, refusing an unusable one.
+   *
+   * A consent configuration that cannot guard is refused where it is stated
+   * rather than obeyed until it matters. A floor of zero admits every
+   * recognition the engine produces, however unsure, and the approval path is
+   * then wide open with nothing anywhere reporting it; that is the shape this
+   * repository has already produced twice, a configured check whose selector
+   * matches nothing and reports the same green as one that matches everything.
+   *
+   * At startup, and loudly, because the alternative is discovering it at the
+   * first approval a wearer gives while walking.
+   */
+  public constructor(private readonly context: ICodeHudContext) {
+    const wrong: string | undefined = CodeHudVoiceRouter.unusable(
+      context.consent,
+    );
+    if (wrong !== undefined) throw new Error(`unusable consent: ${wrong}`);
+  }
 
   /**
    * Routes one finalized utterance.
@@ -174,6 +191,55 @@ export class CodeHudVoiceRouter {
   }
 }
 export namespace CodeHudVoiceRouter {
+  /**
+   * Why a consent configuration cannot be used, if it cannot.
+   *
+   * Returns the reason rather than a boolean, because every one of these is
+   * something whoever wrote the configuration has to fix and a caller told only
+   * "no" has to guess which.
+   *
+   * The floor is the one that fails silently. Zero admits every recognition the
+   * engine produced, however unsure, and nothing downstream reports that the
+   * guard is off; above one refuses all of them, which is the opposite failure
+   * and just as silent — a wearer who can never approve anything, with the
+   * product working exactly as configured.
+   *
+   * The three tokens are compared against each other and against the command
+   * grammar. Two that are equal make every utterance of either ambiguous, and
+   * one that collides with a command shadows it: an affirmative of "stop" costs
+   * a wearer both their approval and their brake, and today it does so without
+   * a word.
+   */
+  export const unusable = (
+    consent: ICodeHudVoiceRouting.IConsent,
+  ): string | undefined => {
+    if (Number.isFinite(consent.floor) === false)
+      return "the floor is not a number";
+    if (consent.floor <= 0)
+      return "a floor of zero or less admits every recognition, guarding nothing";
+    if (consent.floor > 1)
+      return "a floor above one refuses every recognition, so nothing can be approved";
+
+    const tokens: Readonly<Record<string, string>> = {
+      affirmative: consent.affirmative,
+      negative: consent.negative,
+      confirmation: consent.confirmation,
+    };
+    for (const [name, token] of Object.entries(tokens)) {
+      if (token.trim().length === 0) return `the ${name} is empty`;
+      const spoken: string = token.trim().toLowerCase();
+      for (const [command, phrases] of Object.entries(GRAMMAR))
+        if (phrases.includes(spoken) === true)
+          return `the ${name} "${token}" is already how a wearer says ${command}`;
+    }
+    const spoken: string[] = Object.values(tokens).map((token) =>
+      token.trim().toLowerCase(),
+    );
+    if (new Set(spoken).size !== spoken.length)
+      return "two of the three consent words are the same, so either is ambiguous";
+    return undefined;
+  };
+
   /**
    * How many recognitions establish that an engine does not report confidence.
    *
