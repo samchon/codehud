@@ -1,4 +1,5 @@
 import type {
+  ICodeHudAgentAdapter,
   ICodeHudAgentCommand,
   ICodeHudAgentEvent,
   ICodeHudBridgeProvider,
@@ -35,14 +36,22 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
   private readonly counters: Map<string, number> = new Map();
 
   /**
-   * What the bridge says each session is, including the policy it runs under.
+   * The policy each session runs under, per session rather than per device.
    *
    * Held because the second confirmation is this device's to apply and this
    * device may not be the one that opened the session. Filled from the welcome
    * for a session joined, and from what was sent for a session opened here;
    * those are the same fact arriving from opposite directions.
+   *
+   * The policy alone rather than the whole advertisement. A session opened here
+   * is not advertised back, so building an `ISession` from what was sent would
+   * invent the members this device has not been told — the harness's own
+   * identifier among them, which arrives later and would be permanently absent
+   * on a record nobody refreshes. A field that exists and is always empty is
+   * the shape #38 found; one fact this device actually holds is worth more than
+   * a structure that looks complete.
    */
-  private readonly advertised: Map<string, ICodeHudBridgeProvider.ISession> =
+  private readonly policies: Map<string, ICodeHudAgentAdapter.IPolicy> =
     new Map();
 
   /** Constructs a client for one device. */
@@ -67,7 +76,7 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
         descriptor: this.props.descriptor,
       });
     for (const session of welcome.sessions)
-      this.advertised.set(session.id, session);
+      this.policies.set(session.id, session.policy);
     for (const session of welcome.sessions) await this.attach(session.id);
     return welcome;
   }
@@ -120,28 +129,23 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
    */
   public async open(props: ICodeHudBridgeProvider.IOpen): Promise<string> {
     const id: string = await this.props.bridge.open(props);
-    this.advertised.set(id, {
-      id,
-      kind: props.kind,
-      directory: props.directory,
-      policy: props.policy,
-      sequence: 0,
-    });
+    this.policies.set(id, props.policy);
     return id;
   }
 
   /**
-   * What the bridge says about one session, if this device knows.
+   * The policy one session runs under, if this device knows it.
    *
-   * The policy is the member worth asking for: it decides which requests a
-   * wearer answers twice, and a device that attached to work another surface
-   * started has no other way to learn it. Undefined for an identifier this
-   * device has neither opened nor been told about, which a caller must treat as
-   * "not known" rather than as "no policy" — the two are opposite answers about
-   * how careful to be.
+   * It decides which requests a wearer answers twice, and a device that joined
+   * work another surface started has no other way to learn it.
+   *
+   * Undefined for an identifier this device has neither opened nor been told
+   * about. A caller must read that as "not known" rather than as "no policy":
+   * the two are opposite answers about how careful to be, and the careful one
+   * is to treat every class as needing the second word until told otherwise.
    */
-  public session(id: string): ICodeHudBridgeProvider.ISession | undefined {
-    return this.advertised.get(id);
+  public policy(id: string): ICodeHudAgentAdapter.IPolicy | undefined {
+    return this.policies.get(id);
   }
 
   /**
@@ -183,6 +187,7 @@ export class CodeHudSessionClient implements ICodeHudClientProvider {
     await this.props.bridge.close(session);
     this.folds.delete(session);
     this.counters.delete(session);
+    this.policies.delete(session);
   }
 
   /** What this device would show for a session, at its own geometry. */

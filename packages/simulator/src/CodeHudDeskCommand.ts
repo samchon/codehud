@@ -365,7 +365,11 @@ export class CodeHudDeskCommand {
           // joined — which is what handoff is for. A device deciding from its
           // own constant either invents a stricter policy than the one in force
           // or lets a deletion through on one spoken word.
-          client.session(addressed)?.policy ?? this.props.policy,
+          //
+          // And falling back to this host's own would be the same mistake in
+          // smaller print, so a session whose policy is not known gets the
+          // cautious one instead.
+          client.policy(addressed) ?? CodeHudDeskAction.CAUTIOUS,
         ),
         addressed,
       ).catch(async (thrown: unknown): Promise<void> => {

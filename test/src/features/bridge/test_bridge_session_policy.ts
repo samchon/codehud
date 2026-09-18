@@ -48,8 +48,9 @@ import { Harness } from "../internal/harness";
  *    exists to make possible, checked through the same routing table the desk
  *    host uses rather than through a paraphrase of it.
  * 5. An identifier this client has neither opened nor been told about is not
- *    known, which a caller must read as "ask, do not assume" rather than as
- *    "no policy".
+ *    known, and not knowing means the cautious policy rather than whatever
+ *    constant the device happens to hold. Falling back to the device's own
+ *    would be the same mistake in smaller print.
  */
 export async function test_bridge_session_policy(): Promise<void> {
   const registry: CodeHudSessionRegistry = new CodeHudSessionRegistry();
@@ -133,7 +134,7 @@ export async function test_bridge_session_policy(): Promise<void> {
   // 2. Both surfaces know it: the one that opened it and the one that joined.
   Assert.equals(
     "the surface that opened it knows the policy it stated",
-    opener.session(id)?.policy,
+    opener.policy(id),
     stated,
   );
 
@@ -148,7 +149,7 @@ export async function test_bridge_session_policy(): Promise<void> {
   const welcome: ICodeHudBridgeProvider.IWelcome = await latecomer.connect();
   Assert.equals(
     "and so does the surface that only joined",
-    latecomer.session(id)?.policy,
+    latecomer.policy(id),
     stated,
   );
   Assert.equals(
@@ -179,7 +180,7 @@ export async function test_bridge_session_policy(): Promise<void> {
   // host uses, with the policy the joining device was handed rather than one
   // it chose for itself.
   const learned: ICodeHudAgentAdapter.IPolicy =
-    latecomer.session(id)?.policy ?? Harness.POLICY;
+    latecomer.policy(id) ?? CodeHudDeskAction.CAUTIOUS;
   const pending = (
     action: ICodeHudAgentAdapter.IPolicy.Action,
   ): Parameters<typeof CodeHudDeskAction.decide>[1] => ({
@@ -223,7 +224,16 @@ export async function test_bridge_session_policy(): Promise<void> {
   // 5. Not knowing is not the same as knowing there is nothing.
   Assert.equals(
     "a session this device has never heard of is not known",
-    latecomer.session("never-opened-here"),
+    latecomer.policy("never-opened-here"),
     undefined,
+  );
+  Assert.equals(
+    "and not knowing means asking twice about everything, including a read",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "allow" },
+      pending("read"),
+      latecomer.policy("never-opened-here") ?? CodeHudDeskAction.CAUTIOUS,
+    ),
+    { type: "confirm", request: "r1", confirming: true },
   );
 }

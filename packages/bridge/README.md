@@ -88,6 +88,8 @@ The bridge never held the policy. It reached the adapter as launch flags at open
 
 The policy is now remembered with the session and advertised with it. It is the caller's statement and there is nothing to recompute it from: the harness was launched from it and does not report it back.
 
+A device that addresses a session it has neither opened nor been told about gets the cautious policy — every class confirmed — rather than whatever constant it happens to hold. Not knowing and knowing there is nothing to be careful about are opposite answers, and only one of them is safe to guess.
+
 ## Testing without a socket or a harness
 
 `CodeHudSessionRegistry` and `CodeHudBridgeConnection` take every collaborator through a constructor, so retention, replay, ordering, the fan-out, the gate, and all four refusals are exercised in memory. `CodeHudBridgeServer` is the only file that knows what a socket is, and it holds no rule of its own.
