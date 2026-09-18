@@ -19,9 +19,11 @@ import { Codex } from "../internal/codex";
  * 1. The counter starts at zero, ascends by one, and never skips, so the
  *    bridge's own stamping agrees with the adapter's rather than papering over
  *    it.
- * 2. The eleven kinds of bookkeeping produce nothing: rate limits, token usage,
- *    hooks, MCP startup, remote control status, and the wearer's own message
- *    handed back.
+ * 2. The bookkeeping produces nothing: rate limits, token usage, hooks, MCP
+ *    startup, remote control status, the running diff of the turn, and the
+ *    wearer's own message handed back. The list is not a fixed length — the
+ *    diff notification appeared only when a capture that writes a file was
+ *    added — so each member is named and each is fed in alone.
  * 3. A command is reported under one identifier across both phases, and the
  *    finish carries the description the start made.
  * 4. A command the wearer declined is marked failed; one that ran is not. This
@@ -75,6 +77,7 @@ export async function test_agent_codex_normalize(): Promise<void> {
     "remoteControl/status/changed",
     "thread/status/changed",
     "serverRequest/resolved",
+    "turn/diff/updated",
   ]) {
     const line: Codex.IMessage | undefined = Codex.ALL.flatMap(
       ({ stream }) => stream,

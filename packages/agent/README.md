@@ -88,7 +88,7 @@ With partial messages on, the harness reports the same prose twice, once as delt
 
 Claude Code streams NDJSON with a control round-trip bolted alongside; Codex is JSON-RPC in both directions. Downstream of the adapters neither difference exists.
 
-What differs most is where the truth comes from. Claude Code ships no protocol generator, so its adapter is written against captured fixtures. Codex generates its own types, so shape is a compile error — but generation says nothing about **which** messages arrive: `ThreadItem` declares nineteen variants and an ordinary turn emits four. Both adapters are therefore written against captures, for different reasons.
+What differs most is where the truth comes from. Claude Code ships no protocol generator, so its adapter is written against captured fixtures. Codex generates its own types, so shape is a compile error — but generation says nothing about **which** messages arrive: `ThreadItem` declares nineteen variants and an ordinary turn emits four, or five when it writes a file. Both adapters are therefore written against captures, for different reasons.
 
 ## Answering in the server's own words
 
@@ -102,6 +102,20 @@ Codex has **two decision vocabularies**:
 Answering the modern request in the legacy words is **refused silently**: the command does not run, the turn continues, nothing says why. This repository produced a fixture named `approve` that approved nothing for exactly that reason.
 
 So the adapter's options carry the server's own identifiers and the session sends them straight back. There is no translation table, because a translation table is where that mistake lives.
+
+## A file change is named by the item, because the question is not
+
+`item/fileChange/requestApproval` carries `threadId`, `turnId`, `itemId`, `startedAtMs`, an optional reason and an optional grant root. It carries no path and no command, so there is nothing in the question itself to put in front of a wearer.
+
+Until the `fileChange` item was normalized, the fallback answered instead, and the fallback is the phrase reserved for a *permissions* request: a wearer asked whether an agent could write a file was shown **Wider access requested** over the working directory. Two different questions, one box, no way to ask a follow-up.
+
+The item arrives first and carries `changes`, each a path and a kind — `add`, `delete`, `update`, the last optionally moving the file. So the item is remembered under its identifier the way a command execution already is, and the approval finds its subject there. A reason the server did give moves to the line under the title, which a file-change request leaves empty because it names no working directory.
+
+Three neighbours of that rule are not the same rule:
+
+- **A permissions request also carries an `itemId`.** It is asking to widen what the agent may do for the rest of the turn, not to perform the item that prompted it, so it is never titled from that item. Understating an access request is the same mistake pointed the other way, and the other way is worse.
+- **A grant root is an access request wearing a file change's clothes.** The bindings say that when `grantRoot` is set the agent is asking to write anywhere under that root for the remainder of the session. Approving one file and approving a directory are different answers, so the wearer is told which they are giving and the change goes on the line below.
+- **The legacy `applyPatchApproval` carries its own subject.** It has `conversationId`, `callId`, a map from path to `FileChange`, a reason and a grant root — no command, no working directory, no item to look anything up by — so it is described from the paths in the map. Typed from the generated bindings rather than from a capture, because every server this repository has driven sends the modern method.
 
 ## The default that is not ours to rely on
 
