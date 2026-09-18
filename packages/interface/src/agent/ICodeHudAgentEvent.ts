@@ -1,3 +1,4 @@
+import type { ICodeHudAgentAdapter } from "./ICodeHudAgentAdapter";
 import type { ICodeHudAgentPermission } from "./ICodeHudAgentPermission";
 
 /**
@@ -269,6 +270,24 @@ export namespace ICodeHudAgentEvent {
      * by {@link ICodeHudAgentPermission.affirmative} when binding them to gestures.
      */
     options: ICodeHudAgentPermission[];
+
+    /**
+     * Which class of action this request would perform, as the adapter read it.
+     *
+     * The link between a harness's question and the policy the wearer stated
+     * when the work began. Without it a session's policy can decide what runs
+     * unattended and nothing more: every request that does reach the wearer
+     * looks alike, and the four classes that cannot be undone are answered by
+     * the same single word as reading a file.
+     *
+     * Absent where the adapter cannot tell. That is not a defect but the honest
+     * case, and it is treated as the most cautious class the wearer's policy
+     * still lets through rather than as the cheapest.
+     *
+     * @evidence requirements/agent-control/turn-and-approval.md#agent-approval-budget Carries the class a request belongs to, which is what makes a stated policy mean anything on the request in front of the wearer.
+     * @evidence specifications/agent-harness/control-and-approval.md#spec-agent-permission-classification Types the classification the specification requires an adapter to report with each request.
+     */
+    action?: ICodeHudAgentAdapter.IPolicy.Action;
   }
 
   /**

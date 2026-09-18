@@ -43,6 +43,7 @@ export class CodeHudReducer {
       message: "",
       history: [],
       review: { active: false, offset: 0 },
+      confirming: false,
     };
   }
 
@@ -103,11 +104,16 @@ export class CodeHudReducer {
       case "permission":
         next.activity = "waiting";
         next.pending = event;
+        // A new request is waiting for its first answer, whatever the last one
+        // was waiting for. Carrying the flag across would let a wearer's single
+        // word answer a question they had not been asked twice about.
+        next.confirming = false;
         return next;
 
       case "result":
         next.activity = "done";
         next.pending = undefined;
+        next.confirming = false;
         next.last = event;
         next.message = "";
         return this.record(next, {
@@ -122,6 +128,7 @@ export class CodeHudReducer {
         if (event.fatal === false) return next;
         next.activity = "fault";
         next.pending = undefined;
+        next.confirming = false;
         next.fault = event.message;
         return next;
     }
@@ -140,7 +147,34 @@ export class CodeHudReducer {
    */
   public settle(state: ICodeHudState, request: string): ICodeHudState {
     return state.pending?.request === request
-      ? { ...state, pending: undefined, activity: "working" }
+      ? {
+          ...state,
+          pending: undefined,
+          confirming: false,
+          activity: "working",
+        }
+      : state;
+  }
+
+  /**
+   * Moves a doubly-confirmed request between its first answer and its second.
+   *
+   * Local, like settling and review: the harness is told nothing until the
+   * second answer is given, because until then nothing has been answered. The
+   * request stays pending throughout, so it keeps blocking, keeps being
+   * refusable, and is never resolved by elapsed time.
+   *
+   * Confirming a request that is not the pending one changes nothing, which is
+   * the same rule settling obeys and for the same reason: a word spoken about a
+   * question that has moved on must not land on the one that replaced it.
+   */
+  public confirm(
+    state: ICodeHudState,
+    request: string,
+    confirming: boolean,
+  ): ICodeHudState {
+    return state.pending?.request === request
+      ? { ...state, confirming }
       : state;
   }
 

@@ -23,6 +23,13 @@ import { Stream } from "../internal/stream";
  * 4. Answering when nothing is pending changes nothing, the boundary where a
  *    late answer arrives after a result already cleared the request.
  * 5. A result clears a pending request, since the turn ended without it.
+ * 6. A request can be moved to waiting for its second answer and back, keyed by
+ *    its own identifier like every other local move, and it stays pending
+ *    throughout: the harness has been told nothing, so nothing is answered.
+ * 7. Nothing carries that state into another request. A new request, a result,
+ *    a fault, and an answer each leave it waiting for a first answer, because a
+ *    flag that survived any of them would let one word answer a question the
+ *    wearer was never asked twice about.
  */
 export async function test_hud_reduce_permission(): Promise<void> {
   const reducer: CodeHudReducer = new CodeHudReducer(CodeHudContext.DEFAULT);
@@ -66,4 +73,61 @@ export async function test_hud_reduce_permission(): Promise<void> {
   );
   TestValidator.equals("a result clears the request", ended.pending, undefined);
   TestValidator.equals("and ends the turn", ended.activity, "done");
+
+  // The second answer, and everything that must not survive into another
+  // request.
+  const confirming: ICodeHudState = reducer.confirm(asked, "r1", true);
+  TestValidator.equals(
+    "a request can be moved to waiting for its second answer",
+    confirming.confirming,
+    true,
+  );
+  TestValidator.equals(
+    "and is still pending, because nothing has been answered",
+    confirming.pending?.request,
+    "r1",
+  );
+  TestValidator.equals("still blocking, too", confirming.activity, "waiting");
+  TestValidator.equals(
+    "moving back leaves it waiting for a first answer",
+    reducer.confirm(confirming, "r1", false).confirming,
+    false,
+  );
+  TestValidator.equals(
+    "confirming a request that is not the pending one changes nothing",
+    reducer.confirm(confirming, "r2", false),
+    confirming,
+  );
+
+  const next: ICodeHudState = reducer.reduce(
+    confirming,
+    Stream.permission("r2", "Delete node_modules"),
+  );
+  TestValidator.equals(
+    "the new request is the pending one",
+    next.pending?.request,
+    "r2",
+  );
+  TestValidator.equals(
+    "a new request is waiting for its own first answer",
+    next.confirming,
+    false,
+  );
+  TestValidator.equals(
+    "answering clears it as well as the request",
+    reducer.settle(confirming, "r1").confirming,
+    false,
+  );
+  TestValidator.equals(
+    "a result clears it",
+    reducer.reduce(confirming, Stream.result("Stopped", "interrupted"))
+      .confirming,
+    false,
+  );
+  TestValidator.equals(
+    "and so does a fault",
+    reducer.reduce(confirming, Stream.error("the harness died", true))
+      .confirming,
+    false,
+  );
 }

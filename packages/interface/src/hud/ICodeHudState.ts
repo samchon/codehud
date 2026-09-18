@@ -63,6 +63,22 @@ export interface ICodeHudState {
   pending?: ICodeHudAgentEvent.IPermission;
 
   /**
+   * Whether the pending request has had its first answer and awaits its second.
+   *
+   * Only ever true while {@link pending} is set and that request belongs to a
+   * class the session's policy marks doubly-confirmed. It is display state
+   * rather than an answer: the request is still pending, still blocking, and
+   * still refusable, and nothing about it resolves by elapsed time.
+   *
+   * Absent reads as false, so a fold written before this existed is a fold
+   * waiting for a first answer, which is what it was.
+   *
+   * @evidence requirements/voice-interaction/spoken-control.md#voice-consent-integrity Carries the state between the first answer and the differently worded second, which is what makes one misrecognition insufficient.
+   * @evidence specifications/agent-harness/control-and-approval.md#spec-agent-second-confirmation Types the confirming state the specification requires a doubly-confirmed request to pass through.
+   */
+  confirming?: boolean;
+
+  /**
    * Outcome of the last finished turn, once one has finished.
    *
    * What the idle display falls back to, so a wearer who looks up after ten

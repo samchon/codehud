@@ -67,6 +67,29 @@ is what a wearer would see, at the geometry you asked for:
 That last line cost no agent turn, no round trip, and no money: a question the
 device can answer from what it already holds never reaches the agent.
 
+Something that cannot be undone takes two words, and the second is a different
+word:
+
+```text
+┌────────────────────────────────────────┐
+│Bash ls -la fourth.txt && rm fourth.txt…│
+├────────────────────────────────────────┤
+│Say Allow or Deny                       │
+└────────────────────────────────────────┘
+        ↓ allow
+┌────────────────────────────────────────┐
+│Confirm: Bash ls -la fourth.txt && rm f…│
+├────────────────────────────────────────┤
+│Say Confirm or Deny                     │
+└────────────────────────────────────────┘
+        ↓ confirm   … and only then is the file gone
+```
+
+Repeating *allow* does not confirm, because one misrecognition must not be able
+to satisfy both asks. The command above is the one that taught us to read a
+chain rather than its head: it was classified by `ls` until a real file was
+deleted on one word.
+
 Both harness adapters have been driven against their real binaries. Claude Code:
 a gated write stopped, asked, and went through on *allow*. Codex: the same over
 JSON-RPC, and an approval left unanswered stayed pending for 190 seconds with

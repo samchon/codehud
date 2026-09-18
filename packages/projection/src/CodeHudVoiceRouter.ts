@@ -73,7 +73,7 @@ export class CodeHudVoiceRouter {
     // deletion, and the floor would guard exactly the devices that already
     // measure themselves.
     if (
-      (only === "allow" || only === "deny") &&
+      (only === "allow" || only === "deny" || only === "confirm") &&
       (props.confidence === undefined ||
         props.confidence < this.context.consent.floor)
     )
@@ -166,6 +166,7 @@ export namespace CodeHudVoiceRouter {
   > = Object.freeze({
     allow: Object.freeze([]),
     deny: Object.freeze([]),
+    confirm: Object.freeze([]),
     stop: Object.freeze(["stop", "halt", "interrupt"]),
     back: Object.freeze(["back", "previous"]),
     forward: Object.freeze(["forward", "next"]),
@@ -221,6 +222,7 @@ export namespace CodeHudVoiceRouter {
 
     if (head === consent.affirmative.toLowerCase()) found.push("allow");
     if (head === consent.negative.toLowerCase()) found.push("deny");
+    if (head === consent.confirmation.toLowerCase()) found.push("confirm");
 
     for (const [command, phrases] of Object.entries(GRAMMAR))
       if (phrases.includes(head) === true)
@@ -269,6 +271,7 @@ export namespace CodeHudVoiceRouter {
   export const phrases = (consent: ICodeHudVoiceRouting.IConsent): string[] => [
     consent.affirmative,
     consent.negative,
+    consent.confirmation,
     ...Object.values(GRAMMAR).flatMap((list) => [...list]),
     ...Object.values(QUESTIONS).flatMap((list) => [...list]),
   ];

@@ -52,6 +52,7 @@ export namespace CodeHudContext {
       unheard: "Not heard clearly, still waiting",
       unoffered: "Not an answer this one offers",
       single: "One session here",
+      again: "Confirm:",
       muted: "Quiet. Nothing will wake you",
       unmuted: "Listening again",
       elsewhere: "Sent to the phone instead",

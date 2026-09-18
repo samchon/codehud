@@ -66,7 +66,8 @@ export namespace ICodeHudVoiceRouting {
       | "switch"
       | "help"
       | "mute"
-      | "unmute";
+      | "unmute"
+      | "confirm";
   }
 
   /**

@@ -54,6 +54,28 @@ Reads default to unattended. Writes, executions, and any action that leaves the 
 
 The policy is a property of one session, not of the installation. The system reports the policy in force on a running session when asked, and the wearer states it when the work begins.
 
+### Every request says what class it belongs to {#spec-agent-permission-classification}
+
+<!-- @evidence requirements/agent-control/turn-and-approval.md#agent-approval-budget Refines the session policy into a per-request classification, without which the policy governs only what never reaches the wearer. -->
+
+An adapter reports, with each approval request, which class of action the request would perform. The classes are the ones the policy partitions: reading, writing, executing, leaving the machine, deletion, history rewriting, force publication, and credential exposure.
+
+Classification is read from what the harness states about the request — the tool it named, the command it would run — against a table the adapter states in full. It is never inferred from prose the harness wrote for a human, and an adapter that cannot tell reports no class rather than a likely one.
+
+The four irreversible classes are reached by inspecting the command a request would run, because a harness performs all four through its ordinary execution tool and a classification by tool name alone can never name them. The table that does this is a floor: a command it does not recognize is not thereby safe, and the system states that limit rather than implying coverage it does not have.
+
+### A doubly-confirmed request is asked twice {#spec-agent-second-confirmation}
+
+<!-- @evidence requirements/voice-interaction/spoken-control.md#voice-consent-integrity Refines the differently-worded second confirmation into the state a pending request passes through and what does and does not advance it. -->
+
+A request whose class the session's policy marks doubly-confirmed is not answered by the affirmative alone. The affirmative moves the request into a confirming state, and only the confirmation token — worded differently from the affirmative — answers it.
+
+Repeating the affirmative does not answer a confirming request, and does not leave the confirming state either. Any other utterance leaves it: the request returns to waiting for a first answer, so a wearer who began confirming and changed their mind has not half-answered anything.
+
+The refusal needs no second word at any point. Refusing is the recoverable direction, and requiring two utterances to decline would spend the wearer's attention protecting them from the outcome they already have.
+
+A confirming request is still a pending request: it blocks its session, it is never resolved by elapsed time, and the display states which of the two answers it is waiting for.
+
 ### Reporting a turn's end {#spec-agent-result-report}
 
 <!-- @evidence requirements/agent-control/turn-and-approval.md#agent-turn-outcome Refines how a turn ends into a result observation with three terminal states and a one-line summary. -->
