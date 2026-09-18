@@ -33,6 +33,30 @@ import { CodeHudAgentPolicy } from "./CodeHudAgentPolicy";
  * recognize something destructive costs them a repository. So a shape is in the
  * table when it is plausibly irreversible, not when it is certainly so.
  *
+ * ## What it still cannot see, said rather than implied
+ *
+ * A wearer who comes to believe that everything irreversible takes two words is
+ * relying on something this cannot promise. These are the known holes, written
+ * down because a floor nobody can measure is a floor nobody should trust:
+ *
+ * - **A truncating redirect.** `echo x > important.txt` destroys a file and
+ *   names no program that says so. It is deliberately not matched: most
+ *   redirects are harmless, `ls > /tmp/out` among them, and treating every `>`
+ *   as destructive would put a second word in front of most commands an agent
+ *   runs, which is the approval fatigue the policy exists to prevent.
+ * - **A destructive program this table has not met**, including anything
+ *   reached through a script or a task runner, where the line an agent shows
+ *   the wearer is the runner's name and not the command.
+ * - **Anything a tool other than execution does.** A write is classified as a
+ *   write however alarming its path looks, because it is recoverable from
+ *   version control and asking twice about every file an agent touches would
+ *   cost a wearer more than it saves them.
+ *
+ * The way to close them is not a longer table. It is to make execution itself
+ * doubly-confirmed by default and invert this into a list of what may be
+ * answered with one word — a decision about how often a wearer is interrupted,
+ * and one for the person whose attention it spends.
+ *
  * @evidence requirements/agent-control/turn-and-approval.md#agent-approval-budget Classifies the request in front of the wearer into the classes the stated policy partitions, which is what makes the policy apply to anything a wearer sees.
  * @evidence specifications/agent-harness/control-and-approval.md#spec-agent-permission-classification Implements classification from the tool a harness named and the command it would run, against tables stated in full, reporting nothing where it cannot tell.
  * @author Samchon
@@ -60,8 +84,19 @@ export namespace CodeHudActionClass {
       "git filter-branch",
       "git filter-repo",
       "git reflog delete",
+      "git branch -d",
       "git branch -D",
       "git tag -d",
+      "git stash drop",
+      "git stash clear",
+      "git checkout .",
+      "git checkout --",
+      // Every restore, rather than only the ones whose flags say they discard
+      // the working tree. Reading flags is what this table does not do, and the
+      // asymmetry decides the rest: matching `git restore --staged` costs a
+      // wearer one word, and missing `git restore --staged --worktree .` costs
+      // them whatever they had not committed.
+      "git restore",
     ]),
 
     // Publication that cannot be taken back, or cannot be taken back quietly.
@@ -84,8 +119,14 @@ export namespace CodeHudActionClass {
       "del",
       "erase",
       "remove-item",
+      "ri",
+      "rd",
       "git clean",
       "docker system prune",
+      "docker volume rm",
+      "docker rm",
+      "docker rmi",
+      "kubectl delete",
       "drop table",
       "drop database",
     ]),
