@@ -47,8 +47,8 @@ import { Stream } from "../internal/stream";
  * 9. A request whose class the session's policy marks doubly-confirmed is not
  *    answered by the affirmative: it moves to waiting for the differently
  *    worded token, repeating the affirmative does not satisfy it, any other
- *    word leaves that state rather than sitting in it, and refusing still takes
- *    one word because refusing is the recoverable direction.
+ *    word leaves that state rather than sitting in it, and refusing or stopping
+ *    still takes one word because both are the wearer taking something back.
  * 10. A request the adapter could not classify is asked twice wherever the
  *    wearer's policy asks twice about anything, which is the cautious reading
  *    of an adapter saying it does not know.
@@ -263,6 +263,15 @@ export async function test_device_desk_action(): Promise<void> {
       policy,
     ),
     { type: "decision", request: "r1", option: "decline" },
+  );
+  TestValidator.equals(
+    "stopping the turn is not swallowed either, because it is a brake",
+    CodeHudDeskAction.decide(
+      { type: "command", command: "stop" },
+      confirming,
+      policy,
+    ),
+    { type: "interrupt" },
   );
   TestValidator.equals(
     "and an utterance nobody heard leaves it exactly where it was",

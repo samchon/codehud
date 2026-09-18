@@ -46,10 +46,17 @@ import { CodeHudTerminalGlasses } from "./CodeHudTerminalGlasses";
  *
  * ## What it cannot show
  *
- * Both limits belong to the adapter it drives and are stated there in full: a
+ * Two limits belong to the adapter it drives and are stated there in full: a
  * keyboard does not mishear, so the consent floor is never exercised here, and
  * there is no push-to-talk. A wearer of the real device gets both; a reader of
  * this terminal must not conclude either has been tested.
+ *
+ * A third belongs here. This host does not reconnect: a dropped socket ends the
+ * run rather than reattaching from the counter its fold reached. The client can
+ * do it — reattaching from a remembered counter is what it was built around —
+ * and the phone shell will, because a wearer walks out of range and back. A
+ * desk does not, so nothing here exercises that path and nobody should read
+ * this as having tested it.
  *
  * @evidence requirements/product/charter.md#product-two-adapter-axes Runs one device adapter against one harness family without either knowing the other, which is the arrangement the axes exist to make possible.
  * @evidence specifications/device-surface/capability-and-input.md#spec-device-adapter-authority Drives an adapter that renders what it is handed and reports what it observes, keeping composition and the meaning of input outside it.
