@@ -9,12 +9,15 @@ import type { ICodeHudHarnessChannel } from "./ICodeHudHarnessChannel";
  * exists. Every rule about what the harness's output means lives in the
  * normalizer, and every rule about what a wearer's instruction becomes lives in
  * the session; both are exercised against this seam rather than against a pipe.
- * That is what makes it acceptable that no unit test covers this file.
  *
- * What it does own is the framing. The harness writes one JSON object per line,
- * but a pipe delivers bytes, so a line can arrive in pieces or several can
- * arrive together, and a chunk boundary is not a line boundary. Getting that
- * wrong produces a parse error on perfectly good output.
+ * What it does own is the framing, and that is a rule like any other. The
+ * harness writes one JSON object per line, but a pipe delivers bytes, so a line
+ * can arrive in pieces or several can arrive together, and a chunk boundary is
+ * not a line boundary. Getting that wrong produces a parse error on perfectly
+ * good output, or loses a line that was never malformed — which is what it did:
+ * this file's own documentation said no test was needed while naming the one
+ * rule that lives nowhere else, and the rule was wrong at the end of the
+ * stream.
  *
  * @evidence requirements/agent-control/harness-abstraction.md#agent-session-lifetime Reaches the running harness process, so a session can drive one without knowing it is a process.
  * @evidence specifications/agent-harness/normalized-stream.md#spec-agent-session-open Carries the observation stream, instruction delivery, and termination the session surface is defined over.
@@ -40,23 +43,49 @@ export class CodeHudNodeChannel implements ICodeHudHarnessChannel {
     const self: CodeHudNodeChannel = this;
     return {
       [Symbol.asyncIterator]: async function* (): AsyncGenerator<unknown> {
+        /**
+         * One line, or nothing when there was no line there.
+         *
+         * `undefined` is the sentinel and is unambiguous: JSON has no literal
+         * for it, so a line the harness meant to send can never parse to it.
+         * `null`, `0`, `false` and `""` can, and are lines.
+         *
+         * The trim is not what makes a `
+
+` ending work — a carriage return
+         * is JSON whitespace and the parser skips it. What it decides is a
+         * byte-order mark, which is not, and which on Windows would otherwise
+         * make a harness's first line unreadable.
+         */
+        const take = (line: string): unknown => {
+          const flat: string = line.trim();
+          if (flat.length === 0) return undefined;
+          try {
+            return JSON.parse(flat);
+          } catch {
+            return undefined;
+          }
+        };
         for await (const chunk of child.stdout) {
           self.buffer += String(chunk);
           for (;;) {
             const at: number = self.buffer.indexOf("\n");
             if (at === -1) break;
-            const line: string = self.buffer.slice(0, at).trim();
+            const line: string = self.buffer.slice(0, at);
             self.buffer = self.buffer.slice(at + 1);
-            if (line.length === 0) continue;
-            let parsed: unknown;
-            try {
-              parsed = JSON.parse(line);
-            } catch {
-              continue;
-            }
-            yield parsed;
+            const parsed: unknown = take(line);
+            if (parsed !== undefined) yield parsed;
           }
         }
+        // What the process left without a newline after it. A harness that
+        // writes its last line and exits owes nothing more, and the byte it did
+        // not write carries no information — but that last line is the one that
+        // ends the turn on both harnesses, so dropping it produced every
+        // observation of a turn and then no result at all: a display resting on
+        // the last thing the agent said, about work that had finished.
+        const rest: unknown = take(self.buffer);
+        self.buffer = "";
+        if (rest !== undefined) yield rest;
       },
     };
   }
