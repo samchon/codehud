@@ -226,6 +226,12 @@ export namespace CodeHudDeskAction {
    * told about. A device driving only its own sessions never sees it, which is
    * exactly why it has to be stated rather than left to whatever constant that
    * device happens to hold.
+   *
+   * The rule is the specification's, not this simulator's —
+   * `specifications/agent-harness/control-and-approval.md`, *A doubly-confirmed
+   * request is asked twice*: "A device must not substitute a policy of its own
+   * for one it has not been told." A device adapter in another package reads it
+   * there rather than importing this constant.
    */
   export const CAUTIOUS: ICodeHudAgentAdapter.IPolicy = Object.freeze({
     actions: Object.freeze({
