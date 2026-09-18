@@ -19,6 +19,7 @@ import { type Interface, createInterface } from "node:readline";
 import { WebSocketConnector } from "tgrid";
 
 import { CodeHudDeskAction } from "./CodeHudDeskAction";
+import { CodeHudDeskFocus } from "./CodeHudDeskFocus";
 import { CodeHudTerminalGlasses } from "./CodeHudTerminalGlasses";
 
 /**
@@ -79,7 +80,25 @@ export class CodeHudDeskCommand {
     CodeHudDeskCommand.queue();
 
   private client: CodeHudSessionClient | null = null;
-  private session: string = "";
+
+  /**
+   * The sessions this host opened, in the order it opened them.
+   *
+   * The order is the wearer's selection vocabulary: they say a number, not a
+   * path, because no contract may require a wearer to pronounce an identifier.
+   */
+  private readonly sessions: { id: string; directory: string }[] = [];
+
+  /**
+   * Which session the display is showing.
+   *
+   * An index rather than an identifier, so the number a wearer says and the
+   * thing it selects are the same fact. Moved only by the wearer: an approval
+   * in another session takes the display without taking the focus, because a
+   * focus that reassigned itself is one the wearer has to re-establish rather
+   * than one they set.
+   */
+  private focus: number = 0;
   private shown: string = "";
 
   /** Constructs a desk host bound to one set of options. */
@@ -94,11 +113,14 @@ export class CodeHudDeskCommand {
   }
 
   /**
-   * Connects, opens a session, and reads typed lines until the input ends.
+   * Connects, opens a session per named directory, and reads typed lines until
+   * the input ends.
    *
-   * The session is opened here rather than waited for, because a wearer running
-   * this has a repository in mind and the bridge has no way to guess which one.
-   * Resolves when the wearer stops typing or the connection goes.
+   * The sessions are opened here rather than waited for, because a wearer
+   * running this has repositories in mind and the bridge has no way to guess
+   * which. They are opened in the order they were named, and that order is the
+   * one the wearer selects by. Resolves when the wearer stops typing or the
+   * connection goes.
    */
   public async run(): Promise<void> {
     const connector = new WebSocketConnector<
@@ -130,11 +152,14 @@ export class CodeHudDeskCommand {
     try {
       await this.glasses.connect();
       await client.connect();
-      this.session = await client.open({
-        kind: this.props.kind,
-        directory: this.props.directory,
-        policy: this.props.policy,
-      });
+      for (const directory of this.props.directories) {
+        const id: string = await client.open({
+          kind: this.props.kind,
+          directory,
+          policy: this.props.policy,
+        });
+        this.sessions.push({ id, directory });
+      }
       await this.glasses.listen();
       await this.draw();
       await this.consume(client);
@@ -179,7 +204,7 @@ export class CodeHudDeskCommand {
         client,
         CodeHudDeskAction.decide(
           routing,
-          client.state(this.session),
+          client.state(this.current),
           this.props.policy,
         ),
       );
@@ -193,35 +218,41 @@ export class CodeHudDeskCommand {
   ): Promise<void> {
     switch (action.type) {
       case "prompt":
-        await client.send(this.session, {
+        await client.send(this.current, {
           type: "prompt",
           text: action.text,
         });
         break;
       case "decision":
-        await client.send(this.session, {
+        await client.send(this.current, {
           type: "decision",
           request: action.request,
           option: action.option,
         });
         break;
       case "interrupt":
-        await client.send(this.session, { type: "interrupt" });
+        await client.send(this.current, { type: "interrupt" });
         break;
       case "review":
-        client.review(this.session, action.move);
+        client.review(this.current, action.move);
         break;
       case "redraw":
         this.shown = "";
         break;
       case "answer":
-        this.say(this.router.answer(action.query, client.state(this.session)));
+        this.say(this.router.answer(action.query, client.state(this.current)));
         break;
       case "silence":
         this.silence(action.active);
         break;
       case "confirm":
-        client.confirm(this.session, action.request, action.confirming);
+        client.confirm(this.current, action.request, action.confirming);
+        break;
+      case "list":
+        for (const line of this.listing()) this.say(line);
+        break;
+      case "focus":
+        this.moved(action.ordinal);
         break;
       case "say":
         this.say(this.phrase(action));
@@ -232,24 +263,87 @@ export class CodeHudDeskCommand {
     await this.draw();
   }
 
+  /** The session every instruction is addressed to, which is the one shown. */
+  private get current(): string {
+    return this.sessions[this.focus]?.id ?? "";
+  }
+
+  /** States what there is to select from, and which one is on the display. */
+  private listing(): string[] {
+    return CodeHudDeskFocus.listing(
+      this.described(),
+      this.focus,
+      this.props.geometry,
+      this.context.vocabulary,
+    );
+  }
+
   /**
-   * Draws the current frame, unless the display already shows it.
+   * Shows a different session, or says that the number named none.
    *
-   * The comparison the adapter contract requires, kept here rather than in the
-   * adapter because a terminal has no screen to read back: what is already
-   * shown is the last thing this host wrote. Without it a streaming turn would
-   * print one box per token.
+   * The display is about to be another session's, so the comparison that skips
+   * an unchanged frame must not skip this one.
+   */
+  private moved(ordinal: number): void {
+    const index: number | undefined = CodeHudDeskFocus.selected(
+      this.described(),
+      ordinal,
+    );
+    if (index === undefined) {
+      this.say(this.context.vocabulary.nosuch);
+      return;
+    }
+    this.focus = index;
+    this.shown = "";
+  }
+
+  /**
+   * The sessions with what each one is currently showing.
+   *
+   * The grade comes from the composed frame rather than from the fold, because
+   * which content demands attention is the projection boundary's decision and
+   * not this host's.
+   */
+  private described(): CodeHudDeskFocus.ISession[] {
+    const client: CodeHudSessionClient | null = this.client;
+    return this.sessions.map((session) => ({
+      ...session,
+      urgency:
+        client === null
+          ? ("ambient" as const)
+          : client.frame(session.id).urgency,
+    }));
+  }
+
+  /**
+   * Draws whatever the wearer should be looking at, unless it is already shown.
+   *
+   * The session in focus, except that a demand from any session takes the
+   * display: an approval blocks its own session whether or not the wearer is
+   * watching that one, and a wearer cannot choose to look at a session they do
+   * not know is waiting. The frame names its own directory, which is why this
+   * is safe to do without moving the focus — and the focus is not moved,
+   * because a focus that reassigned itself is one the wearer has to
+   * re-establish rather than one they set.
+   *
+   * The comparison that skips an unchanged frame is kept here as well as in the
+   * adapter, because this is where the decision not to present one belongs: a
+   * repeated demand under quiet mode would otherwise be deferred twice.
    */
   private async draw(): Promise<void> {
     const client: CodeHudSessionClient | null = this.client;
-    if (client === null || this.session.length === 0) return;
-    const frame: ICodeHudFrame = client.frame(this.session);
+    if (client === null || this.sessions.length === 0) return;
+    const chosen: CodeHudDeskFocus.ISession | undefined =
+      CodeHudDeskFocus.showing(this.described(), this.focus);
+    if (chosen === undefined) return;
+    const showing: string = chosen.id;
+    const frame: ICodeHudFrame = client.frame(showing);
     if (frame.key === this.shown) return;
     this.shown = frame.key;
 
     const permission: CodeHudNotifier.IPermission = this.notifier.present(
       frame,
-      client.state(this.session),
+      client.state(showing),
     );
     // The two permissions, each obeyed through the operation that belongs to
     // it. Speaking is optional on the contract, so a device without a speaker
@@ -302,8 +396,8 @@ export class CodeHudDeskCommand {
         return words.unheard;
       case "unoffered":
         return words.unoffered;
-      case "single":
-        return words.single;
+      case "nosuch":
+        return words.nosuch;
       case "help":
         return this.router.help().join(", ");
     }
@@ -342,8 +436,14 @@ export namespace CodeHudDeskCommand {
     /** Which harness to open a session on. */
     kind: ICodeHudBridgeProvider.IOpen["kind"];
 
-    /** Absolute directory the agent works in. */
-    directory: string;
+    /**
+     * Absolute directories to open a session in, one each.
+     *
+     * Several because a wearer runs several agents across several repositories
+     * at once, which is the case the whole session-naming rule exists for. The
+     * order is what the wearer selects by.
+     */
+    directories: string[];
 
     /** What needs asking, for the session this opens. */
     policy: ICodeHudBridgeProvider.IOpen["policy"];
@@ -357,6 +457,21 @@ export namespace CodeHudDeskCommand {
     /** Configuration the fold, the projection, and the router read. */
     context?: ICodeHudContext;
   }
+
+  /**
+   * The directories named on a command line.
+   *
+   * Every `--cd` in order, and the working directory when none was named. The
+   * order is the wearer's selection vocabulary, so it is the order they were
+   * typed rather than anything sorted.
+   */
+  export const directories = (argv: string[]): string[] => {
+    const found: string[] = [];
+    for (let i: number = 0; i < argv.length; ++i)
+      if (argv[i] === "--cd" && argv[i + 1] !== undefined)
+        found.push(argv[i + 1] as string);
+    return found.length === 0 ? [process.cwd()] : found;
+  };
 
   /** A stream of typed lines that can be pushed to and ended. */
   export interface ILines {
@@ -469,7 +584,7 @@ export namespace CodeHudDeskCommand {
       token,
       kind: (flag("kind") ??
         "claude-code") as ICodeHudBridgeProvider.IOpen["kind"],
-      directory: flag("cd") ?? process.cwd(),
+      directories: directories(argv),
       policy: POLICY,
       geometry: {
         columns: Number.parseInt(flag("columns") ?? "40", 10),

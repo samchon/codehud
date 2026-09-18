@@ -101,7 +101,7 @@ export namespace CodeHudDeskAction {
         };
 
       case "command":
-        return command(routing.command, state, policy);
+        return command(routing.command, state, policy, routing.ordinal);
     }
   };
 
@@ -133,6 +133,7 @@ export namespace CodeHudDeskAction {
     kind: ICodeHudVoiceRouting.ICommand.Kind,
     state: ICodeHudState,
     policy: ICodeHudAgentAdapter.IPolicy,
+    ordinal?: number,
   ): IAction => {
     switch (kind) {
       // Nothing outside a confirming request: the word answers the second ask
@@ -189,13 +190,16 @@ export namespace CodeHudDeskAction {
       case "help":
         return { type: "say", reason: "help" };
 
-      // Both name a session other than the one in hand, and this host runs one
-      // session. Reported rather than silently ignored, because a wearer whose
-      // words did nothing cannot tell that from the recognizer having missed
-      // them.
       case "sessions":
+        return { type: "list" };
+
+      // Selection is by ordinal, never by pronouncing a path. A wearer who said
+      // the word without a number has not selected anything, so they are told
+      // what there is to select from rather than moved somewhere arbitrary.
       case "switch":
-        return { type: "say", reason: "single" };
+        return ordinal === undefined
+          ? { type: "list" }
+          : { type: "focus", ordinal };
     }
   };
 
@@ -226,6 +230,8 @@ export namespace CodeHudDeskAction {
     | IAnswer
     | ISilence
     | IConfirm
+    | IList
+    | IFocus
     | ISay
     | INone;
 
@@ -312,6 +318,28 @@ export namespace CodeHudDeskAction {
     query: ICodeHudVoiceRouting.IQuery.Kind;
   }
 
+  /** State what sessions there are, and which one the display is showing. */
+  export interface IList {
+    /** Discriminator. */
+    type: "list";
+  }
+
+  /**
+   * Show a different session.
+   *
+   * Carries the ordinal the wearer spoke rather than an identifier, because no
+   * contract may require a wearer to pronounce one. An ordinal naming nothing is
+   * the host's to report, not this table's to silently drop: it is the shape a
+   * misheard number takes, and a wearer who is moved nowhere must be told.
+   */
+  export interface IFocus {
+    /** Discriminator. */
+    type: "focus";
+
+    /** Which session, counting from one as the wearer heard it. */
+    ordinal: number;
+  }
+
   /** Tell the wearer something about their own utterance. */
   export interface ISay {
     /** Discriminator. */
@@ -335,7 +363,7 @@ export namespace CodeHudDeskAction {
      * them perfectly well and declined.
      */
     export type Reason =
-      "ambiguous" | "unheard" | "unoffered" | "help" | "single";
+      "ambiguous" | "unheard" | "unoffered" | "help" | "nosuch";
   }
 
   /** The utterance was addressed to nothing. */

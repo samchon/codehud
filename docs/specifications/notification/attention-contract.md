@@ -22,6 +22,16 @@ Every demand-grade frame states the working directory of the session it concerns
 
 Where several sessions are attached, the identity is required for a notice as well when the notice concerns a session other than the one in focus.
 
+### A demand takes the display, whichever session it belongs to {#spec-notification-demand-precedence}
+
+<!-- @evidence requirements/notification/attention-and-quiet.md#notification-names-session Refines session naming into a precedence rule for the case naming exists for: several sessions attached, one of them blocked. -->
+
+A device attached to several sessions shows the one in focus, except that a demand-grade frame from any session takes the display until it is answered. An approval blocks its own session whether or not the wearer is looking at that session, and a wearer cannot choose to look at a session they do not know is waiting.
+
+Focus is not moved by this. What the wearer was reading is where they return, because a display that reassigned focus on every approval would make the focus a thing the wearer has to re-establish rather than a thing they set.
+
+Ambient and notice frames from a session other than the one in focus do not take the display. Missing one costs the wearer nothing, and the display they chose is the one they get to keep.
+
 ### Suppression defers rather than discards {#spec-notification-quiet-suppression}
 
 <!-- @evidence requirements/notification/attention-and-quiet.md#notification-quiet-mode Refines quiet mode into suppression of waking and speech at every grade, with deferred delivery and unchanged session state. -->
