@@ -38,11 +38,15 @@ import write from "./fixtures/codex/write.json";
  * **Scrubbed.** Field names and types as captured; identifiers renumbered,
  * durations and token counts zeroed, and the values that were this machine's or
  * this account's replaced rather than deleted. The leak scan earned its place
- * twice here: the first pass missed eighteen home-directory paths, because
- * session and hook paths live under the home directory and never mention the
- * working directory the scrubber was rewriting; the second pass still let six
- * through, because a hook run is identified by a string with a path inside it
- * and the identifier rule short-circuited the string rule.
+ * three times here: the first pass missed eighteen home-directory paths,
+ * because session and hook paths live under the home directory and never
+ * mention the working directory the scrubber was rewriting; the second pass
+ * still let six through, because a hook run is identified by a string with a
+ * path inside it and the identifier rule short-circuited the string rule; and
+ * the first attempt at `write` was taken in a path long enough that PowerShell
+ * wrapped it across lines, so the substring rule walked past a path that was
+ * there in two pieces. That one was retaken in a short directory rather than
+ * scrubbed harder.
  */
 export namespace Codex {
   /**

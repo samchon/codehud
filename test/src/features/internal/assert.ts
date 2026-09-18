@@ -83,7 +83,9 @@ export namespace Assert {
    * Found by mutating a working assertion and watching it stay green: a
    * normalizer changed to drop the reason it puts under an approval's title
    * passed a case that named the reason it expected. Scalars are unaffected,
-   * so only the object and array comparisons are worth routing through here.
+   * and so is an array's length; what needs this is any comparison whose
+   * values contain an object, however deeply it is wrapped — an array of them
+   * hides a missing member exactly the way a bare one does.
    *
    * Asserted in both directions rather than reimplemented. The second call is
    * the one that catches a member missing from the actual value, because in
