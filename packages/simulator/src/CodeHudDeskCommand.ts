@@ -27,11 +27,12 @@ import { CodeHudTerminalGlasses } from "./CodeHudTerminalGlasses";
  *
  * A class, and a facade controller: it owns a socket, a session, a readline
  * interface, and the glasses standing in for the ones that are not on anybody's
- * face. Every rule it obeys lives somewhere else — the router decides what an
- * utterance is, {@link CodeHudDeskAction} decides what that does, the client
- * folds, the composer fits, the notifier grades, the canvas draws — which is
- * why no unit test covers this file. What is left here is a connection, a
- * stream of typed lines, and a console.
+ * face. Almost every rule it obeys lives somewhere else — the router decides
+ * what an utterance is, {@link CodeHudDeskAction} decides what that does, the
+ * client folds, the composer fits, the notifier grades, the canvas draws. What
+ * is left here is a connection, a stream of typed lines, and a console, and one
+ * rule that could not live anywhere else: an instruction that cannot be
+ * delivered is reported to the wearer and the loop keeps reading.
  *
  * ## Why this exists
  *
@@ -52,8 +53,14 @@ import { CodeHudTerminalGlasses } from "./CodeHudTerminalGlasses";
  * there is no push-to-talk. A wearer of the real device gets both; a reader of
  * this terminal must not conclude either has been tested.
  *
- * A third belongs here. This host runs on a desk, so it never learns what
- * backgrounding does to a connection — the operating system that suspends a
+ * A third belongs here, and it is the one a reader is most likely to assume
+ * away: this file has exactly one case of its own, pinning that a refused
+ * instruction is reported rather than ending the run. Everything else it does
+ * is a connection, a stream of typed lines, and a console, and everything it
+ * decides is decided somewhere that a case can reach.
+ *
+ * A fourth is the desk itself. This host never learns what backgrounding does
+ * to a connection — the operating system that suspends a
  * phone is the one that decides whether a socket survives being put away, and
  * nothing here can stand in for that. Reconnection itself is exercised: the
  * socket drops, this dials again and reattaches each session from the counter
@@ -341,6 +348,13 @@ export class CodeHudDeskCommand {
       // Passed as an argument rather than read again, so there is no second
       // way to name the session and no way for the two to disagree.
       const addressed: string = this.addressed();
+      // An instruction that could not be delivered is something to tell the
+      // wearer, never a reason to stop listening to them. The bridge refuses
+      // four things by contract, a session refuses an answer to a request it is
+      // no longer waiting on, and a connection being re-established refuses
+      // everything for as long as that takes — and until this was here, any one
+      // of them ended the run out from under a wearer who had merely spoken at
+      // the wrong moment.
       await this.perform(
         client,
         CodeHudDeskAction.decide(
@@ -349,7 +363,11 @@ export class CodeHudDeskCommand {
           this.props.policy,
         ),
         addressed,
-      );
+      ).catch(async (thrown: unknown): Promise<void> => {
+        this.say(thrown instanceof Error ? thrown.message : String(thrown));
+        this.shown = "";
+        await this.draw();
+      });
     }
   }
 
