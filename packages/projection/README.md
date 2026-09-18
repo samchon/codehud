@@ -58,6 +58,18 @@ The split is what lets two devices attach to one session, share the state, and e
 - A late observation never rewinds the display.
 - Moving the review cursor toward newer content while already following it does nothing, rather than pinning the display where the wearer did not ask it to stop.
 
+## A consent configuration that cannot guard is refused
+
+The consent words and the confidence floor are the wearer's configuration, and a configuration that cannot do its job used to be obeyed rather than questioned.
+
+A floor of zero is the quiet one. It admits every recognition the engine produced, however unsure, so the approval path is wide open and nothing anywhere says the guard is off — the shape this repository has produced twice before, a configured check whose selector matches nothing and reports the same green as one that matches everything. Above one is the opposite and just as quiet: nothing can ever be approved, with the product working exactly as configured.
+
+The three words fail loudly instead, and still too late. Two that are equal make either of them ambiguous forever; one that is already a command shadows it, and an affirmative of `stop` costs a wearer their approval and their brake at once. Loud, but loud after they are already walking.
+
+So they are checked where the configuration is stated. `unusable` returns the reason rather than a boolean, because each of these is something whoever wrote the configuration has to fix and a caller told only "no" would have to guess which.
+
+What that leaves reachable is the routing rule itself: an utterance matching two commands is reported and never guessed. A *configuration* can no longer reach it. A grammar that grew a phrase under two commands could, which is why nothing in it may.
+
 ## A recognizer that cannot say how sure it is
 
 Consent takes a confidence floor, and a recognition arriving without a confidence at all is refused rather than admitted for want of a number: an engine that cannot say how sure it is cannot be used to authorize something irreversible.

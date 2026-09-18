@@ -100,19 +100,83 @@ export async function test_voice_routing(): Promise<void> {
     ).text.includes("CodeHudText"),
   );
 
-  // Ambiguity, constructed by giving two commands the same phrase.
-  const collided: CodeHudVoiceRouter = new CodeHudVoiceRouter({
-    ...CodeHudContext.DEFAULT,
-    consent: { ...consent, affirmative: "stop" },
-  });
-  const ambiguous = collided.route("stop");
-  Assert.equals("a double match is ambiguous", ambiguous.type, "ambiguous");
+  // Ambiguity: an utterance matching two commands is reported, never guessed.
+  //
+  // Driven against `matches` rather than through a router, because a router
+  // whose consent words collide with the grammar can no longer be built: that
+  // configuration is refused where it is stated. The rule being pinned here is
+  // the routing one, and it lives at this level. What keeps a *configuration*
+  // from ever reaching it is the constructor, pinned below; what would let the
+  // grammar reach it is a phrase appearing under two commands, pinned after
+  // that.
+  const doubled: ICodeHudVoiceRouting.ICommand.Kind[] =
+    CodeHudVoiceRouter.matches("stop", { ...consent, affirmative: "stop" });
   Assert.equals(
-    "naming every candidate, and resolving to none of them",
-    (ambiguous as { candidates: string[] }).candidates.sort((a, b) =>
-      a.localeCompare(b),
-    ),
+    "an utterance matching two commands names both, and resolves to neither",
+    doubled.sort((a, b) => a.localeCompare(b)),
     ["allow", "stop"],
+  );
+
+  // The grammar itself, which is the one thing that could put a wearer there
+  // without anyone misconfiguring anything.
+  const phrases: string[] = Object.values(CodeHudVoiceRouter.GRAMMAR).flatMap(
+    (list) => [...list],
+  );
+  Assert.equals(
+    "no phrase is how a wearer says two different commands",
+    phrases.filter((phrase, index) => phrases.indexOf(phrase) !== index),
+    [],
+  );
+
+  // A consent configuration that cannot guard is refused where it is stated.
+  //
+  // The floor is the one that fails quietly: at zero it admits every
+  // recognition the engine produced, however unsure, and nothing downstream
+  // says the guard is off. The others are loud in their own way — two equal
+  // words make either ambiguous, and a word that is already a command shadows
+  // it, which for "stop" costs a wearer their brake — but loud once a wearer
+  // is already walking is not the same as refused at startup.
+  for (const [reason, consented] of [
+    ["a floor of zero", { floor: 0 }],
+    ["a negative floor", { floor: -1 }],
+    ["a floor above one", { floor: 1.5 }],
+    ["a floor that is not a number", { floor: Number.NaN }],
+    ["an affirmative that is already a command", { affirmative: "stop" }],
+    ["two consent words that are the same", { negative: "allow" }],
+    ["an empty affirmative", { affirmative: "  " }],
+  ] as const) {
+    const broken: ICodeHudVoiceRouting.IConsent = { ...consent, ...consented };
+    Assert.predicate(
+      `${reason} is named as unusable`,
+      (CodeHudVoiceRouter.unusable(broken) ?? "").length > 0,
+    );
+    await Assert.throws(`and refuses to build a router: ${reason}`, () => {
+      const _ = new CodeHudVoiceRouter({
+        ...CodeHudContext.DEFAULT,
+        consent: broken,
+      });
+      void _;
+    });
+  }
+  Assert.equals(
+    "while the configuration this product ships with is usable",
+    CodeHudVoiceRouter.unusable(CodeHudContext.DEFAULT.consent),
+    undefined,
+  );
+
+  // The two readers of one string agree about what the string is. They did not:
+  // the check trimmed before judging a token and the match did not, so a token
+  // written with a space around it was usable and matched nothing — and an
+  // unmatched consent word is not silence, it is an instruction sent to the
+  // agent instead of an answer given to the question in front of the wearer.
+  const padded: CodeHudVoiceRouter = new CodeHudVoiceRouter({
+    ...CodeHudContext.DEFAULT,
+    consent: { ...consent, affirmative: " allow " },
+  });
+  Assert.equals(
+    "a consent word written with spaces around it still answers",
+    padded.route("allow", { confidence: 0.95 }),
+    { type: "command", command: "allow" },
   );
 
   // The questions this device answers by itself.
